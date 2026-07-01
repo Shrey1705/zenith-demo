@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 
-// TODO: update once the GitHub repo exists (filled in right after `gh repo create`).
-const REPO_URL = 'https://github.com/shreysagar/elevate-demo';
+const REPO_URL = 'https://github.com/Shrey1705/elevate-demo';
 const DISMISS_KEY = 'elevate-demo-banner-dismissed';
 
 export default function DemoBanner() {
