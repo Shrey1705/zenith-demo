@@ -36,8 +36,8 @@ app.use(async (req, res, next) => {
 // Stateless signed token instead of an in-memory Set: a serverless
 // invocation that issues a token may not be the one that later verifies
 // it, so there's nothing to look up server-side — just recompute the HMAC.
-const USERS = { pm: 'elevate@123' };
-const AUTH_SECRET = process.env.AI_AUTH_SECRET || 'elevate-demo-secret';
+const USERS = { pm: 'zenith@123' };
+const AUTH_SECRET = process.env.AI_AUTH_SECRET || 'zenith-demo-secret';
 
 function signToken(username) {
   const sig = crypto.createHmac('sha256', AUTH_SECRET).update(username).digest('hex').slice(0, 24);

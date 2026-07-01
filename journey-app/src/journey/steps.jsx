@@ -1,4 +1,4 @@
-// Journey step components — Elevate-style health issuance flow.
+// Journey step components — health issuance flow.
 import React from 'react';
 import { inr } from '../lib/api';
 

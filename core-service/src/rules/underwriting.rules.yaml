@@ -1,5 +1,5 @@
 # ============================================================
-# Underwriting rules — Elevate-style Health Retail (v2.0)
+# Underwriting rules — Health Retail (v2.0)
 # Owned by: Core / Underwriting. Changes require UW sign-off.
 # ============================================================
 permitted_relationships: [SELF, SPOUSE, SON, DAUGHTER, FATHER, MOTHER]

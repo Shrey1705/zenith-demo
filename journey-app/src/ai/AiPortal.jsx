@@ -23,7 +23,7 @@ function Login({ onToken }) {
   const [u, setU] = useState(''); const [p, setP] = useState(''); const [err, setErr] = useState('');
   const go = async () => {
     try { const r = await ai.login(u, p); onToken(r.token); }
-    catch { setErr('Invalid credentials. Demo login: pm / elevate@123'); }
+    catch { setErr('Invalid credentials. Demo login: pm / zenith@123'); }
   };
   return (
     <div className="page narrow dark">
@@ -33,7 +33,7 @@ function Login({ onToken }) {
       <label>Password</label><input type="password" value={p} onChange={e => setP(e.target.value)} onKeyDown={e => e.key === 'Enter' && go()} />
       {err && <p className="error">{err}</p>}
       <button className="btn" onClick={go}>Login</button>
-      <p className="hint">Demo credentials: <code>pm / elevate@123</code></p>
+      <p className="hint">Demo credentials: <code>pm / zenith@123</code></p>
     </div>
   );
 }

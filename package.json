@@ -1,8 +1,8 @@
 {
-  "name": "elevate-demo",
+  "name": "zenith-demo",
   "version": "1.0.0",
   "private": true,
-  "description": "Elevate-style health insurance issuance demo: journey frontend + core policy system + AI feasibility portal",
+  "description": "Zenith health insurance issuance demo: journey frontend + core policy system + AI feasibility portal",
   "scripts": {
     "install:all": "npm --prefix core-service install && npm --prefix ai-service install && npm --prefix journey-app install",
     "dev": "concurrently -n core,ai,web -c green,magenta,cyan \"cross-env PORT=4001 npm --prefix core-service start\" \"cross-env PORT=4002 npm --prefix ai-service start\" \"npm --prefix journey-app run dev\"",

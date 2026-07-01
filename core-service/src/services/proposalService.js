@@ -72,7 +72,7 @@ async function proposalForm(id) {
   const uw = premium.UW;
   return {
     proposal_id: p.proposal_id,
-    product: 'Elevate-style Health Retail (demo)',
+    product: 'Zenith Health Retail (demo)',
     status: p.status,
     proposer: p.proposer,
     members: p.members.map(m => ({

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
-const REPO_URL = 'https://github.com/Shrey1705/elevate-demo';
-const DISMISS_KEY = 'elevate-demo-banner-dismissed';
+const REPO_URL = 'https://github.com/Shrey1705/zenith-demo';
+const DISMISS_KEY = 'zenith-demo-banner-dismissed';
 
 export default function DemoBanner() {
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISS_KEY) === '1');

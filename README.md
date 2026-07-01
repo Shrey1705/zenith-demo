@@ -1,10 +1,10 @@
-# Elevate-style Health Insurance Demo + AI Feasibility Portal
+# Zenith — Health Insurance Issuance Demo + AI Feasibility Portal
 
-**Live demo:** [elevate-demo-rho.vercel.app](https://elevate-demo-rho.vercel.app) · [source on GitHub](https://github.com/Shrey1705/elevate-demo)
+**Live demo:** [TBD after rename](https://example.com) · [source on GitHub](https://github.com/Shrey1705/zenith-demo)
 
 A portfolio prototype by **Shrey Sagar** that models how enterprise insurance is actually built — a core policy-admin system holding the business rules, a frontend journey application consuming its APIs — and then layers a PM-facing **AI feasibility portal** on top that reads both codebases to answer the question every PM runs to Tech for: *"is this change feasible, and what does it touch?"*
 
-> Journey design inspired by ICICI Lombard's Elevate health product issuance flow (public site). This is an independent educational prototype — not affiliated with, endorsed by, or using any assets of ICICI Lombard.
+> This is an independent educational prototype modeling how a modern health insurer's issuance journey works end-to-end — not modeled on, affiliated with, or using any assets of any specific insurer.
 
 ## Architecture
 
@@ -38,7 +38,7 @@ Open http://localhost:5173
 |---|---|
 | Customer journey (`/buy`) | none |
 | Agent portal (`/agent`) | `agent` / `agent@123` |
-| AI portal (`/ai`) | `pm` / `elevate@123` |
+| AI portal (`/ai`) | `pm` / `zenith@123` |
 
 ## Demo script (5 minutes)
 
