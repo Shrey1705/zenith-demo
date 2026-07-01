@@ -97,4 +97,8 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); }
 .story h4 { margin-bottom: 6px; } .story ul { padding-left: 20px; margin: 4px 0 10px; }
 .story li { margin: 3px 0; line-height: 1.55; color: #c3c9da; }
 .testcase { margin: 10px 0; }
+.demobanner { display: flex; align-items: center; justify-content: center; gap: 14px; background: var(--accent); color: #fff; padding: 9px 20px; font-size: 13px; text-align: center; }
+.demobanner a { color: #fff; text-decoration: underline; }
+.demobanner-close { background: none; border: none; color: #fff; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 4px; opacity: .85; }
+.demobanner-close:hover { opacity: 1; }
 .gherkin { background: #0b0d13; border-left: 3px solid var(--green); border-radius: 6px; padding: 10px 14px; font-size: 12.5px; line-height: 1.7; margin-top: 6px; white-space: pre-wrap; font-family: ui-monospace, Menlo, monospace; }

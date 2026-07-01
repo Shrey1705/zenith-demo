@@ -8,14 +8,27 @@ const { LAYERS, ENTITIES } = require('./knowledge');
 
 const REPO_ROOT = path.join(__dirname, '../..');
 
+// Deployed bundles don't have sibling-package source files on disk at these
+// relative paths (see scripts/build-ai-snapshot.js) — fall back to a
+// build-time snapshot when the live read fails. Wrapped in try/catch so a
+// fresh clone with no snapshot built yet doesn't crash local dev (which
+// never needs the fallback, since the real files are right there).
+let snapshot = {};
+try { snapshot = require('./fileSnapshot.generated.js'); } catch { /* not built yet — fine locally */ }
+
+function readSource(file) {
+  try { return fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'); }
+  catch { return snapshot[file] || null; }
+}
+
 function evidenceFor(file, pattern) {
-  try {
-    const lines = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8').split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      if (pattern.test(lines[i])) return { line: i + 1, snippet: lines[i].trim().slice(0, 160) };
-    }
-    return null;
-  } catch { return null; }
+  const content = readSource(file);
+  if (content == null) return null;
+  const lines = content.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (pattern.test(lines[i])) return { line: i + 1, snippet: lines[i].trim().slice(0, 160) };
+  }
+  return null;
 }
 
 function detectEntities(text) {

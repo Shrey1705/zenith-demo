@@ -4,6 +4,7 @@ import JourneyWizard from './journey/JourneyWizard';
 import AgentPortal from './agent/AgentPortal';
 import PayLink from './pay/PayLink';
 import AiPortal from './ai/AiPortal';
+import DemoBanner from './components/DemoBanner';
 
 function Landing() {
   return (
@@ -32,6 +33,7 @@ function Landing() {
 export default function App() {
   return (
     <>
+      <DemoBanner />
       <nav className="topnav">
         <Link to="/" className="brand">elevate<span className="accent">demo</span></Link>
         <span>
