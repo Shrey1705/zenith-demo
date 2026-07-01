@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const svc = require('../services/proposalService');
-const store = require('../store/memoryStore');
+const store = require('../store');
 const { RULES, UW } = require('../services/premiumService');
 
 // Catalog for frontend bootstrapping (SI bands, addons, questions come from core rules)
@@ -12,29 +12,29 @@ router.get('/catalog', (_req, res) => res.json({
   permitted_relationships: UW.permitted_relationships
 }));
 
-router.post('/proposals', (req, res) => {
-  const r = svc.createProposal(req.body);
+router.post('/proposals', async (req, res) => {
+  const r = await svc.createProposal(req.body);
   r.errors ? res.status(400).json(r) : res.status(201).json(r.proposal);
 });
-router.put('/proposals/:id', (req, res) => {
-  const r = svc.updateProposal(req.params.id, req.body);
+router.put('/proposals/:id', async (req, res) => {
+  const r = await svc.updateProposal(req.params.id, req.body);
   r.errors ? res.status(400).json(r) : res.json(r.proposal);
 });
-router.post('/proposals/:id/submit', (req, res) => {
-  const r = svc.submitProposal(req.params.id);
+router.post('/proposals/:id/submit', async (req, res) => {
+  const r = await svc.submitProposal(req.params.id);
   r.errors ? res.status(400).json(r) : res.json(r.proposal);
 });
-router.get('/proposals/:id/form', (req, res) => {
-  const f = svc.proposalForm(req.params.id);
+router.get('/proposals/:id/form', async (req, res) => {
+  const f = await svc.proposalForm(req.params.id);
   f ? res.json(f) : res.status(404).json({ errors: ['not found'] });
 });
-router.get('/proposals/:id', (req, res) => {
-  const p = store.getProposal(req.params.id);
+router.get('/proposals/:id', async (req, res) => {
+  const p = await store.getProposal(req.params.id);
   p ? res.json(p) : res.status(404).json({ errors: ['not found'] });
 });
-router.get('/proposals', (req, res) => res.json(store.listProposals({ agent_code: req.query.agent_code })));
-router.post('/proposals/:id/payment-link', (req, res) => {
-  const r = svc.createPaymentLink(req.params.id);
+router.get('/proposals', async (req, res) => res.json(await store.listProposals({ agent_code: req.query.agent_code })));
+router.post('/proposals/:id/payment-link', async (req, res) => {
+  const r = await svc.createPaymentLink(req.params.id);
   r.errors ? res.status(400).json(r) : res.json(r);
 });
 

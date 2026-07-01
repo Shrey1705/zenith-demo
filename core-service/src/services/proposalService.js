@@ -1,12 +1,31 @@
 // Proposal lifecycle: DRAFT -> SUBMITTED -> ISSUED
-const store = require('../store/memoryStore');
+const store = require('../store');
 const premium = require('./premiumService');
 
-function createProposal(body) {
+// Abuse guard for a public demo: bound the free-text fields that aren't
+// already constrained by an enum/pattern in premium.validate().
+const MAX_LEN = 200;
+function lengthCapErrors(body) {
+  const errors = [];
+  if (body.pincode && String(body.pincode).length > 6) errors.push('pincode too long');
+  const checkFields = (obj, fields, label) => {
+    if (!obj) return;
+    for (const f of fields) {
+      if (obj[f] && String(obj[f]).length > MAX_LEN) errors.push(`${label}.${f} too long (max ${MAX_LEN} chars)`);
+    }
+  };
+  checkFields(body.proposer, ['name', 'mobile', 'email', 'pan'], 'proposer');
+  checkFields(body.nominee, ['name', 'relation'], 'nominee');
+  return errors;
+}
+
+async function createProposal(body) {
+  const capErrors = lengthCapErrors(body);
+  if (capErrors.length) return { errors: capErrors };
   const errors = premium.validate(body);
   if (errors.length) return { errors };
   const p = {
-    proposal_id: store.newId('PRP'),
+    proposal_id: await store.newId('PRP'),
     channel: body.channel || 'D2C',
     agent_code: body.agent_code || null,
     status: 'DRAFT',
@@ -22,31 +41,33 @@ function createProposal(body) {
     created_at: new Date().toISOString()
   };
   p.premium = premium.calculate(p);
-  return { proposal: store.saveProposal(p) };
+  return { proposal: await store.saveProposal(p) };
 }
 
-function updateProposal(id, body) {
-  const p = store.getProposal(id);
+async function updateProposal(id, body) {
+  const capErrors = lengthCapErrors(body);
+  if (capErrors.length) return { errors: capErrors };
+  const p = await store.getProposal(id);
   if (!p) return { errors: ['proposal not found'] };
   if (p.status !== 'DRAFT') return { errors: [`cannot update proposal in status ${p.status}`] };
   const merged = { ...p, ...body, proposal_id: p.proposal_id, status: 'DRAFT' };
   const errors = premium.validate(merged);
   if (errors.length) return { errors };
   merged.premium = premium.calculate(merged);
-  return { proposal: store.saveProposal(merged) };
+  return { proposal: await store.saveProposal(merged) };
 }
 
-function submitProposal(id) {
-  const p = store.getProposal(id);
+async function submitProposal(id) {
+  const p = await store.getProposal(id);
   if (!p) return { errors: ['proposal not found'] };
   if (!p.proposer || !p.proposer.name) return { errors: ['proposer details required before submit'] };
   p.status = 'SUBMITTED';
-  return { proposal: store.saveProposal(p) };
+  return { proposal: await store.saveProposal(p) };
 }
 
 // Render-ready proposal form for the review screen (customer-facing)
-function proposalForm(id) {
-  const p = store.getProposal(id);
+async function proposalForm(id) {
+  const p = await store.getProposal(id);
   if (!p) return null;
   const uw = premium.UW;
   return {
@@ -70,12 +91,12 @@ function proposalForm(id) {
   };
 }
 
-function createPaymentLink(id) {
-  const p = store.getProposal(id);
+async function createPaymentLink(id) {
+  const p = await store.getProposal(id);
   if (!p) return { errors: ['proposal not found'] };
   if (p.status === 'DRAFT') return { errors: ['submit proposal before payment'] };
-  const link = store.saveLink({
-    token: store.newId('PAY'),
+  const link = await store.saveLink({
+    token: await store.newId('PAY'),
     proposal_id: id,
     amount: p.premium.total,
     status: 'ACTIVE'
@@ -83,15 +104,16 @@ function createPaymentLink(id) {
   return { token: link.token, amount: link.amount, pay_url: `/pay/${link.token}` };
 }
 
-function confirmPayment(token) {
-  const link = store.getLink(token);
+async function confirmPayment(token) {
+  const link = await store.getLink(token);
   if (!link || link.status !== 'ACTIVE') return { errors: ['invalid or used payment link'] };
-  const p = store.getProposal(link.proposal_id);
+  const p = await store.getProposal(link.proposal_id);
   link.status = 'USED';
   p.payment_status = 'PAID';
   p.status = 'ISSUED';
   p.policy_no = 'POL/' + p.proposal_id.slice(3) + '/' + new Date().getFullYear();
-  store.saveProposal(p);
+  await store.saveLink(link);
+  await store.saveProposal(p);
   return { proposal_id: p.proposal_id, policy_no: p.policy_no, status: p.status };
 }
 

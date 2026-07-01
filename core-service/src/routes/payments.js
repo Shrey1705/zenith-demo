@@ -1,12 +1,12 @@
 const router = require('express').Router();
 const svc = require('../services/proposalService');
-const store = require('../store/memoryStore');
+const store = require('../store');
 
 // Payment page bootstrap (customer opens payment link)
-router.get('/payments/:token', (req, res) => {
-  const link = store.getLink(req.params.token);
+router.get('/payments/:token', async (req, res) => {
+  const link = await store.getLink(req.params.token);
   if (!link) return res.status(404).json({ errors: ['invalid payment link'] });
-  const p = store.getProposal(link.proposal_id);
+  const p = await store.getProposal(link.proposal_id);
   res.json({
     token: link.token, status: link.status, amount: link.amount,
     proposal_id: p.proposal_id,
@@ -15,8 +15,8 @@ router.get('/payments/:token', (req, res) => {
 });
 
 // Simulated payment-gateway success callback
-router.post('/payments/:token/confirm', (req, res) => {
-  const r = svc.confirmPayment(req.params.token);
+router.post('/payments/:token/confirm', async (req, res) => {
+  const r = await svc.confirmPayment(req.params.token);
   r.errors ? res.status(400).json(r) : res.json(r);
 });
 
