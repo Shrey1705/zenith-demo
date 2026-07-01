@@ -6,13 +6,19 @@ const VERDICT_LABEL = {
   a: 'Amber — API contract change, coordinated release',
   r: 'Red — core system change required'
 };
+// Effort sizing on a Fibonacci story-point scale (Scrum convention).
+const SIZE_POINTS = { S: 3, M: 5, L: 8, XL: 13 };
+const LEGEND_MD = '🔴 Red — core rules/DB change, needs UW/actuarial sign-off + migration · ' +
+  '🟠 Amber — API contract change, needs versioning + consumer coordination · ' +
+  '🟢 Green — frontend-only, no core dependency';
 
 function pdn(r) {
   const d = new Date().toISOString().slice(0, 10);
   let md = `# Product Development Note (PDN)\n\n`;
   md += `**Change:** ${r.text}\n**Date:** ${d} · **Author:** Product (AI-drafted, pending Tech review)\n`;
-  md += `**Overall feasibility:** ${VERDICT_LABEL[r.overall]}\n**Effort:** ${r.size} · ${r.sprints}\n`;
-  md += `**Code evidence:** ${r.verified}/${r.impacts.length} impacts verified against source\n\n`;
+  md += `**Overall feasibility:** ${VERDICT_LABEL[r.overall]}\n**Effort:** ${SIZE_POINTS[r.size]} story points (${r.size}) · ${r.sprints}\n`;
+  md += `**Code evidence:** ${r.verified}/${r.impacts.length} impacts verified against source\n`;
+  md += `**Legend:** ${LEGEND_MD}\n\n`;
 
   md += `## 1. Change description & rationale\n\n${r.text}. Business rationale to be attached by Product.\n\n`;
 
@@ -114,4 +120,4 @@ function testCases(r, storyList) {
   return suites;
 }
 
-module.exports = { pdn, stories, testCases, VERDICT_LABEL };
+module.exports = { pdn, stories, testCases, VERDICT_LABEL, SIZE_POINTS, LEGEND_MD };

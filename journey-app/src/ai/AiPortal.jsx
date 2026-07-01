@@ -74,7 +74,13 @@ function Analyzer({ token }) {
         <>
           <div className={'banner ' + r.overall} style={{ marginTop: 18 }}>
             <b>{DOT[r.overall]} {r.verdict_label}</b>
-            <p className="hint">Effort {r.size} · {r.sprints} · {r.verified}/{r.impacts.length} impacts verified against source code</p>
+            <p className="hint">Effort {r.effort_points} story points ({r.size}) · {r.sprints} · {r.verified}/{r.impacts.length} impacts verified against source code</p>
+          </div>
+          <div className="legend">
+            <span>{DOT.r} Red — core rules/DB change, needs UW/actuarial sign-off + migration</span>
+            <span>{DOT.a} Amber — API contract change, needs versioning + consumer coordination</span>
+            <span>{DOT.g} Green — frontend-only, no core dependency</span>
+            <span>Story points — Fibonacci scale: S=3 · M=5 · L=8 · XL=13</span>
           </div>
           <div className="tabs">
             {[['feas', 'Feasibility'], ['pdn', 'PDN draft'], ['stories', `Stories (${r.stories.length})`], ['tests', 'Test cases']].map(([k, l]) =>

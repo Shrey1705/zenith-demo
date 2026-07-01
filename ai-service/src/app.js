@@ -79,6 +79,8 @@ app.post('/analyze', auth, (req, res) => {
     ...r,
     layers: LAYERS,
     verdict_label: gen.VERDICT_LABEL[r.overall],
+    effort_points: gen.SIZE_POINTS[r.size],
+    legend: gen.LEGEND_MD,
     pdn_markdown: gen.pdn(r),
     stories: storyList,
     test_suites: gen.testCases(r, storyList)
