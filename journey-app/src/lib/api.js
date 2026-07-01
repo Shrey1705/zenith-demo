@@ -1,8 +1,8 @@
 // Thin client over the two backends (proxied by Vite dev server)
 async function req(base, path, opts = {}) {
   const res = await fetch(base + path, {
-    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
     ...opts,
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
     body: opts.body ? JSON.stringify(opts.body) : undefined
   });
   const data = await res.json().catch(() => ({}));
