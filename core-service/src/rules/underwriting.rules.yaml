@@ -1,0 +1,36 @@
+# ============================================================
+# Underwriting rules — Elevate-style Health Retail (v2.0)
+# Owned by: Core / Underwriting. Changes require UW sign-off.
+# ============================================================
+permitted_relationships: [SELF, SPOUSE, SON, DAUGHTER, FATHER, MOTHER]
+max_adults: 4
+max_children: 3
+max_members: 6
+
+entry_age:
+  adult: { min_years: 18, max_years: 65 }
+  child: { min_days: 91, max_years: 25 }
+
+waiting_periods:
+  initial_days: 30                    # all illness except accident
+  ped_months: 36                      # pre-existing disease default
+  ped_months_with_jump_start: 12      # Jump Start add-on reduces PED wait
+  specific_disease_months: 24
+  hypertension_diabetes_cardiac_days: 90
+
+ped:
+  declaration_required: true
+  auto_referral_conditions: [CKD, CANCER_HISTORY, CARDIAC_SURGERY]
+  loading_pct: 15                     # premium loading when PED declared
+
+nominee:
+  required_at_proposal: false         # optional at proposal stage; captured at issuance if skipped
+
+sum_insured_bands: [500000, 1000000, 2500000, 5000000, 10000000]
+
+medical_questions:
+  - { code: PED_DIABETES,     text: "Diabetes / high blood sugar?" }
+  - { code: PED_HYPERTENSION, text: "Hypertension / high BP?" }
+  - { code: PED_CARDIAC,      text: "Any heart / cardiac condition?" }
+  - { code: PED_OTHER,        text: "Any other ongoing illness, surgery or hospitalisation in last 36 months?" }
+  - { code: LIFESTYLE_TOBACCO, text: "Tobacco / smoking in any form?" }

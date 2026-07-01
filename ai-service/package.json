@@ -1,0 +1,11 @@
+{
+  "name": "ai-feasibility-service",
+  "version": "1.0.0",
+  "description": "AI portal backend — scans core-service and journey-app source for impact analysis, PDN, stories, test cases",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.0"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "contract": "proposal-v2",
+  "consumers": ["journey-app (D2C)", "agent-portal", "partner-aggregators"],
+  "endpoints": {
+    "POST /v2/proposals": {
+      "purpose": "Create draft proposal; returns premium breakup",
+      "request": {
+        "channel": { "enum": ["D2C", "AGENT"] },
+        "agent_code": { "type": "string", "optional": true },
+        "pincode": { "type": "string", "pattern": "^[1-9][0-9]{5}$" },
+        "tenure_years": { "type": "int", "enum": [1, 2, 3] },
+        "sum_insured": { "type": "int", "enum_ref": "underwriting.sum_insured_bands" },
+        "addons": { "type": "array", "items_enum_ref": "premium.addons" },
+        "members": [{
+          "relationship": { "enum": ["SELF", "SPOUSE", "SON", "DAUGHTER", "FATHER", "MOTHER"] },
+          "dob": { "type": "date" },
+          "declarations": { "type": "object", "note": "medical question code -> bool" }
+        }],
+        "nominee": {
+          "type": "object", "optional": true,
+          "fields": { "name": "string", "relation": "string", "dob": "date" },
+          "note": "optional at proposal stage per underwriting.nominee.required_at_proposal"
+        }
+      },
+      "response": {
+        "proposal_id": "string", "status": "DRAFT",
+        "premium": { "base": "int", "addons": "int", "loadings": "int", "discounts": "int", "gst": "int", "total": "int" },
+        "note": "per-member PED waiting period NOT exposed in v2 response"
+      }
+    },
+    "PUT /v2/proposals/:id": { "purpose": "Update draft (members/SI/addons/proposer/nominee); re-rates premium" },
+    "POST /v2/proposals/:id/submit": { "purpose": "Lock proposal after review; moves DRAFT -> SUBMITTED" },
+    "GET /v2/proposals/:id/form": { "purpose": "Render-ready proposal form JSON for customer review" },
+    "GET /v2/proposals/:id": { "purpose": "Status poll — includes payment_status and policy_no once issued" },
+    "POST /v2/proposals/:id/payment-link": { "purpose": "Generate payment link token (agent flow)" },
+    "GET /v2/payments/:token": { "purpose": "Payment page bootstrap — amount, proposal summary" },
+    "POST /v2/payments/:token/confirm": { "purpose": "Simulated PG callback; SUBMITTED -> ISSUED, generates policy_no" }
+  }
+}

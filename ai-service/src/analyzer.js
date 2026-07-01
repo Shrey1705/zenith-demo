@@ -1,0 +1,77 @@
+// Analyzer: maps a change request onto the entity knowledge base, then
+// verifies every claimed impact against the ACTUAL source files on disk,
+// pulling evidence lines. An impact with no evidence is downgraded to
+// "verify manually" rather than asserted — no hallucinated dependencies.
+const fs = require('fs');
+const path = require('path');
+const { LAYERS, ENTITIES } = require('./knowledge');
+
+const REPO_ROOT = path.join(__dirname, '../..');
+
+function evidenceFor(file, pattern) {
+  try {
+    const lines = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8').split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (pattern.test(lines[i])) return { line: i + 1, snippet: lines[i].trim().slice(0, 160) };
+    }
+    return null;
+  } catch { return null; }
+}
+
+function detectEntities(text) {
+  const t = ' ' + text.toLowerCase() + ' ';
+  return Object.entries(ENTITIES)
+    .map(([id, e]) => ({ id, e, score: e.keywords.filter(k => t.includes(k)).length }))
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(x => x.id);
+}
+
+const worst = (vs) => vs.includes('r') ? 'r' : vs.includes('a') ? 'a' : 'g';
+const SIZES = ['S', 'M', 'L', 'XL'];
+const maxSize = (arr) => arr.reduce((a, b) => SIZES.indexOf(b) > SIZES.indexOf(a) ? b : a, 'S');
+
+function analyze(text) {
+  const ids = detectEntities(text);
+  if (!ids.length) {
+    return {
+      matched: false, text,
+      note: 'Change request could not be mapped to entities known in either codebase. Likely net-new capability — recommend a Tech discovery spike before PDN.'
+    };
+  }
+  const ents = ids.map(id => ({ id, ...ENTITIES[id] }));
+
+  // de-dup impacts by file, keep worst verdict, attach live code evidence
+  const seen = {};
+  for (const ent of ents) {
+    for (const i of ent.impacts) {
+      const k = i.file;
+      if (!seen[k] || worst([seen[k].v, i.v]) === i.v) {
+        seen[k] = { ...i, entity: ent.label, evidence: evidenceFor(i.file, i.pattern), pattern: undefined };
+      }
+    }
+  }
+  const impacts = Object.values(seen);
+  const layerVerdicts = {};
+  for (const lid of Object.keys(LAYERS)) {
+    const ls = impacts.filter(i => i.layer === lid);
+    layerVerdicts[lid] = ls.length ? worst(ls.map(i => i.v)) : null;
+  }
+
+  return {
+    matched: true, text,
+    entities: ents.map(e => ({ id: e.id, label: e.label })),
+    overall: worst(impacts.map(i => i.v)),
+    size: maxSize(ents.map(e => e.size)),
+    sprints: ents.length === 1 ? ents[0].sprints : 'combined scope — sequence per entity in PDN',
+    coreChange: impacts.some(i => i.layer === 'core' || i.layer === 'db'),
+    impacts, layerVerdicts,
+    risks: [...new Set(ents.flatMap(e => e.risks))],
+    openq: [...new Set(ents.flatMap(e => e.openq))],
+    files: impacts.map(i => i.file),
+    verified: impacts.filter(i => i.evidence).length,
+    unverified: impacts.filter(i => !i.evidence).length
+  };
+}
+
+module.exports = { analyze, LAYERS };
