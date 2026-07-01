@@ -1,6 +1,6 @@
 # Zenith — Health Insurance Issuance Demo + AI Feasibility Portal
 
-**Live demo:** [TBD after rename](https://example.com) · [source on GitHub](https://github.com/Shrey1705/zenith-demo)
+**Live demo:** [zenith-health-demo.vercel.app](https://zenith-health-demo.vercel.app) · [source on GitHub](https://github.com/Shrey1705/zenith-demo)
 
 A portfolio prototype by **Shrey Sagar** that models how enterprise insurance is actually built — a core policy-admin system holding the business rules, a frontend journey application consuming its APIs — and then layers a PM-facing **AI feasibility portal** on top that reads both codebases to answer the question every PM runs to Tech for: *"is this change feasible, and what does it touch?"*
 
