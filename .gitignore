@@ -4,3 +4,4 @@ dist/
 *.log
 .vercel
 ai-service/src/fileSnapshot.generated.js
+.env*

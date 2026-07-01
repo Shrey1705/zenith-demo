@@ -1,5 +1,7 @@
 # Elevate-style Health Insurance Demo + AI Feasibility Portal
 
+**Live demo:** [elevate-demo-rho.vercel.app](https://elevate-demo-rho.vercel.app) · [source on GitHub](https://github.com/Shrey1705/elevate-demo)
+
 A portfolio prototype by **Shrey Sagar** that models how enterprise insurance is actually built — a core policy-admin system holding the business rules, a frontend journey application consuming its APIs — and then layers a PM-facing **AI feasibility portal** on top that reads both codebases to answer the question every PM runs to Tech for: *"is this change feasible, and what does it touch?"*
 
 > Journey design inspired by ICICI Lombard's Elevate health product issuance flow (public site). This is an independent educational prototype — not affiliated with, endorsed by, or using any assets of ICICI Lombard.
@@ -52,7 +54,7 @@ Open http://localhost:5173
 
 **Why is the AI portal deterministic in this prototype?** The demo must run offline and never hallucinate a dependency. The production design (documented here deliberately): read-only repo connectors → static-analysis dependency graph (contracts, rule files, schema constraints) → LLM maps natural-language change requests onto the graph and drafts the PDN. *LLM proposes, graph constrains.*
 
-**Why in-memory store instead of MongoDB?** The store exposes a six-function DB-shaped interface (`schema.sql` documents the real DDL). Mongo would add setup friction to a demo while demonstrating nothing about the product. Scope discipline is a feature.
+**Why in-memory store instead of MongoDB?** The store exposes a six-function DB-shaped interface (`schema.sql` documents the real DDL). Mongo would add setup friction to a demo while demonstrating nothing about the product. Scope discipline is a feature. In production the same six functions run against Upstash Redis (serverless invocations don't share process memory, so state has to live somewhere); locally, with no Redis env vars set, it falls straight back to the in-memory version — zero setup either way.
 
 **Deliberately planted tech debt** — the relationship enum is duplicated between core rules and journey validation, the v2 contract omits per-member PED waiting period (there's a `TODO(PROD-2311)` on the review screen), and nominee is optional with a measured 41% skip rate. The AI portal finds and reports all three. Real systems have scar tissue; the tool's job is knowing where it is.
 
