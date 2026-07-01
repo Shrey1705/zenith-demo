@@ -6,9 +6,13 @@
   "scripts": {
     "install:all": "npm --prefix core-service install && npm --prefix ai-service install && npm --prefix journey-app install",
     "dev": "concurrently -n core,ai,web -c green,magenta,cyan \"npm --prefix core-service start\" \"npm --prefix ai-service start\" \"npm --prefix journey-app run dev\"",
-    "start": "npm run dev"
+    "start": "npm run dev",
+    "build:snapshot": "node scripts/build-ai-snapshot.js"
   },
   "devDependencies": {
     "concurrently": "^9.0.0"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

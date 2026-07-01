@@ -6,8 +6,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/core': { target: 'http://localhost:4001', changeOrigin: true, rewrite: p => p.replace(/^\/core/, '') },
-      '/ai':   { target: 'http://localhost:4002', changeOrigin: true, rewrite: p => p.replace(/^\/ai/, '') }
+      '/api/core': { target: 'http://localhost:4001', changeOrigin: true, rewrite: p => p.replace(/^\/api\/core/, '') },
+      '/api/ai':   { target: 'http://localhost:4002', changeOrigin: true, rewrite: p => p.replace(/^\/api\/ai/, '') }
     }
   }
 });
