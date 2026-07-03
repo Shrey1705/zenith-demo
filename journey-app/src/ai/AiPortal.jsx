@@ -1,7 +1,8 @@
 // AI feasibility portal — login, analyze change request, view feasibility /
 // PDN / Jira stories / test cases. Talks to ai-service, which scans the
 // ACTUAL source of core-service and journey-app for evidence.
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ai } from '../lib/api';
 
 const SAMPLES = [
@@ -15,16 +16,20 @@ const DOT = { g: '🟢', a: '🟠', r: '🔴' };
 
 export default function AiPortal() {
   const [token, setToken] = useState(null);
-  if (!token) return <Login onToken={setToken} />;
+  const fromJourney = useLocation().search.includes('from=journey');
+  if (!token) return <Login onToken={setToken} autoLogin={fromJourney} />;
   return <Analyzer token={token} />;
 }
 
-function Login({ onToken }) {
-  const [u, setU] = useState(''); const [p, setP] = useState(''); const [err, setErr] = useState('');
-  const go = async () => {
-    try { const r = await ai.login(u, p); onToken(r.token); }
+function Login({ onToken, autoLogin }) {
+  // Demo-grade credentials are public, so prefill them — one click to enter.
+  const [u, setU] = useState('pm'); const [p, setP] = useState('zenith@123'); const [err, setErr] = useState('');
+  const go = async (user = u, pass = p) => {
+    try { const r = await ai.login(user, pass); onToken(r.token); }
     catch { setErr('Invalid credentials. Demo login: pm / zenith@123'); }
   };
+  // Arriving from the journey's success screen: log straight in.
+  useEffect(() => { if (autoLogin) go('pm', 'zenith@123'); /* eslint-disable-line */ }, [autoLogin]);
   return (
     <div className="page narrow dark">
       <h2>AI Feasibility Portal</h2>
@@ -32,8 +37,8 @@ function Login({ onToken }) {
       <label>Username</label><input value={u} onChange={e => setU(e.target.value)} />
       <label>Password</label><input type="password" value={p} onChange={e => setP(e.target.value)} onKeyDown={e => e.key === 'Enter' && go()} />
       {err && <p className="error">{err}</p>}
-      <button className="btn" onClick={go}>Login</button>
-      <p className="hint">Demo credentials: <code>pm / zenith@123</code></p>
+      <button className="btn" onClick={() => go()}>Login</button>
+      <p className="hint">Demo credentials prefilled: <code>pm / zenith@123</code></p>
     </div>
   );
 }

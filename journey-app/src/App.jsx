@@ -6,62 +6,73 @@ import PayLink from './pay/PayLink';
 import AiPortal from './ai/AiPortal';
 import DemoBanner from './components/DemoBanner';
 
+const LINKEDIN_URL = 'https://www.linkedin.com/in/shrey-sagar-productmanager/';
+
 function Landing() {
   return (
-    <div className="page landing">
-      <h1>Zenith <span className="accent">Health Insurance</span></h1>
-      <p className="hint">A portfolio prototype by Shrey Sagar — an evidence-backed AI feasibility layer on top of a working insurance issuance system.</p>
-
-      <section className="landing-copy">
+    <div className="landing">
+      <section className="hero">
+        <h1>Every product idea hits the same wall:<br /><span className="accent">"is this even feasible?"</span></h1>
         <p>
-          Hi, I'm <b>Shrey Sagar</b> — a Product Manager with 5+ years across health insurance and consumer
-          products. I've owned products end-to-end: ideation, BRDs, underwriting and actuarial sign-off,
-          engineering delivery, GTM, and post-launch tracking, across portfolios worth thousands of crores
-          in premium. This started as a side project to solve a problem I kept running into in my day-to-day.
+          Zenith is a working health insurance system — with an AI portal on top
+          that answers that question from the actual code, with evidence.
+        </p>
+        <Link className="btn gold" to="/buy">Start the demo →</Link>
+      </section>
+
+      <section className="landing-section">
+        <h2>The problem</h2>
+        <p>
+          A PM asking "what does this change touch?" waits days for an answer assembled
+          from engineers' memory of a system too complex to remember.
+          A wrong <b>yes</b> burns a sprint. A wrong <b>no</b> kills a good idea.
         </p>
       </section>
 
-      <section className="landing-copy">
-        <h2>Why this exists</h2>
+      <section className="landing-section">
+        <h2>The idea</h2>
         <p>
-          In any established insurance company, every product idea eventually hits the same wall:
-          <i> "Is this even feasible, and what does it actually touch?"</i> Today that means pulling in
-          three or four engineers and waiting days for an answer — and what comes back is usually someone's
-          best recollection of a system with years of accumulated complexity, not something you can verify.
-          A wrong "yes" derails a sprint; a wrong "no" kills a good idea before it's scoped.
+          Ground the answer in code, not recollection. Describe a change in plain English —
+          the portal scans the live system and returns a <b>verdict per layer</b>, every claim
+          backed by a <b>file and line number</b>, plus a PDN draft, stories and test cases.
+          What it can't verify, it flags instead of guessing.
         </p>
       </section>
 
-      <section className="landing-copy">
-        <h2>What I built</h2>
-        <p>
-          A working health insurance issuance system — real premium and underwriting rules, a proposal
-          lifecycle, agent and customer journeys, a payment flow — with an AI feasibility portal layered on
-          top that reads the <b>actual source code</b>, not docs or memory. Ask it a change request in plain
-          English and it returns a traffic-light verdict per system layer, each claim backed by a specific
-          file and line number, plus a draft PDN, Jira-ready stories, and Gherkin test cases. If it can't
-          verify a claim against real code, it says so instead of guessing.
-        </p>
-      </section>
-
-      <section className="landing-copy">
-        <h2>Try it yourself — takes 5 minutes</h2>
+      <section className="landing-section">
+        <h2>See it work — 5 minutes</h2>
       </section>
       <div className="cardsrow">
         <Link className="bigcard" to="/buy">
-          <h3>🛡 Buy health insurance</h3>
-          <p>Walk the customer journey: pick members, answer medical questions, get a live premium, pay, and get issued instantly.</p>
-        </Link>
-        <Link className="bigcard" to="/agent">
-          <h3>💼 Agent portal</h3>
-          <p>Run the journey on behalf of a customer, send a payment link, and watch it flip to Issued in real time.</p>
+          <span className="stepnum">1</span>
+          <h3>Buy a policy</h3>
+          <p>A complete issuance journey on a real rules engine — quote, details, pay, instant policy. ~3 minutes.</p>
         </Link>
         <Link className="bigcard" to="/ai">
-          <h3>🤖 AI feasibility portal</h3>
-          <p>Log in and ask "can we make nominee mandatory?" — get a verdict, a PDN, and test cases, grounded in live code evidence.</p>
+          <span className="stepnum">2</span>
+          <h3>Ask the AI portal</h3>
+          <p>The PM tool that reads this very system's code. Ask for a change, get an evidence-backed verdict. ~2 minutes.</p>
         </Link>
       </div>
-      <p className="hint">Architecture: journey-app (React) → core-policy-system API (rules, rating, proposals, payments) · ai-service scans both codebases.</p>
+
+      <div className="howto">
+        <h3>How to run the demo</h3>
+        <ol>
+          <li>Buy: get a quote → your details → simulated payment → policy issued instantly.</li>
+          <li>The success screen takes you straight into the AI portal.</li>
+          <li>Try <i>"Make nominee details mandatory"</i> — login <code>pm / zenith@123</code> comes prefilled.</li>
+        </ol>
+      </div>
+
+      <div className="about">
+        <h3>Built by Shrey Sagar</h3>
+        <p>
+          Product manager, 5+ years across health insurance and consumer products —
+          from 0→1 launches to portfolio-scale delivery. This project is how I think
+          the feasibility conversation should work.
+        </p>
+        <p><a href={LINKEDIN_URL} target="_blank" rel="noreferrer">Connect on LinkedIn ↗</a></p>
+      </div>
     </div>
   );
 }
@@ -74,7 +85,6 @@ export default function App() {
         <Link to="/" className="brand">zenith<span className="accent">demo</span></Link>
         <span>
           <Link to="/buy">Buy</Link>
-          <Link to="/agent">Agent</Link>
           <Link to="/ai">AI portal</Link>
         </span>
       </nav>

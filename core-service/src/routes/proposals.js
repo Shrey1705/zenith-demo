@@ -7,6 +7,7 @@ const { RULES, UW } = require('../services/premiumService');
 router.get('/catalog', (_req, res) => res.json({
   sum_insured_bands: UW.sum_insured_bands,
   tenure_options_years: RULES.tenure_options_years,
+  tenure_discount_pct: RULES.tenure_discount_pct,
   addons: Object.entries(RULES.addons).map(([code, a]) => ({ code, label: a.label, pct: a.pct, flat: a.flat })),
   medical_questions: UW.medical_questions,
   permitted_relationships: UW.permitted_relationships
