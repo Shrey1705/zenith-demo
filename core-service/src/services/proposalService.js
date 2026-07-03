@@ -87,7 +87,7 @@ async function proposalForm(id) {
     },
     nominee: p.nominee,   // may be null — optional at proposal stage
     premium: p.premium,
-    declarations_note: `Initial waiting ${uw.waiting_periods.initial_days} days; PED waiting ${uw.waiting_periods.ped_months} months (or ${uw.waiting_periods.ped_months_with_jump_start} with Jump Start).`
+    declarations_note: `Initial waiting ${uw.waiting_periods.initial_days} days; PED waiting ${uw.waiting_periods.ped_months} months (or ${uw.waiting_periods.ped_months_with_early_cover} with Early Cover).`
   };
 }
 

@@ -30,12 +30,12 @@ zone_loading:                          # derived from pincode prefix
 family_discount_pct: { "2": 5, "3_plus": 10 }
 
 addons:                                # pct = of base premium, flat = INR
-  POWER_BOOSTER:      { label: "Power Booster (super no-claim bonus up to 100%/yr)", pct: 12 }
-  INFINITE_CARE:      { label: "Infinite Care (unlimited cover, one lifetime claim)", pct: 15 }
-  JUMP_START:         { label: "Jump Start (PED waiting 36 -> 12 months)",           pct: 18 }
-  OPD_PLUS:           { label: "OPD+ (cashless outpatient + teleconsults)",          flat: 4500 }
-  INFLATION_PROTECT:  { label: "Inflation Protector (SI grows with CPI)",            pct: 5 }
-  ROOM_UPGRADE:       { label: "Room Rent Waiver (any room category)",               pct: 8 }
-  CLAIM_PROTECT:      { label: "Claim Protector (non-medical consumables)",          pct: 6 }
+  BONUS_ACCELERATOR:  { label: "Bonus Accelerator (no-claim bonus grows up to 100%/yr)", pct: 12 }
+  LIMITLESS_SHIELD:   { label: "Limitless Shield (one unlimited lifetime claim)",        pct: 15 }
+  EARLY_COVER:        { label: "Early Cover (PED waiting 36 -> 12 months)",              pct: 18 }
+  OPD_CARE:           { label: "OPD Care (cashless outpatient + teleconsults)",          flat: 4500 }
+  COVER_ESCALATOR:    { label: "Cover Escalator (SI grows with inflation)",              pct: 5 }
+  ROOM_FLEX:          { label: "Room Flex (any room category, no rent capping)",         pct: 8 }
+  CONSUMABLES_COVER:  { label: "Consumables Cover (non-medical consumables)",            pct: 6 }
 
 gst_pct: 18

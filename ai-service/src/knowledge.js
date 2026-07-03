@@ -71,7 +71,7 @@ const ENTITIES = {
       { layer: 'api', file: 'core-service/src/api/contracts/proposal-v2.contract.json', pattern: /NOT exposed in v2/, v: 'a',
         change: 'Add per-member ped_waiting_months to v2 response (contract explicitly notes it is missing)' },
       { layer: 'core', file: 'core-service/src/services/proposalService.js', pattern: /intentionally not exposed|not exposed/, v: 'g',
-        change: 'proposalForm() must compute member-level waiting from underwriting rules + Jump Start addon' },
+        change: 'proposalForm() must compute member-level waiting from underwriting rules + Early Cover addon' },
       { layer: 'frontend', file: 'journey-app/src/journey/steps.jsx', pattern: /TODO.*PED|ped_waiting/i, v: 'g',
         change: 'Render waiting period on review screen (TODO already stubbed in code)' }
     ],

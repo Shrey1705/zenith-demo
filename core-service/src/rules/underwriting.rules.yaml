@@ -14,7 +14,7 @@ entry_age:
 waiting_periods:
   initial_days: 30                    # all illness except accident
   ped_months: 36                      # pre-existing disease default
-  ped_months_with_jump_start: 12      # Jump Start add-on reduces PED wait
+  ped_months_with_early_cover: 12     # Early Cover add-on reduces PED wait
   specific_disease_months: 24
   hypertension_diabetes_cardiac_days: 90
 
