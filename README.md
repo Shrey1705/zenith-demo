@@ -42,9 +42,11 @@ Open http://localhost:5173
 
 ## Demo script (5 minutes)
 
-1. **Customer journey** — Buy → pick Self+Spouse+Son → DOBs, pincode 400001 → answer declarations (say Yes to diabetes on Self: watch PED loading appear) → quote: flip SI to ₹25L, tenure 3yr, toggle add-ons and watch the premium re-rate live from core → proposer details, skip or fill nominee → review the proposal form (served by core's `/form` API) → pay → **instant policy issuance**.
-2. **Agent flow** — Agent login → New proposal → same journey on behalf of a customer → *Submit & create payment link* → copy the link, open in a new tab as the customer → pay → watch the agent screen flip to **Policy issued** on its own (status poll from core).
-3. **AI portal** — PM login → click *"Offer monthly premium payment (EMI)"* → Red verdict, XL: the analyzer shows `payment_frequency_options: [ANNUAL]` straight from `premium.rules.yaml` with line numbers → open the PDN tab (sign-off checklist included), Stories tab, Test cases tab (Gherkin). Then try *"Make nominee details mandatory"* — Amber, and it flags the breaking-change risk for other v2 consumers plus the conversion risk of removing the skip.
+1. **Buy a policy** (`/buy`, 3 steps) — *Get a quote*: pick members (counters for kids), type DOBs as `dd/mm/yyyy` (slashes auto-fill, age appears live), pincode 400001, answer the medical-history toggle (say Yes on Self and watch the questionnaire unfold + PED loading appear in the live premium panel), flip SI to ₹25L and tenure to 3yr (savings badges are computed from core rules), add add-ons with plain-English explainers → *Your details*: mobile + simulated OTP, proposer fields, skip or fill nominee → *Review & pay*: proposal form served by core's `/form` API, **download the auto-filled proposal PDF**, then pay on the simulated gateway → **instant policy issuance**.
+2. **The handoff** — the success screen pivots you straight into the AI portal, auto-logged-in ("that was the easy part").
+3. **AI portal** — click *"Offer monthly premium payment (EMI)"* → Red verdict, 13 story points: the analyzer shows `payment_frequency_options: [ANNUAL]` straight from `premium.rules.yaml` with line numbers → open the PDN tab (sign-off checklist included), Stories tab, Test cases tab (Gherkin). Then try *"Make nominee details mandatory"* — Amber, and it flags the breaking-change risk for other v2 consumers plus the conversion risk of removing the skip.
+
+(An agent flow — same journey on behalf of a customer with a payment link and live status polling — still lives at `/agent`, login `agent / agent@123`.)
 
 ## Product decisions worth asking me about
 
@@ -65,3 +67,11 @@ For a matched change request: feasibility report (per-component verdict + eviden
 ## Limitations (honest ones)
 
 Payment gateway is simulated; auth is demo-grade (SSO in production); the entity-impact map is hand-built for five change families — the production path replaces it with the static-analysis graph above; premium rates are illustrative, not actuarial.
+
+## Deploying
+
+`vercel deploy --prod` (after `vercel pull` + `vercel build --prod`). One gotcha: the public URL `zenith-health-demo.vercel.app` is a manually-set alias and does **not** follow new production deployments automatically — re-point it after every deploy:
+
+```bash
+npx vercel alias set <new-deployment-url> zenith-health-demo.vercel.app
+```
