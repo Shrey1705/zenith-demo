@@ -87,4 +87,40 @@ app.post('/analyze', auth, (req, res) => {
   });
 });
 
+// PM copilot chat. Deterministic offline brain by default; if a tenant
+// supplies ANTHROPIC_API_KEY it upgrades to a live LLM transparently —
+// same endpoint, same contract (the Feasly plug-and-play story).
+const { chatReply } = require('./chat');
+app.post('/chat', auth, async (req, res) => {
+  const messages = (Array.isArray(req.body?.messages) ? req.body.messages : [])
+    .slice(-10)
+    .map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content || '').slice(0, 1000) }));
+  const last = messages.length ? messages[messages.length - 1].content.trim() : '';
+  if (!last) return res.status(400).json({ error: 'message required' });
+
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
+          max_tokens: 700,
+          system: 'You are the PM copilot inside Feasly, a feasibility workspace connected to a health-insurance codebase (Zenith: core policy system + purchase journey). Be concise and practical. For feasibility questions, remind the user that Feasibility Studio gives code-grounded verdicts with file-and-line evidence.',
+          messages
+        })
+      });
+      const data = await resp.json();
+      const reply = data?.content?.[0]?.text;
+      if (reply) return res.json({ reply, engine: 'llm' });
+    } catch { /* fall through to the deterministic brain */ }
+  }
+
+  res.json({ reply: chatReply(last), engine: 'deterministic' });
+});
+
 module.exports = app;

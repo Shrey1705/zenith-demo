@@ -246,6 +246,58 @@ input:focus, textarea:focus { outline: none; border-color: var(--navy-soft); }
   .stickybar .lbl { font-size: 11px; color: #b9c7d8; }
 }
 
+/* ---- Feasly workspace ---- */
+.workspace { display: flex; min-height: calc(100vh - 105px); align-items: stretch; }
+.ws-side { width: 236px; flex-shrink: 0; background: var(--navy-deep); color: #dfe7f1; display: flex; flex-direction: column; padding: 20px 14px; position: sticky; top: 63px; height: calc(100vh - 63px); }
+.ws-brand { font-family: var(--font-display); font-weight: 700; font-size: 22px; color: #fff; padding: 0 10px 4px; }
+.ws-tenant { font-size: 11px; color: #8ba0ba; padding: 0 10px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); margin-bottom: 12px; }
+.ws-tenant b { color: var(--gold); }
+.ws-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.ws-link { display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: 9px; color: #b9c7d8; text-decoration: none; font-size: 13.5px; }
+.ws-link:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
+.ws-link.on { background: rgba(201, 151, 59, 0.14); color: var(--gold); font-weight: 600; }
+.ws-icon { width: 20px; text-align: center; }
+.ws-dim { margin-left: auto; color: #4d647f; font-size: 11px; }
+.ws-foot { border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 12px 10px 0; font-size: 12px; color: #8ba0ba; }
+.ws-user { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.ws-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--gold); color: var(--navy-deep); font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.ws-foot .linkbtn { color: #8ba0ba; font-size: 12px; }
+.ws-main { flex: 1; min-width: 0; }
+.page.dark.ws-main { min-height: auto; }
+.ws-h3 { font-family: var(--font-body); font-size: 13px; text-transform: uppercase; letter-spacing: 0.8px; color: #9db1c9; margin: 26px 0 10px; }
+.emptystate { text-align: center; padding: 70px 20px; }
+.emptystate h3 { font-size: 22px; margin-bottom: 8px; }
+.connector { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; background: var(--dark-panel); border: 1px solid var(--dark-border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; }
+.connector h4 { font-family: var(--font-body); font-size: 15px; }
+.connector-status { text-align: right; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.keybox { display: flex; align-items: center; gap: 12px; background: #061120; border: 1px dashed var(--dark-border); border-radius: 10px; padding: 12px 16px; flex-wrap: wrap; }
+.keybox code { word-break: break-all; background: none; }
+.keybox .btn { margin-top: 0; padding: 8px 16px; font-size: 12.5px; }
+.codeblock { position: relative; background: #061120; border: 1px solid var(--dark-border); border-radius: 10px; padding: 14px 16px; margin: 8px 0; }
+.codeblock pre { font-size: 12px; line-height: 1.6; overflow-x: auto; white-space: pre; }
+.codeblock .copybtn { position: absolute; top: 8px; right: 12px; color: #9db1c9; font-size: 11.5px; text-decoration: none; }
+.codeblock .copybtn:hover { color: var(--gold); }
+
+/* ---- copilot chat ---- */
+.chatpage { display: flex; flex-direction: column; }
+.chatlog { background: var(--dark-panel); border: 1px solid var(--dark-border); border-radius: 12px; padding: 18px; margin-top: 14px; min-height: 320px; max-height: 52vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.chatmsg { display: flex; }
+.chatmsg.user { justify-content: flex-end; }
+.chatbubble { max-width: 78%; padding: 12px 15px; border-radius: 14px; font-size: 13.5px; line-height: 1.65; white-space: pre-wrap; }
+.chatmsg.assistant .chatbubble { background: #0a1c30; border: 1px solid var(--dark-border); border-bottom-left-radius: 4px; }
+.chatmsg.user .chatbubble { background: var(--gold); color: var(--navy-deep); font-weight: 500; border-bottom-right-radius: 4px; }
+.chatengine { margin-top: 8px; font-size: 10.5px; color: #6f86a3; }
+.chatinput { display: flex; gap: 10px; margin-top: 4px; }
+.chatinput .btn { margin-top: 0; }
+
+@media (max-width: 860px) {
+  .workspace { flex-direction: column; }
+  .ws-side { width: 100%; height: auto; position: static; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .ws-nav { flex-direction: row; flex-wrap: wrap; }
+  .ws-tenant { border: none; padding-bottom: 0; margin-bottom: 0; }
+  .ws-foot { border: none; padding-top: 0; margin-left: auto; }
+}
+
 /* ---- guided walkthrough ---- */
 .tour-spotlight { position: fixed; z-index: 90; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(8, 26, 48, 0.6); border: 2px solid var(--gold); pointer-events: none; transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease; }
 .tour-caption { position: fixed; z-index: 91; bottom: 22px; left: 50%; transform: translateX(-50%); width: min(92vw, 480px); background: var(--navy-deep); color: #fff; border-radius: 14px; padding: 16px 20px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35); display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; }

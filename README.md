@@ -1,8 +1,10 @@
-# Zenith — Health Insurance Issuance Demo + AI Feasibility Portal
+# Feasly — a PM workspace that answers "is this feasible?" from live code
 
 **Live demo:** [zenith-health-demo.vercel.app](https://zenith-health-demo.vercel.app) · [source on GitHub](https://github.com/Shrey1705/zenith-demo)
 
-A portfolio prototype by **Shrey Sagar** that models how enterprise insurance is actually built — a core policy-admin system holding the business rules, a frontend journey application consuming its APIs — and then layers a PM-facing **AI feasibility portal** on top that reads both codebases to answer the question every PM runs to Tech for: *"is this change feasible, and what does it touch?"*
+A product concept by **Shrey Sagar**. **Feasly** is an API-first PM workspace — copilot chat, Feasibility Studio, PDN drafts, user stories, test cases, repo connectors and a working REST API — that answers the question every PM runs to Tech for: *"is this change feasible, and what does it touch?"* — grounded in the connected system's actual source code, with file-and-line evidence.
+
+To prove it works, a complete health insurer (**Zenith**: core policy-admin system with real premium/underwriting rules + a customer purchase journey) is wired in as the live showcase tenant. Buy a policy on it, then ask Feasly about the system you just used.
 
 > This is an independent educational prototype modeling how a modern health insurer's issuance journey works end-to-end — not modeled on, affiliated with, or using any assets of any specific insurer.
 

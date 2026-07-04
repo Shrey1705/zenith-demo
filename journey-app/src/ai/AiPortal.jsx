@@ -1,24 +1,32 @@
-// AI feasibility portal — login, analyze change request, view feasibility /
-// PDN / Jira stories / test cases. Talks to ai-service, which scans the
-// ACTUAL source of core-service and journey-app for evidence.
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+// Feasly — the PM workspace. Login + app shell (left nav) + nested pages.
+// Zenith Health is the connected showcase tenant; the workspace answers
+// "is this feasible?" from its actual code, plus everyday PM craft.
+import React, { useState, useEffect, createContext, useContext } from 'react';
+import { useLocation, useNavigate, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import { ai } from '../lib/api';
+import ChatPage from './ChatPage';
+import { FeasibilityPage, PdnPage, StoriesPage, TestsPage, SystemsPage, ApiKeysPage } from './pages';
 
-const SAMPLES = [
-  'Allow customers to add parents-in-law as covered members',
-  'Make nominee details mandatory in the journey',
-  'Show PED waiting period per member on the review screen',
-  'Offer monthly premium payment (EMI) instead of annual only',
-  'Add a ₹2 crore sum insured band'
+const ANALYSIS_KEY = 'feasly-last-analysis';
+
+const WorkspaceContext = createContext(null);
+export const useWorkspace = () => useContext(WorkspaceContext);
+
+const NAV = [
+  { to: 'chat', icon: '💬', label: 'Copilot Chat' },
+  { to: 'feasibility', icon: '🚦', label: 'Feasibility Studio' },
+  { to: 'pdn', icon: '📄', label: 'PDN Draft' },
+  { to: 'stories', icon: '🗂', label: 'User Stories' },
+  { to: 'tests', icon: '✅', label: 'Test Cases' },
+  { to: 'systems', icon: '🔌', label: 'Connected Systems' },
+  { to: 'api', icon: '🔑', label: 'API & Webhooks' }
 ];
-const DOT = { g: '🟢', a: '🟠', r: '🔴' };
 
 export default function AiPortal() {
   const [token, setToken] = useState(null);
   const fromJourney = useLocation().search.includes('from=journey');
   if (!token) return <Login onToken={setToken} autoLogin={fromJourney} />;
-  return <Analyzer token={token} />;
+  return <Workspace token={token} onLogout={() => setToken(null)} fromJourney={fromJourney} />;
 }
 
 function Login({ onToken, autoLogin }) {
@@ -32,8 +40,8 @@ function Login({ onToken, autoLogin }) {
   useEffect(() => { if (autoLogin) go('pm', 'zenith@123'); /* eslint-disable-line */ }, [autoLogin]);
   return (
     <div className="page narrow dark">
-      <h2>AI Feasibility Portal</h2>
-      <p className="hint">Product-side system feasibility, PDN drafting, stories & test cases — grounded in live code scans.</p>
+      <h2>Feasly <span className="accent">· PM workspace</span></h2>
+      <p className="hint">Feasibility verdicts grounded in live code, PDN drafting, stories, test cases, and a PM copilot — connected to the Zenith showcase tenant.</p>
       <label>Username</label><input value={u} onChange={e => setU(e.target.value)} />
       <label>Password</label><input type="password" value={p} onChange={e => setP(e.target.value)} onKeyDown={e => e.key === 'Enter' && go()} />
       {err && <p className="error">{err}</p>}
@@ -43,104 +51,50 @@ function Login({ onToken, autoLogin }) {
   );
 }
 
-function Analyzer({ token }) {
-  const [text, setText] = useState('');
-  const [r, setR] = useState(null);
-  const [tab, setTab] = useState('feas');
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState('');
-
-  const run = async (t) => {
-    const q = (t || text).trim();
-    if (!q) return;
-    setText(q); setBusy(true); setErr('');
-    try { setR(await ai.analyze(token, q)); setTab('feas'); }
-    catch (e) { setErr(e.message); }
-    setBusy(false);
+function Workspace({ token, onLogout, fromJourney }) {
+  const nav = useNavigate();
+  // Last analysis survives page switches and the journey handoff.
+  const [analysis, setAnalysisState] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem(ANALYSIS_KEY)) || null; } catch { return null; }
+  });
+  const setAnalysis = (a) => {
+    setAnalysisState(a);
+    try { sessionStorage.setItem(ANALYSIS_KEY, JSON.stringify(a)); } catch { /* ignore */ }
   };
-  const copy = (s) => navigator.clipboard.writeText(s);
 
   return (
-    <div className="page dark">
-      <h2>AI Feasibility Portal</h2>
-      <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Describe the product change in plain English…" rows={3} />
-      <div className="chips">{SAMPLES.map(s => <button key={s} className="chip" onClick={() => run(s)} data-tour={s.includes('EMI') ? 'ai-sample-emi' : undefined}>{s}</button>)}</div>
-      <button className="btn" disabled={busy} onClick={() => run()}>{busy ? 'Scanning core-service & journey-app…' : 'Analyze feasibility'}</button>
-      {err && <p className="error">{err}</p>}
-
-      {r && !r.matched && (
-        <div className="banner a" style={{ marginTop: 18 }}>
-          <b>Needs Tech discovery</b>
-          <p className="hint">{r.note}</p>
-        </div>
-      )}
-
-      {r && r.matched && (
-        <>
-          <div className={'banner ' + r.overall} style={{ marginTop: 18 }}>
-            <b>{DOT[r.overall]} {r.verdict_label}</b>
-            <p className="hint">Effort {r.effort_points} story points ({r.size}) · {r.sprints} · {r.verified}/{r.impacts.length} impacts verified against source code</p>
+    <WorkspaceContext.Provider value={{ token, analysis, setAnalysis }}>
+      <div className="workspace">
+        <aside className="ws-side">
+          <div className="ws-brand">feasly<span className="accent">.</span></div>
+          <div className="ws-tenant">Tenant: <b>Zenith Health</b> · showcase</div>
+          <nav className="ws-nav">
+            {NAV.map((item) => (
+              <NavLink key={item.to} to={item.to} className={({ isActive }) => 'ws-link' + (isActive ? ' on' : '')}>
+                <span className="ws-icon">{item.icon}</span> {item.label}
+                {['pdn', 'stories', 'tests'].includes(item.to) && !analysis?.matched && <span className="ws-dim">—</span>}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="ws-foot">
+            <div className="ws-user"><span className="ws-avatar">PM</span> pm@zenith · demo</div>
+            <button className="linkbtn" onClick={() => { onLogout(); nav('/ai'); }}>Log out</button>
           </div>
-          <div className="legend">
-            <span>{DOT.r} Red — core rules/DB change, needs UW/actuarial sign-off + migration</span>
-            <span>{DOT.a} Amber — API contract change, needs versioning + consumer coordination</span>
-            <span>{DOT.g} Green — frontend-only, no core dependency</span>
-            <span>Story points — Fibonacci scale: S=3 · M=5 · L=8 · XL=13</span>
-          </div>
-          <div className="tabs">
-            {[['feas', 'Feasibility'], ['pdn', 'PDN draft'], ['stories', `Stories (${r.stories.length})`], ['tests', 'Test cases']].map(([k, l]) =>
-              <button key={k} className={'tabbtn ' + (tab === k ? 'on' : '')} onClick={() => setTab(k)}>{l}</button>)}
-          </div>
-
-          {tab === 'feas' && (
-            <table className="dashtable">
-              <thead><tr><th></th><th>Component</th><th>System</th><th>Required change</th><th>Code evidence</th></tr></thead>
-              <tbody>
-                {r.impacts.map((i, k) => (
-                  <tr key={k}>
-                    <td>{DOT[i.v]}</td>
-                    <td><code>{i.file.split('/').slice(-2).join('/')}</code></td>
-                    <td>{r.layers[i.layer].system}</td>
-                    <td>{i.change}</td>
-                    <td>{i.evidence
-                      ? <code className="evidence">L{i.evidence.line}: {i.evidence.snippet}</code>
-                      : <span className="tagwarn">not found — verify manually</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-
-          {tab === 'pdn' && (
-            <div>
-              <button className="btn ghost" onClick={() => copy(r.pdn_markdown)}>Copy Markdown</button>
-              <pre className="mdpre">{r.pdn_markdown}</pre>
-            </div>
-          )}
-
-          {tab === 'stories' && r.stories.map((s, i) => (
-            <div className="story" key={i}>
-              <h4>{DOT[s.verdict]} {s.summary}</h4>
-              <p className="hint">{s.component} · {s.points} pts</p>
-              <p>{s.description}</p>
-              <b>Tasks</b><ul>{s.tasks.map((t, j) => <li key={j}>{t}</li>)}</ul>
-              <b>Acceptance criteria</b><ul>{s.ac.map((a, j) => <li key={j}>{a}</li>)}</ul>
-            </div>
-          ))}
-
-          {tab === 'tests' && r.test_suites.map((suite, i) => (
-            <div className="story" key={i}>
-              <h4>{suite.story}</h4>
-              {suite.cases.map(c => (
-                <div key={c.id} className="testcase">
-                  <b>{c.id} — {c.title}</b>
-                  <pre className="gherkin">{c.gherkin}</pre>
-                </div>
-              ))}
-            </div>
-          ))}
-        </>
-      )}
-    </div>
+        </aside>
+        <main className="ws-main page dark">
+          <Routes>
+            <Route index element={<Navigate to={fromJourney ? 'feasibility' : 'chat'} replace />} />
+            <Route path="chat" element={<ChatPage />} />
+            <Route path="feasibility" element={<FeasibilityPage />} />
+            <Route path="pdn" element={<PdnPage />} />
+            <Route path="stories" element={<StoriesPage />} />
+            <Route path="tests" element={<TestsPage />} />
+            <Route path="systems" element={<SystemsPage />} />
+            <Route path="api" element={<ApiKeysPage />} />
+            <Route path="*" element={<Navigate to="chat" replace />} />
+          </Routes>
+        </main>
+      </div>
+    </WorkspaceContext.Provider>
   );
 }

@@ -35,11 +35,11 @@ export const TOUR_STEPS = [
   { id: 'pay-button', selector: '[data-tour="pay-button"]', advance: 'click',
     title: 'Step 11 — Simulated payment', body: 'This is a demo gateway — no real money moves. Go ahead and pay.' },
   { id: 'ai-handoff', selector: '[data-tour="ai-handoff"]', advance: 'click',
-    title: 'Step 12 — Policy issued!', body: "That's the customer side. Now for the actual demo — click through." },
+    title: 'Step 12 — Policy issued!', body: "That's the customer side. Now for the actual product, Feasly — click through." },
   { id: 'ai-sample-emi', selector: '[data-tour="ai-sample-emi"]', advance: 'click',
-    title: 'Step 13 — Ask a product question', body: "You're logged in already. Click this sample question — it analyzes instantly." },
+    title: 'Step 13 — Ask a product question', body: "You're logged into Feasibility Studio already. Click this sample question — it analyzes instantly." },
   { id: 'done', info: true,
-    title: "That's the full demo", body: 'Explore the PDN, Stories, and Test cases tabs — every claim there traces back to a real file and line.' }
+    title: "That's the full demo", body: 'Explore the left nav — PDN Draft, User Stories and Test Cases hold this analysis; Copilot Chat answers general PM questions too.' }
 ];
 
 const TourContext = createContext(null);

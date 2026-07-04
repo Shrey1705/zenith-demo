@@ -341,10 +341,11 @@ export function SuccessScreen({ policyNo, proposalId, mode }) {
         <h3>That was the easy part.</h3>
         <p>
           You just used a real issuance system — rules engine, rating, proposal lifecycle, payments.
-          The actual demo is what sits on top: an AI portal that reads this system's <b>source code</b> to
-          tell a product manager whether a change is feasible — with file-and-line evidence.
+          The actual product is what sits on top: <b>Feasly</b>, a PM workspace that reads this
+          system's <b>source code</b> to tell a product manager whether a change is feasible —
+          with file-and-line evidence.
         </p>
-        <a className="btn gold" href="/ai?from=journey" data-tour="ai-handoff">See the AI feasibility portal →</a>
+        <a className="btn gold" href="/ai?from=journey" data-tour="ai-handoff">Open the Feasly workspace →</a>
       </div>
     </div>
   );

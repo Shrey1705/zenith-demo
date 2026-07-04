@@ -20,8 +20,9 @@ function Landing() {
       <section className="hero">
         <h1>Every product idea hits the same wall:<br /><span className="accent">"is this even feasible?"</span></h1>
         <p>
-          Zenith is a working health insurance system — with an AI portal on top
-          that answers that question from the actual code, with evidence.
+          Meet <b style={{ color: '#fff' }}>Feasly</b> — a PM workspace that answers that question
+          from the actual code, with evidence. Below it: Zenith, a working health
+          insurance system wired in as the live showcase.
         </p>
         <div className="herobtns">
           <Link className="btn gold" to="/buy">Start the demo →</Link>
@@ -59,8 +60,8 @@ function Landing() {
         </Link>
         <Link className="bigcard" to="/ai">
           <span className="stepnum">2</span>
-          <h3>Ask the AI portal</h3>
-          <p>The PM tool that reads this very system's code. Ask for a change, get an evidence-backed verdict. ~2 minutes.</p>
+          <h3>Open the Feasly workspace</h3>
+          <p>Copilot chat, Feasibility Studio, PDN drafts, stories, test cases — grounded in this very system's code. ~2 minutes.</p>
         </Link>
       </div>
 
@@ -68,8 +69,8 @@ function Landing() {
         <h3>How to run the demo</h3>
         <ol>
           <li>Buy: get a quote → your details → simulated payment → policy issued instantly.</li>
-          <li>The success screen takes you straight into the AI portal.</li>
-          <li>Try <i>"Make nominee details mandatory"</i> — login <code>pm / zenith@123</code> comes prefilled.</li>
+          <li>The success screen takes you straight into the Feasly workspace.</li>
+          <li>Try <i>"Make nominee details mandatory"</i> in Feasibility Studio — login <code>pm / zenith@123</code> comes prefilled.</li>
         </ol>
         <p className="hint">Or click <b>"Guide me step by step"</b> above and we'll spotlight exactly what to do, the whole way through.</p>
       </div>
@@ -95,7 +96,7 @@ export default function App() {
         <Link to="/" className="brand">zenith<span className="accent">demo</span></Link>
         <span>
           <Link to="/buy">Buy</Link>
-          <Link to="/ai">AI portal</Link>
+          <Link to="/ai">Feasly</Link>
         </span>
       </nav>
       <Routes>
@@ -103,7 +104,7 @@ export default function App() {
         <Route path="/buy" element={<div className="page"><JourneyWizard mode="customer" /></div>} />
         <Route path="/agent" element={<AgentPortal />} />
         <Route path="/pay/:token" element={<PayLink />} />
-        <Route path="/ai" element={<AiPortal />} />
+        <Route path="/ai/*" element={<AiPortal />} />
       </Routes>
       <TourOverlay />
     </TourProvider>
