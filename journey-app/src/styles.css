@@ -38,10 +38,17 @@ code { font-size: 12.5px; background: rgba(13, 36, 64, 0.06); padding: 1px 6px; 
 
 /* ---- page scaffolding ---- */
 .page { max-width: 1020px; margin: 0 auto; padding: 36px 20px 90px; }
+.page-wide { max-width: 1440px; }
 .page.narrow { max-width: 460px; }
 label { display: block; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin: 16px 0 6px; font-weight: 600; }
-input, textarea, select { width: 100%; background: var(--panel); border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 13px; font-size: 14.5px; font-family: inherit; color: inherit; transition: border-color 0.15s; }
+input, textarea, select { width: 100%; background: var(--panel); border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 13px; font-size: 14.5px; font-family: inherit; color: inherit; transition: border-color 0.15s, box-shadow 0.15s; }
 input:focus, textarea:focus { outline: none; border-color: var(--navy-soft); }
+/* Universal field-status theme: amber while typing, green once valid, red if invalid. */
+input.f-progress { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201, 151, 59, 0.15); }
+input.f-valid { border-color: var(--green); box-shadow: 0 0 0 3px rgba(23, 126, 99, 0.12); }
+input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 79, 0.12); }
+.fieldok { font-size: 12px; color: var(--green); font-weight: 600; margin-top: 5px; display: inline-block; }
+.fieldbad { font-size: 12px; color: var(--red); font-weight: 600; margin-top: 5px; display: inline-block; }
 .btn { display: inline-block; margin-top: 16px; background: var(--navy); color: #fff; border: none; border-radius: 10px; padding: 13px 26px; font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.15s, transform 0.1s; }
 .btn:hover { background: var(--navy-soft); }
 .btn:active { transform: scale(0.985); }
@@ -96,6 +103,42 @@ input:focus, textarea:focus { outline: none; border-color: var(--navy-soft); }
 .quotegrid { display: grid; grid-template-columns: 1fr 320px; gap: 30px; align-items: start; }
 @media (max-width: 860px) { .quotegrid { grid-template-columns: 1fr; } }
 .fieldrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+.pitch { color: var(--navy-soft); font-size: 14px; font-weight: 600; margin: 2px 0 18px; }
+
+/* ---- asymmetric bento grid for Get your quote ---- */
+.bento { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; align-items: start; }
+.span-3 { grid-column: span 3; } .span-4 { grid-column: span 4; }
+.span-5 { grid-column: span 5; } .span-7 { grid-column: span 7; }
+.span-12 { grid-column: span 12; }
+.qcard { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; }
+.qcard label:first-child { margin-top: 0; }
+.qcard.banner { background: linear-gradient(155deg, var(--navy-deep), var(--navy-soft)); color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 10px; padding: 26px 20px; }
+.qcard.banner .bannericon { font-size: 30px; }
+.qcard.banner p { font-family: var(--font-display); font-size: 15px; line-height: 1.5; color: #e7edf5; }
+.stripbanner { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: var(--gold-tint); border: 1px solid #eaddbe; border-radius: 12px; padding: 12px 20px; font-size: 13px; font-weight: 600; color: var(--navy); }
+@media (max-width: 860px) {
+  .bento { grid-template-columns: 1fr; }
+  .bento > * { grid-column: 1 / -1; }
+}
+
+/* ---- benefit discovery: collapsible tiles ---- */
+.discovery { margin-top: 4px; }
+.disc-h { font-size: 20px; }
+.tilegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 8px; }
+.tile { border: 1px solid var(--border); border-radius: 12px; background: var(--panel); overflow: hidden; transition: border-color 0.15s; }
+.tile.optional.added { border-color: var(--gold); }
+.tile.open { border-color: var(--navy-soft); }
+.tilehead { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: none; padding: 13px 14px; cursor: pointer; font-family: inherit; }
+.tileicon { font-size: 20px; flex-shrink: 0; }
+.tiletext { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tiletext b { font-size: 13px; }
+.tiletext small { color: var(--muted); font-size: 11.5px; line-height: 1.4; }
+.tilebadge { font-size: 9.5px; font-weight: 700; padding: 3px 8px; border-radius: 8px; white-space: nowrap; letter-spacing: 0.3px; }
+.tilebadge.base { background: #eef0f3; color: var(--muted); }
+.tilebadge.optional { background: var(--gold-tint); color: var(--gold-deep); }
+.tilebadge.included { background: #e2f2ec; color: var(--green); }
+.tilebody { padding: 0 14px 14px 44px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+.tilebody .addbtn { margin-top: 6px; }
 .memberrow { display: flex; align-items: center; gap: 12px; margin: 10px 0; flex-wrap: wrap; }
 .membercard { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 14px; cursor: pointer; background: var(--panel); color: var(--text); font-family: inherit; transition: border-color 0.15s, background 0.15s, color 0.15s; }
 .membercard.on { border-color: var(--navy); background: var(--navy); color: #fff; font-weight: 600; }

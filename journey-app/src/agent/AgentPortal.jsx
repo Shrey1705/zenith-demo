@@ -10,7 +10,7 @@ export default function AgentPortal() {
   const [view, setView] = useState('dash');
   if (!user) return <Login onLogin={setUser} />;
   return (
-    <div className="page">
+    <div className={'page' + (view === 'new' ? ' page-wide' : '')}>
       <div className="portalbar">
         <span><b>Agent portal</b> · {user.name} ({user.code})</span>
         <span>

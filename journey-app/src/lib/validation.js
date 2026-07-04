@@ -60,3 +60,15 @@ export const isoToDobDisplay = (iso) => {
 
 export const ageFromIso = (iso) =>
   iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 31557600000) : null;
+
+// ---- Universal field-status theme: empty -> amber (in progress) -> green
+// (valid) or red (invalid). One function, applied to every input on the
+// quote and details steps so the "am I done with this field?" signal is
+// always the same color language.
+export function fieldClass(value, complete, valid) {
+  if (!value) return '';
+  if (!complete(value)) return 'f-progress';
+  return valid(value) ? 'f-valid' : 'f-invalid';
+}
+
+export const isPanFormat = (v) => /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(v || '');

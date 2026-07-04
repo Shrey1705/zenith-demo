@@ -30,13 +30,20 @@ zone_loading:                          # derived from pincode prefix
 family_discount_pct: { "2": 5, "3_plus": 10 }
 
 addons:                                # pct = of base premium, flat = INR
-  BONUS_ACCELERATOR:  { label: "Bonus Accelerator (no-claim bonus grows up to 100%/yr)", pct: 12 }
-  LIMITLESS_SHIELD:   { label: "Limitless Shield (one unlimited lifetime claim)",        pct: 15 }
-  EARLY_COVER:        { label: "Early Cover (PED waiting 36 -> 12 months)",              pct: 18 }
-  OPD_CARE:           { label: "OPD Care (cashless outpatient + teleconsults)",          flat: 4500 }
-  COVER_ESCALATOR:    { label: "Cover Escalator (SI grows with inflation)",              pct: 5 }
-  ROOM_FLEX:          { label: "Room Flex (any room category, no rent capping)",         pct: 8 }
-  CONSUMABLES_COVER:  { label: "Consumables Cover (non-medical consumables)",            pct: 6 }
+  BONUS_ACCELERATOR:    { label: "Bonus Accelerator (no-claim bonus grows up to 100%/yr)",     pct: 12 }
+  LIMITLESS_SHIELD:     { label: "Limitless Shield (one unlimited lifetime claim)",            pct: 15 }
+  EARLY_COVER:          { label: "Early Cover (PED waiting 36 -> 12 months)",                  pct: 18 }
+  OPD_CARE:             { label: "OPD Care (cashless outpatient + teleconsults)",              flat: 4500 }
+  COVER_ESCALATOR:      { label: "Cover Escalator (SI grows with inflation)",                  pct: 5 }
+  ROOM_FLEX:            { label: "Room Flex (any room category, no rent capping)",             pct: 8 }
+  CONSUMABLES_COVER:    { label: "Consumables Cover (non-medical consumables)",                pct: 6 }
+  PRIORITY_MEMBERSHIP:  { label: "Priority Membership (dedicated support, priority claims)",   pct: 7 }
+  ANNUAL_HEALTH_CHECK:  { label: "Annual Health Check (full body check-up every year)",        flat: 1200 }
+  NON_PAYABLES_COVER:   { label: "Non-Payables Cover (pays the bill items most plans skip)",   pct: 10 }
+  DAILY_HOSPITAL_CASH:  { label: "Daily Hospital Cash (fixed payout per day admitted)",         flat: 2500 }
+  GLOBAL_ACCESS:        { label: "Global Access (planned or emergency treatment abroad)",      pct: 20 }
+  ACCIDENT_SHIELD:      { label: "Accident Shield (lump sum for accidental death/disability)", flat: 1800 }
+  WELLNESS_COMPANION:   { label: "Wellness Companion (mental health, nutrition, fitness)",     flat: 1500 }
 
 # Plan tiers — pre-configured bundles, listed best-first. Each tier applies a
 # rate multiplier to the base premium and bundles a set of add-ons; the rest of
@@ -91,13 +98,14 @@ plan_variants:
       - "Advanced treatments up to Rs 1L per claim"
       - "PED waiting 36 months (add Early Cover to cut it to 12)"
 
-# Coverage every tier gets — shown once under the plan cards.
+# Coverage every tier gets, regardless of add-ons — the "base" tiles in the
+# policy discovery grid. No price: these are never optional.
 common_benefits:
-  - "Hospitalisation of 2+ hours covered (24 hours at AYUSH hospitals)"
-  - "Before & After Care: 60 days pre- and 180 days post-hospitalisation expenses"
-  - "Care at Home: doctor-advised treatment at home, including chemo and dialysis"
-  - "Donor Protect: organ donor's hospitalisation expenses covered"
-  - "Expert Second Look: unlimited second medical opinions via the network"
-  - "Move More: walk your way to up to 30% off your renewal premium"
+  - { code: TWO_HOUR_RULE,   icon: "⏱️", label: "2-Hour Rule",        tagline: "Admitted 2+ hours? You're covered.",              description: "Hospitalisation of 2+ hours is covered outright (24 hours at AYUSH hospitals)." }
+  - { code: BEFORE_AFTER,    icon: "📅", label: "Before & After Care", tagline: "Cover starts before you're even admitted.",       description: "60 days of pre-hospitalisation and 180 days of post-hospitalisation expenses, on us." }
+  - { code: CARE_AT_HOME,    icon: "🏠", label: "Care at Home",        tagline: "Some treatment doesn't need a hospital bed.",     description: "Doctor-advised treatment at home — including chemotherapy and dialysis — is covered like an admission." }
+  - { code: DONOR_PROTECT,   icon: "❤️", label: "Donor Protect",       tagline: "Saving a life shouldn't cost you.",               description: "If you donate an organ, your own hospitalisation expenses for the procedure are covered." }
+  - { code: SECOND_LOOK,     icon: "🩺", label: "Expert Second Look",  tagline: "A second opinion, on the house.",                  description: "Unlimited second medical opinions from our specialist network, whenever you want one." }
+  - { code: MOVE_MORE,       icon: "🚶", label: "Move More",           tagline: "Walk more, pay less.",                            description: "Your activity score can knock up to 30% off your renewal premium — synced from your phone." }
 
 gst_pct: 18

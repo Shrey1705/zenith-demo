@@ -101,7 +101,7 @@ export default function App() {
       </nav>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/buy" element={<div className="page"><JourneyWizard mode="customer" /></div>} />
+        <Route path="/buy" element={<div className="page page-wide"><JourneyWizard mode="customer" /></div>} />
         <Route path="/agent" element={<AgentPortal />} />
         <Route path="/pay/:token" element={<PayLink />} />
         <Route path="/ai/*" element={<AiPortal />} />
