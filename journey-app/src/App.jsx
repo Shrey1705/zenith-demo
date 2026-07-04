@@ -1,14 +1,20 @@
 import React from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import JourneyWizard from './journey/JourneyWizard';
 import AgentPortal from './agent/AgentPortal';
 import PayLink from './pay/PayLink';
 import AiPortal from './ai/AiPortal';
 import DemoBanner from './components/DemoBanner';
+import TourOverlay from './components/TourOverlay';
+import { TourProvider, useTour } from './lib/tour';
 
 const LINKEDIN_URL = 'https://www.linkedin.com/in/shrey-sagar-productmanager/';
 
 function Landing() {
+  const nav = useNavigate();
+  const tour = useTour();
+  const guideMe = () => { tour.start(); nav('/buy'); };
+
   return (
     <div className="landing">
       <section className="hero">
@@ -17,7 +23,10 @@ function Landing() {
           Zenith is a working health insurance system — with an AI portal on top
           that answers that question from the actual code, with evidence.
         </p>
-        <Link className="btn gold" to="/buy">Start the demo →</Link>
+        <div className="herobtns">
+          <Link className="btn gold" to="/buy">Start the demo →</Link>
+          <button className="btn ghost light" onClick={guideMe}>Guide me step by step →</button>
+        </div>
       </section>
 
       <section className="landing-section">
@@ -62,6 +71,7 @@ function Landing() {
           <li>The success screen takes you straight into the AI portal.</li>
           <li>Try <i>"Make nominee details mandatory"</i> — login <code>pm / zenith@123</code> comes prefilled.</li>
         </ol>
+        <p className="hint">Or click <b>"Guide me step by step"</b> above and we'll spotlight exactly what to do, the whole way through.</p>
       </div>
 
       <div className="about">
@@ -79,7 +89,7 @@ function Landing() {
 
 export default function App() {
   return (
-    <>
+    <TourProvider>
       <DemoBanner />
       <nav className="topnav">
         <Link to="/" className="brand">zenith<span className="accent">demo</span></Link>
@@ -95,6 +105,7 @@ export default function App() {
         <Route path="/pay/:token" element={<PayLink />} />
         <Route path="/ai" element={<AiPortal />} />
       </Routes>
-    </>
+      <TourOverlay />
+    </TourProvider>
   );
 }

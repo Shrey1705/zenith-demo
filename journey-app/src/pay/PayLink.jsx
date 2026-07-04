@@ -59,7 +59,7 @@ export default function PayLink() {
               <div><label>CVV</label><input defaultValue="123" type="password" style={{ maxWidth: 80 }} /></div>
             </div>
             {info.status === 'ACTIVE'
-              ? <button className="btn gold" disabled={busy} onClick={pay}>{busy ? 'Processing…' : `Pay ${inr(info.amount)}`}</button>
+              ? <button className="btn gold" disabled={busy} onClick={pay} data-tour="pay-button">{busy ? 'Processing…' : `Pay ${inr(info.amount)}`}</button>
               : <p className="error">This payment link has already been used.</p>}
             <p className="securedby">🔒 Simulated gateway · Zenith demo · data resets periodically</p>
           </div>

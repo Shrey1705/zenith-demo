@@ -193,7 +193,7 @@ export default function JourneyWizard({ mode = 'customer', agentCode = null, onL
       {step < 3 && (
         <div className="navrow">
           {step > 0 ? <button className="btn ghost" onClick={() => setStep((s) => s - 1)}>← Back</button> : <span />}
-          <button className="btn" disabled={busy} onClick={next}>
+          <button className="btn" disabled={busy} onClick={next} data-tour="wizard-next">
             {busy ? 'Working…' : step === 2 ? (mode === 'agent' ? 'Submit & create payment link' : 'Confirm & proceed to pay') : 'Continue →'}
           </button>
         </div>

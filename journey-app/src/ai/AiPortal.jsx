@@ -64,7 +64,7 @@ function Analyzer({ token }) {
     <div className="page dark">
       <h2>AI Feasibility Portal</h2>
       <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Describe the product change in plain English…" rows={3} />
-      <div className="chips">{SAMPLES.map(s => <button key={s} className="chip" onClick={() => run(s)}>{s}</button>)}</div>
+      <div className="chips">{SAMPLES.map(s => <button key={s} className="chip" onClick={() => run(s)} data-tour={s.includes('EMI') ? 'ai-sample-emi' : undefined}>{s}</button>)}</div>
       <button className="btn" disabled={busy} onClick={() => run()}>{busy ? 'Scanning core-service & journey-app…' : 'Analyze feasibility'}</button>
       {err && <p className="error">{err}</p>}
 

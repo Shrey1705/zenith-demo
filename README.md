@@ -42,6 +42,8 @@ Open http://localhost:5173
 
 ## Demo script (5 minutes)
 
+Don't want to click through it yourself? Hit **"Guide me step by step"** on the landing page — a spotlight walks you through the shortest path end to end, from date of birth to running an AI analysis, one field at a time.
+
 1. **Buy a policy** (`/buy`, 3 steps) — *Get a quote*: pick members (counters for kids), type DOBs as `dd/mm/yyyy` (slashes auto-fill, age appears live), pincode 400001, answer the medical-history toggle (say Yes on Self and watch the questionnaire unfold + PED loading appear in the live premium panel), flip SI to ₹25L and tenure to 3yr (savings badges are computed from core rules) → **choose a plan tier** (Apex / Prime / Core / Lite, best first, each priced live by the core rating engine with its bundled benefits — Evergreen Refill, Age Freeze, Boost Bank) or expand *Customise* to tune add-ons with plain-English explainers → *Your details*: mobile + simulated OTP, proposer fields, skip or fill nominee → *Review & pay*: proposal form served by core's `/form` API, **download the auto-filled proposal PDF**, then pay on the simulated gateway → **instant policy issuance**.
 2. **The handoff** — the success screen pivots you straight into the AI portal, auto-logged-in ("that was the easy part").
 3. **AI portal** — click *"Offer monthly premium payment (EMI)"* → Red verdict, 13 story points: the analyzer shows `payment_frequency_options: [ANNUAL]` straight from `premium.rules.yaml` with line numbers → open the PDN tab (sign-off checklist included), Stories tab, Test cases tab (Gherkin). Then try *"Make nominee details mandatory"* — Amber, and it flags the breaking-change risk for other v2 consumers plus the conversion risk of removing the skip.

@@ -24,7 +24,7 @@ const ADDON_EXPLAINERS = {
 const fmtSI = (v) => (v >= 10000000 ? `₹${v / 10000000} Cr` : `₹${v / 100000} L`);
 
 // ---- DOB text field with auto-slash + live age badge ----
-function DobField({ member, onChange }) {
+function DobField({ member, onChange, tourTarget }) {
   const iso = dobToIso(member.dobText);
   const age = ageFromIso(iso);
   return (
@@ -34,13 +34,14 @@ function DobField({ member, onChange }) {
         inputMode="numeric"
         placeholder="dd/mm/yyyy"
         value={member.dobText}
+        data-tour={tourTarget}
         onChange={(e) => {
           const dobText = formatDobInput(e.target.value);
           onChange({ ...member, dobText, dob: dobToIso(dobText) || '' });
         }}
       />
       {member.dobText.length === 10 && (
-        iso ? <span className="agebadge">{age} yrs</span> : <span className="agebadge bad">invalid date</span>
+        iso ? <span className="agebadge">✓ Looks good — {age} yrs</span> : <span className="agebadge bad">✕ Not a valid date</span>
       )}
     </div>
   );
@@ -114,12 +115,12 @@ export function QuoteStep({ catalog, members, setMembers, pincode, setPincode, q
         {members.length > 0 && (
           <>
             <label>Date of birth — just type, we'll add the slashes</label>
-            {members.map((m, i) => <DobField key={i} member={m} onChange={(next) => updateMember(i, next)} />)}
+            {members.map((m, i) => <DobField key={i} member={m} onChange={(next) => updateMember(i, next)} tourTarget={i === 0 ? 'dob-self' : undefined} />)}
           </>
         )}
 
         <label>Pincode</label>
-        <input value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="e.g. 400001" style={{ maxWidth: 170 }} />
+        <input value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="e.g. 400001" style={{ maxWidth: 170 }} data-tour="pincode" />
         <p className="hint">Your pincode decides the pricing zone (metro / non-metro).</p>
 
         {members.map((m, i) => (
@@ -128,7 +129,7 @@ export function QuoteStep({ catalog, members, setMembers, pincode, setPincode, q
               <span style={{ fontSize: 14 }}>Any existing illness or medical history for <b>{REL_LABELS[m.relationship]}{COUNTED_RELS.includes(m.relationship) ? ` ${members.slice(0, i + 1).filter((x) => x.relationship === m.relationship).length}` : ''}</b>?</span>
               <span className="toggle2">
                 <button className={m.ped === true ? 'on' : ''} onClick={() => setPed(i, true)}>Yes</button>
-                <button className={m.ped === false ? 'on' : ''} onClick={() => setPed(i, false)}>No</button>
+                <button className={m.ped === false ? 'on' : ''} onClick={() => setPed(i, false)} data-tour={i === 0 ? 'ped-no' : undefined}>No</button>
               </span>
             </div>
             {m.ped === true && (
@@ -266,18 +267,18 @@ export function DetailsStep({ proposer, setProposer, nominee, setNominee, nomine
       <div className="otprow">
         <input
           inputMode="numeric" placeholder="10-digit mobile" maxLength={10} style={{ maxWidth: 220 }}
-          value={otp.mobile} disabled={otp.verified}
+          value={otp.mobile} disabled={otp.verified} data-tour="mobile"
           onChange={(e) => setOtp({ ...otp, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) })}
         />
-        {!otp.verified && <button className="btn" onClick={sendOtp}>{otp.sent ? 'Resend OTP' : 'Send OTP'}</button>}
+        {!otp.verified && <button className="btn" onClick={sendOtp} data-tour="send-otp">{otp.sent ? 'Resend OTP' : 'Send OTP'}</button>}
         {otp.verified && <span className="verified">✓ Verified{otp.code ? ` · OTP ${otp.code} auto-filled (demo)` : ''}</span>}
       </div>
       {otp.error && <p className="error">{otp.error}</p>}
       {otp.sent && !otp.verified && <p className="hint">Verifying…</p>}
 
       <div className="formgrid" style={{ marginTop: 8 }}>
-        <div><label>Full name</label><input value={proposer.name || ''} onChange={(e) => setP('name', e.target.value)} /></div>
-        <div><label>Email</label><input value={proposer.email || ''} onChange={(e) => setP('email', e.target.value)} /></div>
+        <div><label>Full name</label><input value={proposer.name || ''} onChange={(e) => setP('name', e.target.value)} data-tour="proposer-name" /></div>
+        <div><label>Email</label><input value={proposer.email || ''} onChange={(e) => setP('email', e.target.value)} data-tour="proposer-email" /></div>
         <div><label>PAN</label><input value={proposer.pan || ''} onChange={(e) => setP('pan', e.target.value.toUpperCase().slice(0, 10))} /></div>
       </div>
 
@@ -343,7 +344,7 @@ export function SuccessScreen({ policyNo, proposalId, mode }) {
           The actual demo is what sits on top: an AI portal that reads this system's <b>source code</b> to
           tell a product manager whether a change is feasible — with file-and-line evidence.
         </p>
-        <a className="btn gold" href="/ai?from=journey">See the AI feasibility portal →</a>
+        <a className="btn gold" href="/ai?from=journey" data-tour="ai-handoff">See the AI feasibility portal →</a>
       </div>
     </div>
   );
