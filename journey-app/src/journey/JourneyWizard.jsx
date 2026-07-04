@@ -16,7 +16,9 @@ export default function JourneyWizard({ mode = 'customer', agentCode = null, onL
   const [step, setStep] = useState(0);
   const [members, setMembers] = useState([{ relationship: 'SELF', dob: '', dobText: '', ped: null, declarations: {} }]);
   const [pincode, setPincode] = useState('');
-  const [quote, setQuote] = useState({ sum_insured: 1000000, tenure_years: 1, plan: 'APEX', addons: null });
+  // Defaults: Unlimited sum insured + 5-year tenure pre-selected.
+  const [quote, setQuote] = useState({ sum_insured: 99999999, tenure_years: 5, plan: 'APEX', addons: null, discounts: [] });
+  const [showBreak, setShowBreak] = useState(false);
   const [planQuotes, setPlanQuotes] = useState(null);
   const [proposer, setProposer] = useState({});
   const [nominee, setNominee] = useState(null);
@@ -44,6 +46,13 @@ export default function JourneyWizard({ mode = 'customer', agentCode = null, onL
     const v = (catalog?.plan_variants || []).find((x) => x.code === code);
     setQuote((q) => ({ ...q, plan: code, addons: v ? [...v.included_addons] : [] }));
   };
+  const toggleDiscount = (code) => setQuote((q) => ({
+    ...q,
+    discounts: (q.discounts || []).includes(code) ? q.discounts.filter((d) => d !== code) : [...(q.discounts || []), code]
+  }));
+
+  // Selected plan's colour drives the journey's secondary accent.
+  const planColor = (catalog?.plan_variants || []).find((v) => v.code === quote.plan)?.color;
 
   // Everything the rating engine needs before it can price this proposal.
   const quoteReady =
@@ -71,7 +80,8 @@ export default function JourneyWizard({ mode = 'customer', agentCode = null, onL
         const body = {
           channel: mode === 'agent' ? 'AGENT' : 'D2C', agent_code: agentCode,
           pincode, members: apiMembers(), plan: quote.plan,
-          sum_insured: quote.sum_insured, tenure_years: quote.tenure_years, addons: quote.addons
+          sum_insured: quote.sum_insured, tenure_years: quote.tenure_years,
+          addons: quote.addons, discounts: quote.discounts || []
         };
         const id = proposalRef.current;
         const p = id ? await core.updateProposal(id, body) : await core.createProposal(body);
@@ -92,14 +102,15 @@ export default function JourneyWizard({ mode = 'customer', agentCode = null, onL
     planTimer.current = setTimeout(async () => {
       try {
         const r = await core.quotePlans({
-          pincode, members: apiMembers(), sum_insured: quote.sum_insured, tenure_years: quote.tenure_years
+          pincode, members: apiMembers(), sum_insured: quote.sum_insured,
+          tenure_years: quote.tenure_years, discounts: quote.discounts || []
         });
         setPlanQuotes(r);
       } catch { /* cards fall back to unpriced state */ }
     }, 450);
     return () => clearTimeout(planTimer.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, quoteReady, JSON.stringify(members), pincode, quote.sum_insured, quote.tenure_years]);
+  }, [step, quoteReady, JSON.stringify(members), pincode, quote.sum_insured, quote.tenure_years, (quote.discounts || []).join()]);
 
   const quoteGate = () => {
     if (!members.length) return 'Select at least one member to insure';
@@ -150,7 +161,7 @@ export default function JourneyWizard({ mode = 'customer', agentCode = null, onL
   };
 
   return (
-    <div className="wizard">
+    <div className="wizard" style={planColor ? { '--accent2': planColor } : undefined}>
       {step < 3 && (
         <div className="stepper">
           {STEPS.map((s, i) => (
@@ -173,8 +184,8 @@ export default function JourneyWizard({ mode = 'customer', agentCode = null, onL
           <QuoteStep
             catalog={catalog} members={members} setMembers={setMembers}
             pincode={pincode} setPincode={setPincode}
-            quote={quote} setQuote={setQuote} premium={premium} busy={busy}
-            planQuotes={planQuotes} onSelectPlan={selectPlan}
+            quote={quote} setQuote={setQuote}
+            planQuotes={planQuotes} onSelectPlan={selectPlan} toggleDiscount={toggleDiscount}
           />
         )}
         {step === 1 && (
@@ -190,19 +201,36 @@ export default function JourneyWizard({ mode = 'customer', agentCode = null, onL
       </div>
 
       {err && <p className="error">{err}</p>}
-      {step < 3 && (
+      {step > 0 && step < 3 && (
         <div className="navrow">
-          {step > 0 ? <button className="btn ghost" onClick={() => setStep((s) => s - 1)}>← Back</button> : <span />}
-          <button className="btn" disabled={busy} onClick={next} data-tour="wizard-next">
-            {busy ? 'Working…' : step === 2 ? (mode === 'agent' ? 'Submit & create payment link' : 'Confirm & proceed to pay') : 'Continue →'}
-          </button>
+          <button className="btn ghost" onClick={() => setStep((s) => s - 1)}>← Back</button>
         </div>
       )}
 
-      {step === 0 && premium && (
+      {/* Persistent premium bar — premium + primary CTA, on screen at all times. */}
+      {step < 3 && (
         <div className="stickybar">
-          <span><span className="lbl">Total premium · {quote.tenure_years} yr</span><br /><span className="amt">{inr(premium.total)}</span></span>
-          <button className="btn gold" disabled={busy} onClick={next}>Continue →</button>
+          {premium ? (
+            <button className="baramount" onClick={() => setShowBreak((v) => !v)}>
+              <span className="lbl">Total premium · {quote.tenure_years} yr {showBreak ? '▾' : '▴'}</span>
+              <span className="amt">{inr(premium.total)}</span>
+            </button>
+          ) : (
+            <span className="baramount"><span className="lbl">Your premium</span><span className="barhint">Complete steps 1–4 above</span></span>
+          )}
+          {showBreak && premium && (
+            <div className="breakdown">
+              <div className="prow"><span>Base premium</span><b>{inr(premium.base)}</b></div>
+              <div className="prow"><span>Add-ons</span><b>{inr(premium.addons)}</b></div>
+              <div className="prow"><span>Loadings</span><b>{inr(premium.loadings)}</b></div>
+              <div className="prow"><span>Discounts</span><b>−{inr(premium.discounts)}</b></div>
+              <div className="prow"><span>GST (18%)</span><b>{inr(premium.gst)}</b></div>
+              <div className="prow total"><span>Total · {quote.tenure_years} yr</span><b>{inr(premium.total)}</b></div>
+            </div>
+          )}
+          <button className="btn bar-cta" disabled={busy} onClick={next} data-tour="wizard-next">
+            {busy ? 'Working…' : step === 2 ? (mode === 'agent' ? 'Submit & create payment link' : 'Proceed to pay') : 'Continue →'}
+          </button>
         </div>
       )}
     </div>

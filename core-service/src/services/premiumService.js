@@ -36,6 +36,7 @@ function validate(p) {
   if (adults > UW.max_adults) errors.push(`max ${UW.max_adults} adults`);
   if (children > UW.max_children) errors.push(`max ${UW.max_children} children`);
   for (const a of p.addons || []) if (!RULES.addons[a]) errors.push(`unknown addon ${a}`);
+  for (const d of p.discounts || []) if (!RULES.optional_discounts[d]) errors.push(`unknown discount ${d}`);
   if (p.plan && !RULES.plan_variants[p.plan]) errors.push(`unknown plan ${p.plan} (allowed: ${Object.keys(RULES.plan_variants)})`);
   return errors;
 }
@@ -61,6 +62,11 @@ function calculate(p) {
   const n = p.members.length;
   const famPct = n >= 3 ? RULES.family_discount_pct['3_plus'] : n === 2 ? RULES.family_discount_pct['2'] : 0;
   let discounts = Math.round(base * famPct / 100);
+
+  // Opt-in discounts (digital policy, auto-debit, …) apply on base + add-ons.
+  let optPct = 0;
+  for (const code of p.discounts || []) optPct += RULES.optional_discounts[code]?.pct || 0;
+  discounts += Math.round((base + addons) * optPct / 100);
 
   let annual = base + addons + loadings - discounts;
   let total = annual * p.tenure_years;

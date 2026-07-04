@@ -4,8 +4,8 @@
 # ============================================================
 currency: INR
 payment_frequency_options: [ANNUAL]   # monthly/EMI NOT supported in core v2
-tenure_options_years: [1, 2, 3]
-tenure_discount_pct: { "2": 7.5, "3": 10.0 }
+tenure_options_years: [1, 2, 3, 4, 5]
+tenure_discount_pct: { "2": 7.5, "3": 10.0, "4": 12.5, "5": 15.0 }
 
 # Annual base rate per member at SI 10,00,000 (rate table v9)
 age_band_rates_adult:
@@ -21,6 +21,7 @@ sum_insured_multiplier:
   "2500000": 1.42
   "5000000": 1.85
   "10000000": 2.35
+  "99999999": 3.10                     # Unlimited cover (SI sentinel)
 
 zone_loading:                          # derived from pincode prefix
   ZONE_A: 1.00                         # metro (1x, 4x pincode)
@@ -29,74 +30,137 @@ zone_loading:                          # derived from pincode prefix
 
 family_discount_pct: { "2": 5, "3_plus": 10 }
 
+# Buy-time discounts the customer can opt into. pct applies to (base + add-ons).
+optional_discounts:
+  E_POLICY:   { label: "Digital policy",    icon: "📱", pct: 2.5, description: "Go paperless — policy kit and health cards delivered digitally." }
+  AUTO_DEBIT: { label: "Auto-debit",        icon: "🔁", pct: 2.0, description: "Set a standing instruction for renewals and save every year." }
+  LOYALTY:    { label: "Existing customer", icon: "🤝", pct: 5.0, description: "Already hold a Zenith policy? This one costs less." }
+
+# Storefront grouping for optional benefits (order = display order).
+addon_categories:
+  - { code: MUST_HAVE,      label: "Must Haves",                 icon: "⭐" }
+  - { code: COST_BENEFIT,   label: "Cost Benefit",               icon: "💸" }
+  - { code: COVER_ENHANCER, label: "Cover Enhancer",             icon: "📈" }
+  - { code: GLOBAL_ACCESS,  label: "Global Access",              icon: "🌍" }
+  - { code: WELLNESS,       label: "Preventive & Wellness Care", icon: "🍃" }
+
 addons:                                # pct = of base premium, flat = INR
-  BONUS_ACCELERATOR:    { label: "Bonus Accelerator (no-claim bonus grows up to 100%/yr)",     pct: 12 }
-  LIMITLESS_SHIELD:     { label: "Limitless Shield (one unlimited lifetime claim)",            pct: 15 }
-  EARLY_COVER:          { label: "Early Cover (PED waiting 36 -> 12 months)",                  pct: 18 }
-  OPD_CARE:             { label: "OPD Care (cashless outpatient + teleconsults)",              flat: 4500 }
-  COVER_ESCALATOR:      { label: "Cover Escalator (SI grows with inflation)",                  pct: 5 }
-  ROOM_FLEX:            { label: "Room Flex (any room category, no rent capping)",             pct: 8 }
-  CONSUMABLES_COVER:    { label: "Consumables Cover (non-medical consumables)",                pct: 6 }
-  PRIORITY_MEMBERSHIP:  { label: "Priority Membership (dedicated support, priority claims)",   pct: 7 }
-  ANNUAL_HEALTH_CHECK:  { label: "Annual Health Check (full body check-up every year)",        flat: 1200 }
-  NON_PAYABLES_COVER:   { label: "Non-Payables Cover (pays the bill items most plans skip)",   pct: 10 }
-  DAILY_HOSPITAL_CASH:  { label: "Daily Hospital Cash (fixed payout per day admitted)",         flat: 2500 }
-  GLOBAL_ACCESS:        { label: "Global Access (planned or emergency treatment abroad)",      pct: 20 }
-  ACCIDENT_SHIELD:      { label: "Accident Shield (lump sum for accidental death/disability)", flat: 1800 }
-  WELLNESS_COMPANION:   { label: "Wellness Companion (mental health, nutrition, fitness)",     flat: 1500 }
+  EARLY_COVER:         { label: "Early Cover",         category: MUST_HAVE,      icon: "⏳", pct: 18,
+                         tagline: "PED waiting cut from 36 to 12 months",
+                         description: "Cuts the waiting period for pre-existing diseases from 36 months to just 12." }
+  OPD_CARE:            { label: "OPD Care",            category: MUST_HAVE,      icon: "🩹", flat: 4500,
+                         tagline: "Cashless doctor visits & diagnostics",
+                         description: "Doctor consultations, diagnostics and teleconsults covered — cashless." }
+  ROOM_FLEX:           { label: "Room Flex",           category: MUST_HAVE,      icon: "🛏️", pct: 8,
+                         tagline: "Any room category, no rent capping",
+                         description: "Pick any hospital room — no rent caps, no proportional deductions." }
+  CONSUMABLES_COVER:   { label: "Consumables Cover",   category: COST_BENEFIT,   icon: "🧴", pct: 6,
+                         tagline: "Gloves, syringes & the small stuff",
+                         description: "Pays for non-medical consumables that hospital bills usually exclude." }
+  NON_PAYABLES_COVER:  { label: "Non-Payables Cover",  category: COST_BENEFIT,   icon: "🧾", pct: 10,
+                         tagline: "Covers the items most plans skip",
+                         description: "Pays the bill items most policies quietly exclude — kits, disposables, surcharges." }
+  DAILY_HOSPITAL_CASH: { label: "Daily Hospital Cash", category: COST_BENEFIT,   icon: "💰", flat: 2500,
+                         tagline: "Fixed payout per day admitted",
+                         description: "A fixed daily allowance for every day of hospitalisation — spend it as you need." }
+  BONUS_ACCELERATOR:   { label: "Bonus Accelerator",   category: COVER_ENHANCER, icon: "📈", pct: 12,
+                         tagline: "No-claim bonus grows up to 100%/yr",
+                         description: "Every claim-free year grows your cover — up to 100% extra sum insured." }
+  LIMITLESS_SHIELD:    { label: "Limitless Shield",    category: COVER_ENHANCER, icon: "♾️", pct: 15,
+                         tagline: "One unlimited claim, once in a lifetime",
+                         description: "One claim with no upper limit — for the catastrophic event." }
+  COVER_ESCALATOR:     { label: "Cover Escalator",     category: COVER_ENHANCER, icon: "📊", pct: 5,
+                         tagline: "Sum insured rises with inflation",
+                         description: "Your sum insured increases automatically every year to keep pace with inflation." }
+  ACCIDENT_SHIELD:     { label: "Accident Shield",     category: COVER_ENHANCER, icon: "🛡️", flat: 1800,
+                         tagline: "Lump sum on accidental death/disability",
+                         description: "A lump sum payout on accidental death or permanent disability." }
+  GLOBAL_ACCESS:       { label: "Global Access",       category: GLOBAL_ACCESS,  icon: "✈️", pct: 20,
+                         tagline: "Planned & emergency treatment abroad",
+                         description: "Planned or emergency treatment anywhere in the world." }
+  ANNUAL_HEALTH_CHECK: { label: "Annual Health Check", category: WELLNESS,       icon: "🩻", flat: 1200,
+                         tagline: "Full-body check-up every year",
+                         description: "A comprehensive health check-up, cashless, every policy year." }
+  WELLNESS_COMPANION:  { label: "Wellness Companion",  category: WELLNESS,       icon: "🧘", flat: 1500,
+                         tagline: "Mind, nutrition & fitness coaching",
+                         description: "Mental health support, nutrition and fitness coaching, on demand." }
+  PRIORITY_MEMBERSHIP: { label: "Priority Membership", category: WELLNESS,       icon: "👑", pct: 7,
+                         tagline: "Priority claims & dedicated support",
+                         description: "A dedicated relationship team and priority claims processing." }
 
 # Plan tiers — pre-configured bundles, listed best-first. Each tier applies a
-# rate multiplier to the base premium and bundles a set of add-ons; the rest of
-# the differences are coverage terms (room category, ambulance limits, restore
-# behaviour) documented per tier below and shown on the plan cards.
+# rate multiplier to the base premium and bundles a set of add-ons. `color`
+# drives the journey's secondary accent when the tier is selected. CUSTOM is
+# the à-la-carte chassis: essentials only, customer picks every add-on.
 plan_variants:
   APEX:
     label: "Apex"
-    tagline: "Our most complete cover — everything, from day one"
+    icon: "👑"
+    color: "#a97b24"
+    tagline: "Our most complete cover"
     rate_multiplier: 1.25
     recommended: true
     included_addons: [BONUS_ACCELERATOR, LIMITLESS_SHIELD, EARLY_COVER, ROOM_FLEX]
     benefits:
-      - "Any hospital room — including suites, no rent caps"
-      - "Evergreen Refill: sum insured restores after your first claim, for life"
-      - "Age Freeze: premium locked to your entry age till a claim is paid"
-      - "Boost Bank: unused cover carries forward, up to 10x your sum insured"
-      - "PED waiting cut to 12 months — Early Cover included"
-      - "Road ambulance up to sum insured; air ambulance up to Rs 5L"
-      - "Advanced treatments (robotic surgery, oral chemo, stem-cell BMT) up to sum insured"
+      - "🛏️ Any room — incl. suites, no rent caps"
+      - "♻️ Cover restores after first claim, for life"
+      - "🔒 Premium locked to entry age till a claim"
+      - "🏦 Unused cover carries forward, up to 10×"
+      - "⏳ PED waiting cut to 12 months"
+      - "🚑 Road ambulance to SI · air to ₹5L"
+      - "🧬 Advanced treatments up to full SI"
   PRIME:
     label: "Prime"
-    tagline: "The sweet spot — flagship benefits at a friendlier price"
+    icon: "💎"
+    color: "#2e5fd7"
+    tagline: "Flagship benefits, friendlier price"
     rate_multiplier: 1.10
     included_addons: [BONUS_ACCELERATOR, LIMITLESS_SHIELD]
     benefits:
-      - "Any hospital room except suites"
-      - "Evergreen Refill: sum insured restores after your first claim, for life"
-      - "Age Freeze: premium locked to your entry age till a claim is paid"
-      - "Boost Bank: unused cover carries forward, up to 5x your sum insured"
-      - "Road ambulance up to sum insured; air ambulance up to Rs 5L"
-      - "Advanced treatments covered up to sum insured"
+      - "🛏️ Any room except suites"
+      - "♻️ Cover restores after first claim, for life"
+      - "🔒 Premium locked to entry age till a claim"
+      - "🏦 Unused cover carries forward, up to 5×"
+      - "🚑 Road ambulance to SI · air to ₹5L"
+      - "🧬 Advanced treatments up to full SI"
   CORE:
     label: "Core"
+    icon: "🛡️"
+    color: "#0f8a7e"
     tagline: "Strong essentials for growing families"
     rate_multiplier: 1.00
     included_addons: [BONUS_ACCELERATOR]
     benefits:
-      - "Twin-sharing hospital room"
-      - "Boost Bank: unused cover carries forward, up to 2x your sum insured"
-      - "Road ambulance up to Rs 2,000 per hospitalisation"
-      - "Advanced treatments up to Rs 1L per claim"
-      - "PED waiting 36 months (add Early Cover to cut it to 12)"
+      - "🛏️ Twin-sharing hospital room"
+      - "🏦 Unused cover carries forward, up to 2×"
+      - "🚑 Road ambulance up to ₹2,000"
+      - "🧬 Advanced treatments up to ₹1L per claim"
+      - "⏳ PED waiting 36 months"
   LITE:
     label: "Lite"
-    tagline: "Honest baseline protection at the lowest price"
+    icon: "🌿"
+    color: "#3e8e5a"
+    tagline: "Honest baseline protection"
     rate_multiplier: 0.85
     included_addons: []
     benefits:
-      - "General ward hospital room"
-      - "Road ambulance up to Rs 2,000 per hospitalisation"
-      - "Advanced treatments up to Rs 1L per claim"
-      - "PED waiting 36 months (add Early Cover to cut it to 12)"
+      - "🛏️ General ward hospital room"
+      - "🚑 Road ambulance up to ₹2,000"
+      - "🧬 Advanced treatments up to ₹1L per claim"
+      - "⏳ PED waiting 36 months"
+  CUSTOM:
+    label: "Build Your Own"
+    icon: "🧩"
+    color: "#6d4ac2"
+    tagline: "Start with the essentials, add exactly what you need"
+    rate_multiplier: 0.90
+    custom: true
+    included_addons: []
+    benefits:
+      - "🛏️ Single private room"
+      - "🚑 Road ambulance up to ₹2,000"
+      - "🧬 Advanced treatments up to ₹1L per claim"
+      - "⏳ PED waiting 36 months"
 
 # Coverage every tier gets, regardless of add-ons — the "base" tiles in the
 # policy discovery grid. No price: these are never optional.

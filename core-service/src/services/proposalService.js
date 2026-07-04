@@ -36,6 +36,7 @@ async function createProposal(body) {
     tenure_years: body.tenure_years,
     sum_insured: body.sum_insured,
     addons: body.addons || [],
+    discounts: body.discounts || [],
     members: body.members,
     proposer: body.proposer || null,
     nominee: body.nominee || null,   // optional at proposal stage (underwriting.rules)
@@ -131,6 +132,9 @@ function quotePlans(body) {
     label: v.label,
     tagline: v.tagline,
     recommended: !!v.recommended,
+    icon: v.icon,
+    color: v.color,
+    custom: !!v.custom,
     benefits: v.benefits,
     included_addons: v.included_addons,
     premium: premium.calculate({ ...body, plan: code, addons: v.included_addons })

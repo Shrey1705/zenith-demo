@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { core, inr } from '../lib/api';
+import { siLabel } from '../lib/validation';
 import { SuccessScreen } from '../journey/steps';
 
 const METHODS = [
@@ -69,7 +70,7 @@ export default function PayLink() {
             <h4 style={{ marginTop: 18 }}>Payment summary</h4>
             <div className="prow" style={{ color: 'var(--muted)' }}><span>Proposal</span><b style={{ color: 'var(--text)' }}>{info.proposal_id}</b></div>
             <div className="prow" style={{ color: 'var(--muted)' }}><span>Members</span><b style={{ color: 'var(--text)' }}>{info.summary.members}</b></div>
-            <div className="prow" style={{ color: 'var(--muted)' }}><span>Sum insured</span><b style={{ color: 'var(--text)' }}>{inr(info.summary.sum_insured)}</b></div>
+            <div className="prow" style={{ color: 'var(--muted)' }}><span>Sum insured</span><b style={{ color: 'var(--text)' }}>{siLabel(info.summary.sum_insured)}</b></div>
             <div className="prow" style={{ color: 'var(--muted)' }}><span>Tenure</span><b style={{ color: 'var(--text)' }}>{info.summary.tenure_years} yr</b></div>
             <div className="prow" style={{ color: 'var(--muted)' }}><span>Paying as</span><b style={{ color: 'var(--text)' }}>{info.summary.proposer || 'customer'}</b></div>
           </div>

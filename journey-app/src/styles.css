@@ -87,7 +87,9 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .about a { color: var(--navy-soft); font-weight: 600; }
 
 /* ---- wizard ---- */
-.wizard { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; box-shadow: var(--shadow); }
+/* --accent2 is the journey's secondary accent — overridden inline by the
+   selected plan's colour, so the whole page re-themes on plan change. */
+.wizard { --accent2: var(--gold); background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; box-shadow: var(--shadow); margin-bottom: 84px; }
 .stepper { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; flex-wrap: wrap; }
 .stepper .crumb { display: flex; align-items: center; gap: 8px; background: none; border: none; font-family: inherit; font-size: 13.5px; color: var(--muted); padding: 6px 4px; cursor: default; }
 .stepper .crumb .dot { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: var(--bg); color: var(--muted); font-size: 12px; font-weight: 700; border: 1.5px solid var(--border); }
@@ -99,47 +101,72 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .navrow { margin-top: 26px; display: flex; justify-content: space-between; align-items: center; }
 .navrow .spacer { flex: 1; }
 
-/* ---- quote step ---- */
-.quotegrid { display: grid; grid-template-columns: 1fr 320px; gap: 30px; align-items: start; }
-@media (max-width: 860px) { .quotegrid { grid-template-columns: 1fr; } }
-.fieldrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
-.pitch { color: var(--navy-soft); font-size: 14px; font-weight: 600; margin: 2px 0 18px; }
+/* ---- quote step: single column of numbered section cards ---- */
+.qsteps { display: flex; flex-direction: column; gap: 16px; }
+.qsteps h2 { margin-bottom: 2px; }
+.qsection { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; }
+.qsection label:first-child { margin-top: 0; }
+.qsecthead { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.qnum { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent2, var(--gold)); color: #fff; font-weight: 700; font-size: 13px; font-family: var(--font-body); flex-shrink: 0; margin-top: 1px; transition: background 0.2s; }
+.qsecthead h3 { font-size: 17px; }
+.qsub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
 
-/* ---- asymmetric bento grid for Get your quote ---- */
-.bento { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; align-items: start; }
-.span-3 { grid-column: span 3; } .span-4 { grid-column: span 4; }
-.span-5 { grid-column: span 5; } .span-7 { grid-column: span 7; }
-.span-12 { grid-column: span 12; }
-.qcard { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; }
-.qcard label:first-child { margin-top: 0; }
-.qcard.banner { background: linear-gradient(155deg, var(--navy-deep), var(--navy-soft)); color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 10px; padding: 26px 20px; }
-.qcard.banner .bannericon { font-size: 30px; }
-.qcard.banner p { font-family: var(--font-display); font-size: 15px; line-height: 1.5; color: #e7edf5; }
-.stripbanner { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: var(--gold-tint); border: 1px solid #eaddbe; border-radius: 12px; padding: 12px 20px; font-size: 13px; font-weight: 600; color: var(--navy); }
-@media (max-width: 860px) {
-  .bento { grid-template-columns: 1fr; }
-  .bento > * { grid-column: 1 / -1; }
-}
+/* ---- base covers slideshow ---- */
+.covergrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.covertile { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; cursor: pointer; font-family: inherit; transition: border-color 0.15s; }
+.covertile:hover { border-color: var(--navy-soft); }
+.covertile.on { border-color: var(--accent2, var(--gold)); }
+.coverticon { font-size: 20px; }
+.covertile b { font-size: 12.5px; color: var(--text); }
+.covertile small { font-size: 11px; color: var(--muted); line-height: 1.35; }
+.coverdetail { margin-top: 10px; font-size: 12.5px; color: var(--muted); background: var(--panel); border: 1px dashed var(--border); border-radius: 10px; padding: 10px 14px; line-height: 1.6; }
+.coverdetail b { color: var(--text); }
+.pager { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; }
+.pager button { background: var(--panel); border: 1px solid var(--border); border-radius: 50%; width: 26px; height: 26px; cursor: pointer; font-size: 14px; line-height: 1; color: var(--navy); font-family: inherit; }
+.pager button:disabled { opacity: 0.35; cursor: default; }
+.pager .dot { width: 9px; height: 9px; padding: 0; border-radius: 50%; border: none; background: var(--border); }
+.pager .dot.on { background: var(--accent2, var(--gold)); }
 
-/* ---- benefit discovery: collapsible tiles ---- */
-.discovery { margin-top: 4px; }
-.disc-h { font-size: 20px; }
-.tilegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 8px; }
-.tile { border: 1px solid var(--border); border-radius: 12px; background: var(--panel); overflow: hidden; transition: border-color 0.15s; }
-.tile.optional.added { border-color: var(--gold); }
-.tile.open { border-color: var(--navy-soft); }
-.tilehead { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: none; padding: 13px 14px; cursor: pointer; font-family: inherit; }
-.tileicon { font-size: 20px; flex-shrink: 0; }
-.tiletext { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.tiletext b { font-size: 13px; }
-.tiletext small { color: var(--muted); font-size: 11.5px; line-height: 1.4; }
-.tilebadge { font-size: 9.5px; font-weight: 700; padding: 3px 8px; border-radius: 8px; white-space: nowrap; letter-spacing: 0.3px; }
-.tilebadge.base { background: #eef0f3; color: var(--muted); }
-.tilebadge.optional { background: var(--gold-tint); color: var(--gold-deep); }
-.tilebadge.included { background: #e2f2ec; color: var(--green); }
-.tilebody { padding: 0 14px 14px 44px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
-.tilebody .addbtn { margin-top: 6px; }
-.memberrow { display: flex; align-items: center; gap: 12px; margin: 10px 0; flex-wrap: wrap; }
+/* ---- optional benefits: category pills + symmetric card grid ---- */
+.catpills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.pill { border: 1.5px solid var(--border); background: var(--panel); border-radius: 20px; padding: 8px 14px; font-size: 12.5px; cursor: pointer; color: var(--muted); font-family: inherit; font-weight: 600; transition: all 0.15s; }
+.pill.on { border-color: var(--accent2, var(--gold)); color: var(--navy); box-shadow: inset 0 0 0 1px var(--accent2, var(--gold)); }
+.pillcount { background: #eef0f3; border-radius: 8px; padding: 1px 7px; font-size: 10.5px; margin-left: 2px; }
+.addongrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.benefitcard { display: flex; flex-direction: column; gap: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; transition: border-color 0.15s; }
+.benefitcard.added { border-color: var(--accent2, var(--gold)); }
+.benefithead { display: flex; justify-content: space-between; align-items: center; }
+.benefiticon { font-size: 20px; }
+.benefitprice { font-size: 10.5px; font-weight: 700; color: var(--gold-deep); background: var(--gold-tint); border-radius: 8px; padding: 3px 8px; white-space: nowrap; }
+.benefitprice.incl { color: var(--green); background: #e2f2ec; }
+.benefitcard b { font-size: 13.5px; }
+.benefitcard small { color: var(--muted); font-size: 11.5px; }
+.benefitcard p { color: var(--muted); font-size: 12px; line-height: 1.55; flex: 1; margin: 2px 0 8px; }
+.benefitnote { font-size: 11.5px; color: var(--green); font-weight: 600; }
+.benefitcard .addbtn { align-self: flex-start; }
+
+/* ---- discounts ---- */
+.discgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.disctile { display: flex; flex-direction: column; gap: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; transition: border-color 0.15s; }
+.disctile.active { border-color: var(--green); }
+.disctile b { font-size: 13.5px; }
+.disctile small { color: var(--muted); font-size: 11.5px; line-height: 1.5; flex: 1; }
+.disctile .addbtn { align-self: flex-start; margin-top: 8px; }
+
+/* ---- hospital network ---- */
+.hosptools { display: grid; grid-template-columns: 1fr 200px; gap: 10px; margin-bottom: 12px; }
+.hospgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.hospcard { display: flex; flex-direction: column; gap: 5px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.hosphead { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.hosphead b { font-size: 13px; line-height: 1.4; }
+.cashless { font-size: 9.5px; font-weight: 700; color: var(--green); background: #e2f2ec; border-radius: 8px; padding: 3px 8px; white-space: nowrap; }
+.hospcard small { color: var(--muted); font-size: 11.5px; }
+
+/* ---- members: symmetric grids (equal boxes for equal content) ---- */
+.adultgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 8px 0 10px; }
+.adultgrid .membercard { justify-content: center; }
+.kidgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 6px; }
+.kidgrid .membercard { justify-content: space-between; cursor: default; }
 .membercard { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 14px; cursor: pointer; background: var(--panel); color: var(--text); font-family: inherit; transition: border-color 0.15s, background 0.15s, color 0.15s; }
 .membercard.on { border-color: var(--navy); background: var(--navy); color: #fff; font-weight: 600; }
 .membercard .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--gold-tint); display: inline-flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
@@ -149,11 +176,18 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .counter span { min-width: 14px; text-align: center; font-weight: 600; font-size: 14px; color: inherit; }
 .membercard.on .counter { border-color: rgba(255, 255, 255, 0.35); }
 .membercard.on .counter button { color: #fff; }
-.dobrow { display: flex; align-items: center; gap: 12px; margin: 10px 0; }
-.dobrow .mlabel { width: 130px; font-weight: 600; font-size: 14px; flex-shrink: 0; }
+.dobblock { margin-top: 4px; }
+.dobrow { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+.dobrow .mlabel { width: 118px; font-weight: 600; font-size: 14px; flex-shrink: 0; }
 .dobrow input { max-width: 170px; letter-spacing: 1px; }
-.agebadge { font-size: 12.5px; color: var(--green); background: #e2f2ec; border-radius: 8px; padding: 4px 10px; font-weight: 600; white-space: nowrap; }
-.agebadge.bad { color: var(--red); background: #f9e3e8; }
+.dobrow .fieldok, .dobrow .fieldbad { margin-top: 0; font-size: 15px; }
+/* Age is shown in its own read-only chip once the DOB validates. */
+.agechip { font-size: 12.5px; color: var(--muted); background: #eef0f3; border-radius: 8px; padding: 6px 12px; font-weight: 600; white-space: nowrap; min-width: 62px; text-align: center; }
+.agechip.on { color: var(--green); background: #e2f2ec; }
+.pinrow { display: flex; align-items: center; gap: 10px; }
+.pinrow input { max-width: 220px; }
+.pinrow .fieldok, .pinrow .fieldbad { margin-top: 0; font-size: 15px; }
+.pedblock { margin-top: 8px; }
 .pedrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 10px 0; flex-wrap: wrap; }
 .toggle2 { display: inline-flex; border: 1.5px solid var(--border); border-radius: 20px; overflow: hidden; }
 .toggle2 button { background: var(--panel); border: none; padding: 7px 18px; font-size: 13px; cursor: pointer; font-family: inherit; color: var(--muted); }
@@ -169,36 +203,39 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .chip .savebadge { position: absolute; top: -9px; right: 8px; background: var(--gold); color: var(--navy-deep); font-size: 9.5px; font-weight: 700; border-radius: 8px; padding: 1px 7px; }
 .chip .popbadge { position: absolute; top: -9px; left: 10px; background: var(--green); color: #fff; font-size: 9.5px; font-weight: 700; border-radius: 8px; padding: 1px 7px; }
 .plangrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin: 10px 0; }
-.plancard { position: relative; display: flex; flex-direction: column; border: 1.5px solid var(--border); border-radius: 14px; padding: 18px 16px 14px; background: var(--panel); transition: border-color 0.15s, box-shadow 0.15s; }
-.plancard.on { border-color: var(--gold); background: var(--gold-tint); box-shadow: 0 6px 18px rgba(201, 151, 59, 0.15); }
-.plancard .recbadge { position: absolute; top: -10px; left: 14px; background: var(--gold); color: var(--navy-deep); font-size: 9.5px; font-weight: 700; border-radius: 8px; padding: 2px 9px; letter-spacing: 0.5px; }
-.planhead { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+/* Each plan carries its own colour (--plancolor) — top bar, selected border. */
+.plancard { position: relative; display: flex; flex-direction: column; border: 1.5px solid var(--border); border-radius: 14px; padding: 20px 16px 14px; background: var(--panel); overflow: hidden; transition: border-color 0.15s, box-shadow 0.15s; }
+.planbar { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--plancolor, var(--gold)); }
+.plancard.on { border-color: var(--plancolor, var(--gold)); box-shadow: 0 6px 18px rgba(8, 26, 48, 0.12); }
+.plancard .recbadge { position: absolute; top: 10px; right: 12px; background: var(--plancolor, var(--gold)); color: #fff; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 8px; letter-spacing: 0.5px; }
+/* keep the price clear of the RECOMMENDED badge */
+.recbadge ~ .planhead .planprice { padding-top: 16px; }
+.planhead { display: flex; align-items: flex-start; gap: 10px; }
+.planicon { font-size: 22px; width: 40px; height: 40px; border-radius: 10px; background: var(--bg); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.plantitle { flex: 1; min-width: 0; }
 .plancard h4 { font-family: var(--font-display); font-size: 19px; color: var(--navy); }
-.plancard .exp { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 2px; }
-.planprice { font-family: var(--font-display); font-size: 19px; color: var(--navy); white-space: nowrap; text-align: right; }
+.plancard .exp { color: var(--muted); font-size: 11.5px; line-height: 1.45; margin-top: 2px; }
+.planprice { font-family: var(--font-display); font-size: 18px; color: var(--navy); white-space: nowrap; text-align: right; }
 .planprice small { display: block; font-family: var(--font-body); font-size: 10.5px; color: var(--muted); font-weight: 400; }
 .planbenefits { list-style: none; margin: 12px 0; flex: 1; }
-.planbenefits li { font-size: 12px; line-height: 1.5; color: var(--text); padding: 4px 0 4px 18px; position: relative; border-bottom: 1px dashed var(--border); }
+.planbenefits li { font-size: 12px; line-height: 1.5; color: var(--text); padding: 5px 0; border-bottom: 1px dashed var(--border); }
 .planbenefits li:last-child { border-bottom: none; }
-.planbenefits li::before { content: "✓"; position: absolute; left: 0; color: var(--green); font-weight: 700; }
 .plancard .addbtn { width: 100%; padding: 10px; }
+.plancard.on .addbtn { background: var(--plancolor, var(--navy)); border-color: var(--plancolor, var(--navy)); color: #fff; }
+/* Build-your-own: desktop-only à-la-carte chassis */
+.byo { margin-top: 4px; }
+.byo .planbenefits { display: flex; flex-wrap: wrap; gap: 4px 22px; }
+.byo .planbenefits li { border-bottom: none; }
+.byo .plancard .addbtn { width: auto; align-self: flex-start; padding: 10px 22px; }
 .tagincl { font-size: 10px; background: #e2f2ec; color: var(--green); padding: 2px 8px; border-radius: 8px; margin-left: 6px; font-weight: 600; vertical-align: middle; }
-.addoncard { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin: 10px 0; transition: border-color 0.15s; }
-.addoncard.on { border-color: var(--gold); background: var(--gold-tint); }
-.addoncard h4 { font-size: 14px; font-family: var(--font-body); }
-.addoncard .exp { color: var(--muted); font-size: 12.5px; line-height: 1.55; margin-top: 3px; }
-.addoncard .price { font-size: 12px; color: var(--navy-soft); font-weight: 600; margin-top: 4px; }
 .addbtn { flex-shrink: 0; border: 1.5px solid var(--navy); background: var(--panel); color: var(--navy); border-radius: 8px; padding: 7px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; }
 .addbtn.on { background: var(--navy); color: #fff; }
 
-/* ---- premium panel ---- */
-.premiumcard { position: sticky; top: 84px; background: var(--navy-deep); color: #fff; border-radius: var(--radius); padding: 22px; }
-.premiumcard h3 { color: #b9c7d8; font-size: 13px; font-family: var(--font-body); text-transform: uppercase; letter-spacing: 1px; }
+/* ---- premium rows (breakdown popover, payment page) ---- */
 .prow { display: flex; justify-content: space-between; font-size: 13.5px; padding: 7px 0; color: #b9c7d8; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
 .prow b { color: #fff; font-weight: 600; }
 .prow.total { border-bottom: none; padding-top: 14px; font-size: 15px; color: #fff; }
-.prow.total b { font-size: 22px; color: var(--gold); font-family: var(--font-display); }
-.premiumcard .hint { color: #7e93ac; }
+.prow.total b { font-size: 22px; color: var(--accent2, var(--gold)); font-family: var(--font-display); }
 
 /* ---- details step ---- */
 .formgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 18px; }
@@ -280,13 +317,26 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .testcase { margin: 10px 0; }
 .gherkin { background: #061120; border: 1px solid var(--dark-border); border-radius: 8px; padding: 10px 14px; font-size: 12px; line-height: 1.6; white-space: pre-wrap; margin-top: 6px; }
 
-/* ---- sticky mobile premium bar ---- */
-.stickybar { display: none; }
+/* ---- persistent premium bar (all wizard steps, all viewports) ---- */
+.stickybar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: var(--navy-deep); color: #fff; padding: 12px 26px; display: flex; justify-content: space-between; align-items: center; gap: 16px; box-shadow: 0 -6px 20px rgba(8, 26, 48, 0.25); }
+.baramount { display: flex; flex-direction: column; gap: 1px; background: none; border: none; text-align: left; color: inherit; cursor: pointer; font-family: inherit; padding: 0; }
+.stickybar .amt { font-family: var(--font-display); font-size: 22px; color: var(--accent2, var(--gold)); transition: color 0.2s; }
+.stickybar .lbl { font-size: 11px; color: #b9c7d8; }
+.barhint { font-size: 13.5px; color: #8ba0ba; }
+.bar-cta { margin-top: 0; background: var(--accent2, var(--gold)); color: #fff; transition: background 0.2s; }
+.bar-cta:hover { background: var(--accent2, var(--gold)); filter: brightness(1.12); }
+.breakdown { position: absolute; bottom: calc(100% + 10px); left: 26px; width: 300px; background: var(--navy-deep); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 12px; padding: 16px 18px; box-shadow: 0 -8px 30px rgba(8, 26, 48, 0.35); }
+
+/* ---- quote sections: mobile stacking (tiles keep equal sizes) ---- */
 @media (max-width: 860px) {
-  .premiumcard { position: static; }
-  .stickybar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: var(--navy-deep); color: #fff; padding: 12px 18px; justify-content: space-between; align-items: center; box-shadow: 0 -6px 20px rgba(8, 26, 48, 0.25); }
-  .stickybar .amt { font-family: var(--font-display); font-size: 20px; color: var(--gold); }
-  .stickybar .lbl { font-size: 11px; color: #b9c7d8; }
+  .adultgrid { grid-template-columns: repeat(2, 1fr); }
+  .kidgrid { grid-template-columns: 1fr; }
+  .covergrid { grid-template-columns: repeat(2, 1fr); }
+  .hosptools { grid-template-columns: 1fr; }
+  .byo { display: none; }
+  .dobrow .mlabel { width: 96px; }
+  .stickybar { padding: 10px 14px; }
+  .breakdown { left: 12px; right: 12px; width: auto; }
 }
 
 /* ---- Feasly workspace ---- */

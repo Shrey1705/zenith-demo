@@ -72,3 +72,9 @@ export function fieldClass(value, complete, valid) {
 }
 
 export const isPanFormat = (v) => /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(v || '');
+
+// ---- Sum insured display ----
+// 99999999 is the core rules' "Unlimited" sentinel (see underwriting.rules.yaml).
+export const UNLIMITED_SI = 99999999;
+export const siLabel = (v) =>
+  v >= UNLIMITED_SI ? 'Unlimited' : v >= 10000000 ? `₹${v / 10000000} Cr` : `₹${v / 100000} L`;

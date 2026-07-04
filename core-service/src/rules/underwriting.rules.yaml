@@ -4,8 +4,8 @@
 # ============================================================
 permitted_relationships: [SELF, SPOUSE, SON, DAUGHTER, FATHER, MOTHER]
 max_adults: 4
-max_children: 3
-max_members: 6
+max_children: 4
+max_members: 8
 
 entry_age:
   adult: { min_years: 18, max_years: 65 }
@@ -26,7 +26,8 @@ ped:
 nominee:
   required_at_proposal: false         # optional at proposal stage; captured at issuance if skipped
 
-sum_insured_bands: [500000, 1000000, 2500000, 5000000, 10000000]
+# 99999999 is the "Unlimited" cover sentinel — priced via its own SI multiplier
+sum_insured_bands: [500000, 1000000, 2500000, 5000000, 10000000, 99999999]
 
 medical_questions:
   - { code: PED_DIABETES,     text: "Diabetes / high blood sugar?" }

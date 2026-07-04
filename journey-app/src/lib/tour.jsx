@@ -12,14 +12,14 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 const STORAGE_KEY = 'zenith-tour-state';
 
 export const TOUR_STEPS = [
-  { id: 'dob-self', selector: '[data-tour="dob-self"]', advance: 'value', test: (v) => /^\d{2}\/\d{2}\/\d{4}$/.test(v),
-    title: 'Step 1 — Date of birth', body: "Type your DOB — we'll auto-insert the slashes and confirm it's valid." },
   { id: 'pincode', selector: '[data-tour="pincode"]', advance: 'value', test: (v) => /^[1-9][0-9]{5}$/.test(v),
-    title: 'Step 2 — Pincode', body: 'Your pincode sets metro vs non-metro pricing. Try 400001.' },
+    title: 'Step 1 — Pincode', body: 'Sum insured and tenure are pre-selected. Enter your pincode — pricing varies by city. Try 400001.' },
+  { id: 'dob-self', selector: '[data-tour="dob-self"]', advance: 'value', test: (v) => /^\d{2}\/\d{2}\/\d{4}$/.test(v),
+    title: 'Step 2 — Date of birth', body: "Type your DOB — we'll auto-insert the slashes and show your age once it's valid." },
   { id: 'ped-no', selector: '[data-tour="ped-no"]', advance: 'click',
     title: 'Step 3 — Medical history', body: "We'll answer No here — the shortest path skips the medical questionnaire." },
   { id: 'quote-continue', selector: '[data-tour="wizard-next"]', advance: 'click',
-    title: 'Step 4 — Your premium is live', body: 'Apex is pre-selected as our top plan. Continue when ready.' },
+    title: 'Step 4 — Your premium is ready', body: 'Your premium is in the bar below — Apex is pre-selected. Continue when ready.' },
   { id: 'mobile', selector: '[data-tour="mobile"]', advance: 'value', test: (v) => /^[6-9]\d{9}$/.test(v),
     title: 'Step 5 — Mobile number', body: 'Any valid-looking 10-digit number works — the OTP is simulated.' },
   { id: 'send-otp', selector: '[data-tour="send-otp"]', advance: 'click',

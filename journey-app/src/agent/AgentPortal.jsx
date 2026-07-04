@@ -1,6 +1,7 @@
 // Agent portal — login, dashboard of proposals, new proposal on behalf of customer.
 import React, { useState, useEffect } from 'react';
 import { core, inr } from '../lib/api';
+import { siLabel } from '../lib/validation';
 import JourneyWizard from '../journey/JourneyWizard';
 
 const AGENTS = { agent: { password: 'agent@123', code: 'AGT-7001', name: 'Demo Agent' } };
@@ -58,7 +59,7 @@ function Dashboard({ agentCode }) {
       <tbody>
         {rows.map(p => (
           <tr key={p.proposal_id}>
-            <td>{p.proposal_id}</td><td>{p.members.length}</td><td>{inr(p.sum_insured)}</td>
+            <td>{p.proposal_id}</td><td>{p.members.length}</td><td>{siLabel(p.sum_insured)}</td>
             <td>{inr(p.premium?.total)}</td>
             <td><span className={'status ' + p.status.toLowerCase()}>{p.status}</span></td>
             <td>{p.policy_no || '—'}</td>

@@ -3,6 +3,7 @@
 // form (proposer → applicants → coverage selection → nomination → medical
 // declarations → declaration), filled from the live journey data.
 import { jsPDF } from 'jspdf';
+import { siLabel } from './validation';
 
 const NAVY = [13, 36, 64];
 const GOLD = [201, 151, 59];
@@ -91,7 +92,7 @@ export function downloadProposalPdf(form) {
   sectionHead('3. Coverage Selection');
   fieldRow([
     ['Plan variant', form.cover.plan_label || form.cover.plan || '—'],
-    ['Base sum insured', inr(form.cover.sum_insured)],
+    ['Base sum insured', siLabel(form.cover.sum_insured)],
     ['Policy term', `${form.cover.tenure_years} year(s)`],
     ['Lives covered', String(form.members.length)]
   ]);
