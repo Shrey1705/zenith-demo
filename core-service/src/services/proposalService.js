@@ -32,6 +32,7 @@ async function createProposal(body) {
     payment_status: 'PENDING',
     policy_no: null,
     pincode: body.pincode,
+    plan: body.plan || 'CORE',
     tenure_years: body.tenure_years,
     sum_insured: body.sum_insured,
     addons: body.addons || [],
@@ -82,6 +83,8 @@ async function proposalForm(id) {
       // NOTE: per-member PED waiting months intentionally not exposed in v2 (contract)
     })),
     cover: {
+      plan: p.plan,
+      plan_label: premium.RULES.plan_variants[p.plan]?.label || p.plan,
       sum_insured: p.sum_insured, tenure_years: p.tenure_years,
       addons: p.addons, pincode: p.pincode
     },
@@ -117,4 +120,22 @@ async function confirmPayment(token) {
   return { proposal_id: p.proposal_id, policy_no: p.policy_no, status: p.status };
 }
 
-module.exports = { createProposal, updateProposal, submitProposal, proposalForm, createPaymentLink, confirmPayment };
+// Rate every plan tier for one configuration in a single call — powers the
+// plan-selection cards. Each tier is priced as its bundle: tier multiplier on
+// the base rate plus the tier's included add-ons. No proposal is persisted.
+function quotePlans(body) {
+  const errors = premium.validate({ ...body, plan: undefined, addons: [] });
+  if (errors.length) return { errors };
+  const plans = Object.entries(premium.RULES.plan_variants).map(([code, v]) => ({
+    code,
+    label: v.label,
+    tagline: v.tagline,
+    recommended: !!v.recommended,
+    benefits: v.benefits,
+    included_addons: v.included_addons,
+    premium: premium.calculate({ ...body, plan: code, addons: v.included_addons })
+  }));
+  return { plans, common_benefits: premium.RULES.common_benefits };
+}
+
+module.exports = { createProposal, updateProposal, submitProposal, proposalForm, createPaymentLink, confirmPayment, quotePlans };

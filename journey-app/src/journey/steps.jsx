@@ -46,10 +46,14 @@ function DobField({ member, onChange }) {
   );
 }
 
-// ---- Step 1: get a quote (members + cover + add-ons, live premium) ----
-export function QuoteStep({ catalog, members, setMembers, pincode, setPincode, quote, setQuote, premium, busy }) {
+// ---- Step 1: get a quote (members + cover + plan tiers, live premium) ----
+export function QuoteStep({ catalog, members, setMembers, pincode, setPincode, quote, setQuote, premium, busy, planQuotes, onSelectPlan }) {
   const bands = catalog?.sum_insured_bands || [];   // sum_insured_bands come from core catalog API
   const tenureDiscounts = catalog?.tenure_discount_pct || {};
+  const [customizing, setCustomizing] = useState(false);
+  // Tier cards: priced quotes when the config is complete, else catalog shells.
+  const planCards = planQuotes?.plans || (catalog?.plan_variants || []).map((v) => ({ ...v, premium: null }));
+  const selectedVariant = (catalog?.plan_variants || []).find((v) => v.code === quote.plan);
 
   const newMember = (rel) => ({ relationship: rel, dob: '', dobText: '', ped: null, declarations: {} });
   const toggleSingle = (rel) => {
@@ -78,7 +82,7 @@ export function QuoteStep({ catalog, members, setMembers, pincode, setPincode, q
 
   const toggleAddon = (code) => setQuote({
     ...quote,
-    addons: quote.addons.includes(code) ? quote.addons.filter((a) => a !== code) : [...quote.addons, code]
+    addons: (quote.addons || []).includes(code) ? quote.addons.filter((a) => a !== code) : [...(quote.addons || []), code]
   });
   const addonPrice = (a) => (a.flat ? `${inr(a.flat)}/yr` : `+${a.pct}% of base`);
 
@@ -164,20 +168,60 @@ export function QuoteStep({ catalog, members, setMembers, pincode, setPincode, q
           ))}
         </div>
 
-        <label>Add-ons — what each one does for you</label>
-        {(catalog?.addons || []).map((a) => {
-          const on = quote.addons.includes(a.code);
-          return (
-            <div className={'addoncard ' + (on ? 'on' : '')} key={a.code}>
-              <div>
-                <h4>{a.label.split(' (')[0]}</h4>
-                <p className="exp">{ADDON_EXPLAINERS[a.code] || a.label}</p>
-                <p className="price">{addonPrice(a)}</p>
+        <label>Choose your plan — our best cover first</label>
+        <div className="plangrid">
+          {planCards.map((v) => {
+            const on = quote.plan === v.code;
+            return (
+              <div className={'plancard ' + (on ? 'on' : '')} key={v.code}>
+                {v.recommended && <span className="recbadge">RECOMMENDED</span>}
+                <div className="planhead">
+                  <span>
+                    <h4>{v.label}</h4>
+                    <p className="exp">{v.tagline}</p>
+                  </span>
+                  <span className="planprice">
+                    {v.premium ? <>{inr(v.premium.total)}<small>/{quote.tenure_years} yr</small></> : <small>fill details above</small>}
+                  </span>
+                </div>
+                <ul className="planbenefits">
+                  {v.benefits.map((b, i) => <li key={i}>{b}</li>)}
+                </ul>
+                <button className={'addbtn ' + (on ? 'on' : '')} onClick={() => onSelectPlan(v.code)}>
+                  {on ? 'Selected ✓' : `Select ${v.label}`}
+                </button>
               </div>
-              <button className={'addbtn ' + (on ? 'on' : '')} onClick={() => toggleAddon(a.code)}>{on ? 'Added ✓' : 'Add'}</button>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+        {(planQuotes?.common_benefits || catalog?.common_benefits) && (
+          <p className="hint" style={{ marginTop: 10 }}>
+            <b>Every plan includes:</b> {(planQuotes?.common_benefits || catalog.common_benefits).join(' · ')}
+          </p>
+        )}
+
+        <button className="linkbtn" style={{ marginTop: 14 }} onClick={() => setCustomizing(!customizing)}>
+          {customizing ? 'Hide customisation ▲' : `Customise your ${selectedVariant?.label || ''} plan (optional) ▼`}
+        </button>
+        {customizing && (
+          <div className="collapse">
+            <p className="hint" style={{ marginTop: 0 }}>Fine-tune the {selectedVariant?.label} bundle — add covers you want, drop ones you don't. The premium re-rates live.</p>
+            {(catalog?.addons || []).map((a) => {
+              const on = (quote.addons || []).includes(a.code);
+              const bundled = (selectedVariant?.included_addons || []).includes(a.code);
+              return (
+                <div className={'addoncard ' + (on ? 'on' : '')} key={a.code}>
+                  <div>
+                    <h4>{a.label.split(' (')[0]} {bundled && <span className="tagincl">Included in {selectedVariant?.label}</span>}</h4>
+                    <p className="exp">{ADDON_EXPLAINERS[a.code] || a.label}</p>
+                    <p className="price">{addonPrice(a)}</p>
+                  </div>
+                  <button className={'addbtn ' + (on ? 'on' : '')} onClick={() => toggleAddon(a.code)}>{on ? 'Added ✓' : 'Add'}</button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div>
@@ -185,6 +229,7 @@ export function QuoteStep({ catalog, members, setMembers, pincode, setPincode, q
           <h3>Your premium</h3>
           {busy ? <p className="hint">Calculating with the core system…</p> : premium ? (
             <>
+              <div className="prow"><span>Plan</span><b>{selectedVariant?.label || quote.plan}</b></div>
               <div className="prow"><span>Base premium</span><b>{inr(premium.base)}</b></div>
               <div className="prow"><span>Add-ons</span><b>{inr(premium.addons)}</b></div>
               <div className="prow"><span>Loadings (PED)</span><b>{inr(premium.loadings)}</b></div>
@@ -269,7 +314,7 @@ export function ReviewStep({ form, onDownloadPdf }) {
              blocked: field not exposed in proposal-v2 contract response */
         ))}
         <h4>Cover</h4>
-        <p>{inr(form.cover.sum_insured)} sum insured · {form.cover.tenure_years} year(s) · Add-ons: {form.cover.addons.length ? form.cover.addons.map((a) => a.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())).join(', ') : 'none'}</p>
+        <p><b>{form.cover.plan_label} plan</b> · {inr(form.cover.sum_insured)} sum insured · {form.cover.tenure_years} year(s) · Add-ons: {form.cover.addons.length ? form.cover.addons.map((a) => a.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())).join(', ') : 'none'}</p>
         <h4>Nominee</h4>
         <p>{form.nominee ? `${form.nominee.name} (${form.nominee.relation})` : 'Not provided (optional at proposal stage)'}</p>
         <h4>Premium</h4>

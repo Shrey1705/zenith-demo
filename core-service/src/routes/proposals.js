@@ -9,9 +9,20 @@ router.get('/catalog', (_req, res) => res.json({
   tenure_options_years: RULES.tenure_options_years,
   tenure_discount_pct: RULES.tenure_discount_pct,
   addons: Object.entries(RULES.addons).map(([code, a]) => ({ code, label: a.label, pct: a.pct, flat: a.flat })),
+  plan_variants: Object.entries(RULES.plan_variants).map(([code, v]) => ({
+    code, label: v.label, tagline: v.tagline, recommended: !!v.recommended,
+    benefits: v.benefits, included_addons: v.included_addons
+  })),
+  common_benefits: RULES.common_benefits,
   medical_questions: UW.medical_questions,
   permitted_relationships: UW.permitted_relationships
 }));
+
+// Rate all plan tiers for one configuration (plan-selection cards)
+router.post('/quotes/plans', (req, res) => {
+  const r = svc.quotePlans(req.body);
+  r.errors ? res.status(400).json(r) : res.json(r);
+});
 
 router.post('/proposals', async (req, res) => {
   const r = await svc.createProposal(req.body);

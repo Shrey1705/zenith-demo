@@ -36,16 +36,18 @@ function validate(p) {
   if (adults > UW.max_adults) errors.push(`max ${UW.max_adults} adults`);
   if (children > UW.max_children) errors.push(`max ${UW.max_children} children`);
   for (const a of p.addons || []) if (!RULES.addons[a]) errors.push(`unknown addon ${a}`);
+  if (p.plan && !RULES.plan_variants[p.plan]) errors.push(`unknown plan ${p.plan} (allowed: ${Object.keys(RULES.plan_variants)})`);
   return errors;
 }
 
 function calculate(p) {
   const siMult = RULES.sum_insured_multiplier[String(p.sum_insured)];
   const zone = zoneFor(p.pincode);
+  const planMult = RULES.plan_variants[p.plan]?.rate_multiplier ?? 1;
 
   let base = 0;
   for (const m of p.members) base += (isAdult(m) ? adultRate(age(m.dob)) : RULES.child_rate);
-  base = Math.round(base * siMult * RULES.zone_loading[zone]);
+  base = Math.round(base * siMult * RULES.zone_loading[zone] * planMult);
 
   let addons = 0;
   for (const code of p.addons || []) {

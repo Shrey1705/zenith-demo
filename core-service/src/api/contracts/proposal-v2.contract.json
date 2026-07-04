@@ -8,6 +8,7 @@
         "channel": { "enum": ["D2C", "AGENT"] },
         "agent_code": { "type": "string", "optional": true },
         "pincode": { "type": "string", "pattern": "^[1-9][0-9]{5}$" },
+        "plan": { "type": "string", "enum_ref": "premium.plan_variants", "optional": true, "default": "CORE" },
         "tenure_years": { "type": "int", "enum": [1, 2, 3] },
         "sum_insured": { "type": "int", "enum_ref": "underwriting.sum_insured_bands" },
         "addons": { "type": "array", "items_enum_ref": "premium.addons" },
@@ -28,7 +29,8 @@
         "note": "per-member PED waiting period NOT exposed in v2 response"
       }
     },
-    "PUT /v2/proposals/:id": { "purpose": "Update draft (members/SI/addons/proposer/nominee); re-rates premium" },
+    "POST /v2/quotes/plans": { "purpose": "Rate all plan tiers for one configuration; powers plan-selection cards" },
+    "PUT /v2/proposals/:id": { "purpose": "Update draft (members/SI/addons/plan/proposer/nominee); re-rates premium" },
     "POST /v2/proposals/:id/submit": { "purpose": "Lock proposal after review; moves DRAFT -> SUBMITTED" },
     "GET /v2/proposals/:id/form": { "purpose": "Render-ready proposal form JSON for customer review" },
     "GET /v2/proposals/:id": { "purpose": "Status poll — includes payment_status and policy_no once issued" },

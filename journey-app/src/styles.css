@@ -119,6 +119,21 @@ input:focus, textarea:focus { outline: none; border-color: var(--navy-soft); }
 .chip.on { border-color: var(--navy); color: #fff; background: var(--navy); font-weight: 600; }
 .chip .savebadge { position: absolute; top: -9px; right: 8px; background: var(--gold); color: var(--navy-deep); font-size: 9.5px; font-weight: 700; border-radius: 8px; padding: 1px 7px; }
 .chip .popbadge { position: absolute; top: -9px; left: 10px; background: var(--green); color: #fff; font-size: 9.5px; font-weight: 700; border-radius: 8px; padding: 1px 7px; }
+.plangrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin: 10px 0; }
+.plancard { position: relative; display: flex; flex-direction: column; border: 1.5px solid var(--border); border-radius: 14px; padding: 18px 16px 14px; background: var(--panel); transition: border-color 0.15s, box-shadow 0.15s; }
+.plancard.on { border-color: var(--gold); background: var(--gold-tint); box-shadow: 0 6px 18px rgba(201, 151, 59, 0.15); }
+.plancard .recbadge { position: absolute; top: -10px; left: 14px; background: var(--gold); color: var(--navy-deep); font-size: 9.5px; font-weight: 700; border-radius: 8px; padding: 2px 9px; letter-spacing: 0.5px; }
+.planhead { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.plancard h4 { font-family: var(--font-display); font-size: 19px; color: var(--navy); }
+.plancard .exp { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 2px; }
+.planprice { font-family: var(--font-display); font-size: 19px; color: var(--navy); white-space: nowrap; text-align: right; }
+.planprice small { display: block; font-family: var(--font-body); font-size: 10.5px; color: var(--muted); font-weight: 400; }
+.planbenefits { list-style: none; margin: 12px 0; flex: 1; }
+.planbenefits li { font-size: 12px; line-height: 1.5; color: var(--text); padding: 4px 0 4px 18px; position: relative; border-bottom: 1px dashed var(--border); }
+.planbenefits li:last-child { border-bottom: none; }
+.planbenefits li::before { content: "✓"; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+.plancard .addbtn { width: 100%; padding: 10px; }
+.tagincl { font-size: 10px; background: #e2f2ec; color: var(--green); padding: 2px 8px; border-radius: 8px; margin-left: 6px; font-weight: 600; vertical-align: middle; }
 .addoncard { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin: 10px 0; transition: border-color 0.15s; }
 .addoncard.on { border-color: var(--gold); background: var(--gold-tint); }
 .addoncard h4 { font-size: 14px; font-family: var(--font-body); }

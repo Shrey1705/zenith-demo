@@ -12,6 +12,7 @@ async function req(base, path, opts = {}) {
 
 export const core = {
   catalog: () => req('/api/core', '/v2/catalog'),
+  quotePlans: (body) => req('/api/core', '/v2/quotes/plans', { method: 'POST', body }),
   createProposal: (body) => req('/api/core', '/v2/proposals', { method: 'POST', body }),
   updateProposal: (id, body) => req('/api/core', `/v2/proposals/${id}`, { method: 'PUT', body }),
   submitProposal: (id) => req('/api/core', `/v2/proposals/${id}/submit`, { method: 'POST' }),

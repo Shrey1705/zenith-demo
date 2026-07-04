@@ -16,7 +16,8 @@ export default function JourneyWizard({ mode = 'customer', agentCode = null, onL
   const [step, setStep] = useState(0);
   const [members, setMembers] = useState([{ relationship: 'SELF', dob: '', dobText: '', ped: null, declarations: {} }]);
   const [pincode, setPincode] = useState('');
-  const [quote, setQuote] = useState({ sum_insured: 1000000, tenure_years: 1, addons: [] });
+  const [quote, setQuote] = useState({ sum_insured: 1000000, tenure_years: 1, plan: 'APEX', addons: null });
+  const [planQuotes, setPlanQuotes] = useState(null);
   const [proposer, setProposer] = useState({});
   const [nominee, setNominee] = useState(null);
   const [nomineeSkipped, setNomineeSkipped] = useState(false);
@@ -29,6 +30,20 @@ export default function JourneyWizard({ mode = 'customer', agentCode = null, onL
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { core.catalog().then(setCatalog).catch((e) => setErr(e.message)); }, []);
+
+  // Seed the default plan's bundled add-ons once the catalog arrives.
+  useEffect(() => {
+    if (!catalog || quote.addons !== null) return;
+    const v = (catalog.plan_variants || []).find((x) => x.code === quote.plan);
+    setQuote((q) => ({ ...q, addons: v ? [...v.included_addons] : [] }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalog]);
+
+  // Picking a tier adopts its bundle; customization then edits from there.
+  const selectPlan = (code) => {
+    const v = (catalog?.plan_variants || []).find((x) => x.code === code);
+    setQuote((q) => ({ ...q, plan: code, addons: v ? [...v.included_addons] : [] }));
+  };
 
   // Everything the rating engine needs before it can price this proposal.
   const quoteReady =
@@ -48,14 +63,15 @@ export default function JourneyWizard({ mode = 'customer', agentCode = null, onL
   const proposalRef = useRef(null);
   proposalRef.current = proposalId;
   useEffect(() => {
-    if (step !== 0 || !quoteReady) return;
+    if (step !== 0 || !quoteReady || quote.addons === null) return;
     clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(async () => {
       setBusy(true); setErr('');
       try {
         const body = {
           channel: mode === 'agent' ? 'AGENT' : 'D2C', agent_code: agentCode,
-          pincode, members: apiMembers(), sum_insured: quote.sum_insured, tenure_years: quote.tenure_years, addons: quote.addons
+          pincode, members: apiMembers(), plan: quote.plan,
+          sum_insured: quote.sum_insured, tenure_years: quote.tenure_years, addons: quote.addons
         };
         const id = proposalRef.current;
         const p = id ? await core.updateProposal(id, body) : await core.createProposal(body);
@@ -67,6 +83,23 @@ export default function JourneyWizard({ mode = 'customer', agentCode = null, onL
     return () => clearTimeout(syncTimer.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, quoteReady, JSON.stringify(members), pincode, JSON.stringify(quote)]);
+
+  // Plan-card pricing: rate every tier for the current configuration.
+  const planTimer = useRef(null);
+  useEffect(() => {
+    if (step !== 0 || !quoteReady) { return; }
+    clearTimeout(planTimer.current);
+    planTimer.current = setTimeout(async () => {
+      try {
+        const r = await core.quotePlans({
+          pincode, members: apiMembers(), sum_insured: quote.sum_insured, tenure_years: quote.tenure_years
+        });
+        setPlanQuotes(r);
+      } catch { /* cards fall back to unpriced state */ }
+    }, 450);
+    return () => clearTimeout(planTimer.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, quoteReady, JSON.stringify(members), pincode, quote.sum_insured, quote.tenure_years]);
 
   const quoteGate = () => {
     if (!members.length) return 'Select at least one member to insure';
@@ -141,6 +174,7 @@ export default function JourneyWizard({ mode = 'customer', agentCode = null, onL
             catalog={catalog} members={members} setMembers={setMembers}
             pincode={pincode} setPincode={setPincode}
             quote={quote} setQuote={setQuote} premium={premium} busy={busy}
+            planQuotes={planQuotes} onSelectPlan={selectPlan}
           />
         )}
         {step === 1 && (

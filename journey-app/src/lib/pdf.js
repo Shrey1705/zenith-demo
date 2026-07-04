@@ -90,6 +90,7 @@ export function downloadProposalPdf(form) {
   // ---- 3. Coverage selection ----
   sectionHead('3. Coverage Selection');
   fieldRow([
+    ['Plan variant', form.cover.plan_label || form.cover.plan || '—'],
     ['Base sum insured', inr(form.cover.sum_insured)],
     ['Policy term', `${form.cover.tenure_years} year(s)`],
     ['Lives covered', String(form.members.length)]

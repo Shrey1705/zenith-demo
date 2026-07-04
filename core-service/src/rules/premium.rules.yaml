@@ -38,4 +38,66 @@ addons:                                # pct = of base premium, flat = INR
   ROOM_FLEX:          { label: "Room Flex (any room category, no rent capping)",         pct: 8 }
   CONSUMABLES_COVER:  { label: "Consumables Cover (non-medical consumables)",            pct: 6 }
 
+# Plan tiers — pre-configured bundles, listed best-first. Each tier applies a
+# rate multiplier to the base premium and bundles a set of add-ons; the rest of
+# the differences are coverage terms (room category, ambulance limits, restore
+# behaviour) documented per tier below and shown on the plan cards.
+plan_variants:
+  APEX:
+    label: "Apex"
+    tagline: "Our most complete cover — everything, from day one"
+    rate_multiplier: 1.25
+    recommended: true
+    included_addons: [BONUS_ACCELERATOR, LIMITLESS_SHIELD, EARLY_COVER, ROOM_FLEX]
+    benefits:
+      - "Any hospital room — including suites, no rent caps"
+      - "Evergreen Refill: sum insured restores after your first claim, for life"
+      - "Age Freeze: premium locked to your entry age till a claim is paid"
+      - "Boost Bank: unused cover carries forward, up to 10x your sum insured"
+      - "PED waiting cut to 12 months — Early Cover included"
+      - "Road ambulance up to sum insured; air ambulance up to Rs 5L"
+      - "Advanced treatments (robotic surgery, oral chemo, stem-cell BMT) up to sum insured"
+  PRIME:
+    label: "Prime"
+    tagline: "The sweet spot — flagship benefits at a friendlier price"
+    rate_multiplier: 1.10
+    included_addons: [BONUS_ACCELERATOR, LIMITLESS_SHIELD]
+    benefits:
+      - "Any hospital room except suites"
+      - "Evergreen Refill: sum insured restores after your first claim, for life"
+      - "Age Freeze: premium locked to your entry age till a claim is paid"
+      - "Boost Bank: unused cover carries forward, up to 5x your sum insured"
+      - "Road ambulance up to sum insured; air ambulance up to Rs 5L"
+      - "Advanced treatments covered up to sum insured"
+  CORE:
+    label: "Core"
+    tagline: "Strong essentials for growing families"
+    rate_multiplier: 1.00
+    included_addons: [BONUS_ACCELERATOR]
+    benefits:
+      - "Twin-sharing hospital room"
+      - "Boost Bank: unused cover carries forward, up to 2x your sum insured"
+      - "Road ambulance up to Rs 2,000 per hospitalisation"
+      - "Advanced treatments up to Rs 1L per claim"
+      - "PED waiting 36 months (add Early Cover to cut it to 12)"
+  LITE:
+    label: "Lite"
+    tagline: "Honest baseline protection at the lowest price"
+    rate_multiplier: 0.85
+    included_addons: []
+    benefits:
+      - "General ward hospital room"
+      - "Road ambulance up to Rs 2,000 per hospitalisation"
+      - "Advanced treatments up to Rs 1L per claim"
+      - "PED waiting 36 months (add Early Cover to cut it to 12)"
+
+# Coverage every tier gets — shown once under the plan cards.
+common_benefits:
+  - "Hospitalisation of 2+ hours covered (24 hours at AYUSH hospitals)"
+  - "Before & After Care: 60 days pre- and 180 days post-hospitalisation expenses"
+  - "Care at Home: doctor-advised treatment at home, including chemo and dialysis"
+  - "Donor Protect: organ donor's hospitalisation expenses covered"
+  - "Expert Second Look: unlimited second medical opinions via the network"
+  - "Move More: walk your way to up to 30% off your renewal premium"
+
 gst_pct: 18
