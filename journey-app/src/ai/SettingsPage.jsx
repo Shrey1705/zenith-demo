@@ -1,8 +1,8 @@
-// Settings — consolidates Connected Systems, Model Hub and API & Webhooks
-// (previously three separate nav items) into one tabbed screen.
+// Settings — connected systems, model routing and API access in one tabbed
+// screen. Connectors are the ground truth behind every verdict and PDN.
 import React, { useState } from 'react';
 import { ai } from '../lib/api';
-import { loadWS, saveWS, uid } from './workspace';
+import { useWS, mutate, uid } from './workspace';
 
 const TABS = ['Connected Systems', 'Model Hub', 'API & Webhooks'];
 
@@ -44,41 +44,42 @@ function SystemsTab() {
 }
 
 function ModelsTab() {
-  const [ws, setWs] = useState(loadWS);
+  const ws = useWS();
+  const models = ws.models || [];
   const [local, setLocal] = useState({ name: '', endpoint: 'http://localhost:11434' });
   const [cloud, setCloud] = useState({ provider: 'anthropic', name: '', key: '' });
   const [tested, setTested] = useState({});
-  const write = (next) => setWs(saveWS(next));
 
   const addLocal = () => {
     if (!local.name.trim()) return;
-    write({ ...ws, models: [...ws.models, { id: uid(), name: local.name.trim(), provider: 'local', endpoint: local.endpoint }] });
+    mutate((w) => ({ ...w, models: [...(w.models || []), { id: uid(), name: local.name.trim(), provider: 'local', endpoint: local.endpoint }] }));
     setLocal({ name: '', endpoint: 'http://localhost:11434' });
   };
   const addCloud = () => {
     if (!cloud.name.trim() || cloud.key.length < 8) return;
-    write({ ...ws, models: [...ws.models, { id: uid(), name: cloud.name.trim(), provider: cloud.provider, keyMasked: '••••' + cloud.key.slice(-4) }] });
+    mutate((w) => ({ ...w, models: [...(w.models || []), { id: uid(), name: cloud.name.trim(), provider: cloud.provider, keyMasked: '••••' + cloud.key.slice(-4) }] }));
     setCloud({ provider: 'anthropic', name: '', key: '' });
   };
-  const remove = (id) => write({ ...ws, models: ws.models.filter((m) => m.id !== id), activeModelId: ws.activeModelId === id ? null : ws.activeModelId });
+  const remove = (id) => mutate((w) => ({ ...w, models: (w.models || []).filter((m) => m.id !== id), activeModelId: w.activeModelId === id ? null : w.activeModelId }));
+  const setActive = (id) => mutate((w) => ({ ...w, activeModelId: id }));
 
   return (
     <div>
       <h3 className="ws-h3" style={{ marginTop: 0 }}>Active model</h3>
       <div className="modelgrid">
-        <button className={'modelcard' + (!ws.activeModelId ? ' on' : '')} onClick={() => write({ ...ws, activeModelId: null })}>
+        <button className={'modelcard' + (!ws.activeModelId ? ' on' : '')} onClick={() => setActive(null)}>
           <b>🔒 Feasly demo brain</b>
           <small>Offline · deterministic · code-grounded feasibility</small>
           {!ws.activeModelId && <span className="status issued">ACTIVE</span>}
         </button>
-        {ws.models.map((m) => (
+        {models.map((m) => (
           <div key={m.id} className={'modelcard' + (ws.activeModelId === m.id ? ' on' : '')}>
             <b>{m.provider === 'local' ? '💻' : '☁️'} {m.name}</b>
             <small>{m.provider === 'local' ? `Local · ${m.endpoint}` : `${m.provider} · key ${m.keyMasked}`}</small>
             <span className="modelops">
               {ws.activeModelId === m.id
                 ? <span className="status issued">ACTIVE</span>
-                : <button className="linkbtn" onClick={() => write({ ...ws, activeModelId: m.id })}>Set active</button>}
+                : <button className="linkbtn" onClick={() => setActive(m.id)}>Set active</button>}
               <button className="linkbtn" onClick={() => setTested((t) => ({ ...t, [m.id]: true }))}>{tested[m.id] ? '✓ Connection OK' : 'Test'}</button>
               <button className="linkbtn" onClick={() => remove(m.id)}>Remove</button>
             </span>
@@ -143,9 +144,9 @@ export default function SettingsPage() {
   const [tab, setTab] = useState('Connected Systems');
   const ICON = { 'Connected Systems': '🔌', 'Model Hub': '🧠', 'API & Webhooks': '🔑' };
   return (
-    <div>
-      <h1 className="dashh1sm">Settings</h1>
-      <p className="dashsub" style={{ marginBottom: 20 }}>Connected systems, model routing and API access — consolidated in one place.</p>
+    <div className="docwrap">
+      <h1 className="doch1">Settings</h1>
+      <p className="docsub">Connected systems, model routing and API access.</p>
       <div className="undertabs">
         {TABS.map((t) => <button key={t} className={'undertab' + (tab === t ? ' on' : '')} onClick={() => setTab(t)}>{ICON[t]} {t}</button>)}
       </div>

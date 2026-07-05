@@ -1,34 +1,37 @@
-// Feasly — the PM workspace. Login + app shell (grouped left nav, mobile
-// slide-in drawer) + nested pages. Zenith Health is the connected showcase
-// tenant; the workspace answers "is this feasible?" from its actual code,
-// plus everyday PM craft (BRDs, planner, model routing).
+// Feasly — an AI product-management workspace. Login + workspace home +
+// project shell. Philosophy: navigate knowledge, not folders. The sidebar
+// is the artifact chain; the centre is always a document; AI is embedded
+// everywhere and additionally reachable through a floating assist panel.
 import React, { useState, createContext, useContext } from 'react';
-import { useLocation, useNavigate, Routes, Route, NavLink, Navigate } from 'react-router-dom';
+import { useLocation, Routes, Route, NavLink, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { ai } from '../lib/api';
-import DashboardPage from './DashboardPage';
-import ProjectsPage from './ProjectsPage';
-import ProjectDetailPage from './ProjectDetailPage';
-import BrdPage from './BrdPage';
-import AskFeaslyPage from './AskFeaslyPage';
-import PlannerPage from './PlannerPage';
+import { useWS, findProject, TYPES } from './workspace';
+import HomePage from './HomePage';
+import ResearchPage from './ResearchPage';
+import ConversationsPage from './ConversationsPage';
+import BrdsPage from './BrdsPage';
+import ArtifactPage from './ArtifactPage';
+import GraphPage from './GraphPage';
+import ReleasesPage from './ReleasesPage';
 import SettingsPage from './SettingsPage';
+import AssistPanel from './AssistPanel';
 
 const WorkspaceContext = createContext(null);
 export const useWorkspace = () => useContext(WorkspaceContext);
-
-const NAV_WORKSPACE = [
-  { to: '', icon: '🏠', label: 'Dashboard', end: true },
-  { to: 'projects', icon: '📁', label: 'Projects' },
-  { to: 'ask', icon: '💬', label: 'Ask Feasly' },
-  { to: 'planner', icon: '🗓', label: 'Planner' }
-];
-const NAV_ADMIN = [{ to: 'settings', icon: '⚙️', label: 'Settings' }];
 
 export default function AiPortal() {
   const [token, setToken] = useState(null);
   const fromJourney = useLocation().search.includes('from=journey');
   if (!token) return <Login onToken={setToken} autoLogin={fromJourney} />;
-  return <Workspace token={token} onLogout={() => setToken(null)} fromJourney={fromJourney} />;
+  return (
+    <WorkspaceContext.Provider value={{ token, logout: () => setToken(null) }}>
+      <Routes>
+        <Route index element={<HomePage />} />
+        <Route path="p/:pid/*" element={<ProjectShell />} />
+        <Route path="*" element={<Navigate to="" replace />} />
+      </Routes>
+    </WorkspaceContext.Provider>
+  );
 }
 
 function Login({ onToken, autoLogin }) {
@@ -38,13 +41,12 @@ function Login({ onToken, autoLogin }) {
     try { const r = await ai.login(user, pass); onToken(r.token); }
     catch { setErr('Invalid credentials. Demo login: pm / zenith@123'); }
   };
-  // Arriving from the journey's success screen: log straight in.
   React.useEffect(() => { if (autoLogin) go('pm', 'zenith@123'); /* eslint-disable-line */ }, [autoLogin]);
   return (
     <div className="page narrow dark">
       <div>
         <h2>Feasly <span className="accent">· PM workspace</span></h2>
-        <p className="hint">Feasibility verdicts grounded in live code, PDN drafting, stories, test cases, and a PM copilot — connected to the Zenith showcase tenant.</p>
+        <p className="hint">Research, BRDs, PDNs, epics, stories and test cases — interconnected, versioned, and traceable back to the business question. Connected to the Zenith showcase tenant.</p>
         <label>Username</label><input value={u} onChange={e => setU(e.target.value)} />
         <label>Password</label><input type="password" value={p} onChange={e => setP(e.target.value)} onKeyDown={e => e.key === 'Enter' && go()} />
         {err && <p className="error">{err}</p>}
@@ -55,72 +57,91 @@ function Login({ onToken, autoLogin }) {
   );
 }
 
-function NavLinks({ onNavigate }) {
-  return (
-    <>
-      <div className="ws-grouplbl">Workspace</div>
-      <nav className="ws-nav">
-        {NAV_WORKSPACE.map((item) => (
-          <NavLink key={item.label} to={item.to} end={item.end} onClick={onNavigate} className={({ isActive }) => 'ws-link' + (isActive ? ' on' : '')}>
-            <span className="ws-icon">{item.icon}</span> {item.label}
-          </NavLink>
-        ))}
-      </nav>
-      <div className="ws-grouplbl">Admin</div>
-      <nav className="ws-nav">
-        {NAV_ADMIN.map((item) => (
-          <NavLink key={item.label} to={item.to} onClick={onNavigate} className={({ isActive }) => 'ws-link' + (isActive ? ' on' : '')}>
-            <span className="ws-icon">{item.icon}</span> {item.label}
-          </NavLink>
-        ))}
-      </nav>
-    </>
-  );
-}
+// Sidebar groups — the artifact chain reads top-to-bottom like the workflow.
+const NAV = [
+  { group: 'Knowledge', items: [
+    { to: 'research', icon: TYPES.research.icon, label: 'Research', count: (p) => p.research.length },
+    { to: 'conversations', icon: '💬', label: 'Conversations', count: (p) => p.conversations.length }
+  ] },
+  { group: 'Delivery', items: [
+    { to: 'brds', icon: TYPES.brd.icon, label: 'BRDs', count: (p) => p.brds.length },
+    { to: 'pdns', icon: TYPES.pdn.icon, label: 'PDNs', count: (p) => p.pdns.length },
+    { to: 'epics', icon: TYPES.epic.icon, label: 'Epics', count: (p) => p.epics.length },
+    { to: 'stories', icon: TYPES.story.icon, label: 'User Stories', count: (p) => p.stories.length },
+    { to: 'frs', icon: TYPES.fr.icon, label: 'Functional Reqs', count: (p) => p.frs.length },
+    { to: 'tests', icon: TYPES.test.icon, label: 'Test Cases', count: (p) => p.tests.length }
+  ] },
+  { group: 'Project', items: [
+    { to: 'graph', icon: '🕸', label: 'Knowledge Graph' },
+    { to: 'releases', icon: '🚀', label: 'Releases', count: (p) => p.releases.length },
+    { to: 'settings', icon: '⚙️', label: 'Settings' }
+  ] }
+];
 
-function Workspace({ token, onLogout, fromJourney }) {
+function ProjectShell() {
+  const { pid } = useParams();
   const nav = useNavigate();
+  const ws = useWS();
+  const { logout } = useWorkspace();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const project = findProject(ws, pid);
+  if (!project) return <Navigate to="/ai" replace />;
 
   return (
-    <WorkspaceContext.Provider value={{ token }}>
-      <div className="workspace">
-        <button className="ws-hamburger" onClick={() => setDrawerOpen(true)} aria-label="Open menu">☰</button>
-        {drawerOpen && <div className="ws-backdrop" onClick={() => setDrawerOpen(false)} />}
+    <div className="workspace">
+      <button className="ws-hamburger" onClick={() => setDrawerOpen(true)} aria-label="Open menu">☰</button>
+      {drawerOpen && <div className="ws-backdrop" onClick={() => setDrawerOpen(false)} />}
 
-        <aside className={'ws-side' + (drawerOpen ? ' open' : '')}>
-          <div className="ws-sidetop">
-            <div className="ws-brand">feasly<span className="accent">.</span></div>
-            <button className="ws-drawerclose" onClick={() => setDrawerOpen(false)} aria-label="Close menu">✕</button>
-          </div>
-          <div className="ws-tenant">Tenant: <b>Zenith Health</b> · showcase</div>
-          <NavLinks onNavigate={() => setDrawerOpen(false)} />
-          <div style={{ flex: 1 }} />
-          <div className="ws-foot">
-            <div className="ws-user"><span className="ws-avatar">PM</span> pm@zenith · demo</div>
-            <button className="linkbtn" onClick={() => { onLogout(); nav('/ai'); }}>Log out</button>
-          </div>
-        </aside>
+      <aside className={'ws-side' + (drawerOpen ? ' open' : '')}>
+        <div className="ws-sidetop">
+          <div className="ws-brand">feasly<span className="accent">.</span></div>
+          <button className="ws-drawerclose" onClick={() => setDrawerOpen(false)} aria-label="Close menu">✕</button>
+        </div>
+        <button className="ws-projname" onClick={() => nav('/ai')} title="Back to all projects">
+          <span className="ws-projback">←</span> {project.name}
+        </button>
 
-        <main className="ws-main page dark">
-          <Routes>
-            <Route index element={fromJourney ? <Navigate to="projects" replace /> : <DashboardPage />} />
-            <Route path="projects" element={<ProjectsPage />} />
-            <Route path="projects/:projectId" element={<ProjectDetailPage />} />
-            <Route path="projects/:projectId/:brdId" element={<BrdPage />} />
-            <Route path="ask" element={<AskFeaslyPage />} />
-            <Route path="planner" element={<PlannerPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="chat" element={<Navigate to="../ask" replace />} />
-            <Route path="feasibility" element={<Navigate to="../projects" replace />} />
-            <Route path="research" element={<Navigate to="../projects" replace />} />
-            <Route path="models" element={<Navigate to="../settings" replace />} />
-            <Route path="systems" element={<Navigate to="../settings" replace />} />
-            <Route path="api" element={<Navigate to="../settings" replace />} />
-            <Route path="*" element={<Navigate to="" replace />} />
-          </Routes>
-        </main>
-      </div>
-    </WorkspaceContext.Provider>
+        {NAV.map((g) => (
+          <React.Fragment key={g.group}>
+            <div className="ws-grouplbl">{g.group}</div>
+            <nav className="ws-nav">
+              {g.items.map((item) => (
+                <NavLink key={item.to} to={item.to} onClick={() => setDrawerOpen(false)}
+                  className={({ isActive }) => 'ws-link' + (isActive ? ' on' : '')}>
+                  <span className="ws-icon">{item.icon}</span> {item.label}
+                  {item.count && <span className="ws-count">{item.count(project)}</span>}
+                </NavLink>
+              ))}
+            </nav>
+          </React.Fragment>
+        ))}
+
+        <div style={{ flex: 1 }} />
+        <div className="ws-foot">
+          <div className="ws-user"><span className="ws-avatar">PM</span> pm@zenith · demo</div>
+          <button className="linkbtn" onClick={() => { logout(); nav('/ai'); }}>Log out</button>
+        </div>
+      </aside>
+
+      <main className="ws-main page dark">
+        <Routes>
+          <Route index element={<Navigate to="research" replace />} />
+          <Route path="research/:docId?" element={<ResearchPage />} />
+          <Route path="conversations/:convId?" element={<ConversationsPage />} />
+          <Route path="brds/:docId?" element={<BrdsPage />} />
+          <Route path="pdns/:docId?" element={<ArtifactPage type="pdn" />} />
+          <Route path="epics/:docId?" element={<ArtifactPage type="epic" />} />
+          <Route path="stories/:docId?" element={<ArtifactPage type="story" />} />
+          <Route path="frs/:docId?" element={<ArtifactPage type="fr" />} />
+          <Route path="tests/:docId?" element={<ArtifactPage type="test" />} />
+          <Route path="graph" element={<GraphPage />} />
+          <Route path="releases" element={<ReleasesPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="research" replace />} />
+        </Routes>
+      </main>
+
+      <AssistPanel project={project} />
+    </div>
   );
 }

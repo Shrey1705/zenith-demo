@@ -1,214 +1,245 @@
-// Feasly workspace store — localStorage-backed, demo-grade persistence for
-// projects, BRDs, chats, planner items and model connections. Every page
-// reads through loadWS/saveWS so state survives reloads and the journey
-// handoff. v2 introduces the BRD pipeline (draft -> locked -> generated)
-// nested per-project, replacing the old standalone artifacts/books arrays.
+// Feasly workspace store — v3: a knowledge-first artifact chain.
+//
+//   Research → BRD (versioned) → PDN → Epic → Story → Functional Req → Test
+//
+// Everything lives per-project in localStorage. Traceability is computed
+// from parent links, and staleness is computed — never stored: a PDN records
+// the BRD version it was generated from, so when the BRD gains a version the
+// entire downstream chain reports "upstream changed" with zero bookkeeping.
+import { useSyncExternalStore } from 'react';
 
-const KEY = 'feasly-workspace-v2';
+const KEY = 'feasly-workspace-v3';
 
-const emptyBrdSections = () => ({ background: '', requirements: [], stakeholders: '', success: '' });
+// ---- shared store (all components see the same snapshot) ----
+let cache = null;
+const subs = new Set();
+const read = () => {
+  if (cache) return cache;
+  try {
+    const raw = localStorage.getItem(KEY);
+    cache = raw === null ? seedState() : JSON.parse(raw);
+    if (raw === null) persist();
+  } catch { cache = seedState(); }
+  return cache;
+};
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(cache)); } catch { /* ignore */ } };
 
-// Seed data — ports the design prototype's demo state so a fresh workspace
-// shows a populated, convincing pipeline (Dashboard, project cards, recent
-// artifacts) instead of an empty shell on first visit.
-function seedState() {
+export function useWS() {
+  return useSyncExternalStore((cb) => { subs.add(cb); return () => subs.delete(cb); }, read);
+}
+export const getWS = read;
+export function mutate(fn) {
+  cache = fn(JSON.parse(JSON.stringify(read())));
+  persist();
+  subs.forEach((cb) => cb());
+}
+
+export const uid = () => Math.random().toString(36).slice(2, 9);
+export const now = () => new Date().toISOString();
+export const shortDate = (iso) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
+// ---- artifact type registry (chain order matters) ----
+export const TYPES = {
+  research: { key: 'research', label: 'Research', one: 'Research note', icon: '🔍', parent: null },
+  brd: { key: 'brds', label: 'BRDs', one: 'BRD', icon: '📋', parent: null },
+  pdn: { key: 'pdns', label: 'PDNs', one: 'PDN', icon: '📄', parent: 'brd', parentKey: 'brdId' },
+  epic: { key: 'epics', label: 'Epics', one: 'Epic', icon: '🧱', parent: 'pdn', parentKey: 'pdnId' },
+  story: { key: 'stories', label: 'User Stories', one: 'User Story', icon: '🗂', parent: 'epic', parentKey: 'epicId' },
+  fr: { key: 'frs', label: 'Functional Requirements', one: 'Functional Requirement', icon: '📐', parent: 'story', parentKey: 'storyId' },
+  test: { key: 'tests', label: 'Test Cases', one: 'Test Case', icon: '✅', parent: 'fr', parentKey: 'frId' }
+};
+export const CHAIN = ['research', 'brd', 'pdn', 'epic', 'story', 'fr', 'test'];
+export const CHILD_OF = { brd: 'pdn', pdn: 'epic', epic: 'story', story: 'fr', fr: 'test' };
+export const ROUTE_OF = { research: 'research', brd: 'brds', pdn: 'pdns', epic: 'epics', story: 'stories', fr: 'frs', test: 'tests' };
+
+export const findProject = (ws, pid) => (ws.projects || []).find((p) => p.id === pid) || null;
+export const findDoc = (project, type, id) => (project?.[TYPES[type].key] || []).find((d) => d.id === id) || null;
+
+export function updateDoc(ws, pid, type, id, patch) {
   return {
-    chats: [
-      {
-        id: 'ac1', kind: 'chat', title: 'Can we support EMI payments?', projectId: null, bookId: null,
-        createdAt: now(), updatedAt: now(),
-        messages: [
-          { role: 'assistant', content: "Hi! I'm your Feasly copilot, connected to the Zenith Health tenant. Ask me a feasibility question and I'll answer from the actual codebase, with evidence.", engine: 'deterministic' },
-          { role: 'user', content: 'Can we support EMI payments?' },
-          { role: 'assistant', content: "Not today — premium.rules.yaml hardcodes payment_frequency_options: [ANNUAL]. It's a core rating-engine change plus an API v2 contract bump. I've grounded the full breakdown in the 'Offer monthly premium payment (EMI)' BRD under EMI & Payment Flexibility — verdict Red, 13 points.", engine: 'deterministic' }
-        ]
-      }
-    ],
-    projects: [
-      {
-        id: 'p1', name: 'EMI & Payment Flexibility',
-        about: 'Give customers more ways to pay premiums without breaking the annual-only rating engine.',
-        files: [], createdAt: now(),
-        brds: [
-          {
-            id: 'b1', title: 'Offer monthly premium payment (EMI) instead of annual only',
-            status: 'generated', lockedAt: 'locked today', createdAt: now(),
-            sections: {
-              background: 'Customers on annual-only plans cite cash-flow strain as the #1 reason for not converting at quote stage. Competitors offer monthly EMI; we currently only support ANNUAL.',
-              requirements: ['Offer a monthly EMI option alongside annual at quote and checkout', 'Compute an interest-free instalment schedule from the annual premium', 'Reflect the payment plan on the review screen and proposal PDF'],
-              stakeholders: 'Underwriting, Payments team, D2C Journey PM',
-              success: 'EMI adoption ≥20% of new policies within one quarter of launch; no increase in payment-default rate.'
-            },
-            analysis: {
-              overall: 'r', verdictLabel: 'Red — touches core rating engine', points: 13, sprints: '~1 sprint', verified: '3/5',
-              impacts: [
-                { dot: '🔴', system: 'Core policy system', change: 'Add MONTHLY to payment_frequency_options', evidenceText: 'L6: payment_frequency_options: [ANNUAL]' },
-                { dot: '🔴', system: 'Core policy system', change: 'Add EMI schedule + interest-free instalment calc', evidenceText: 'L43: function calculate(p) {' },
-                { dot: '🟠', system: 'API contract (v2)', change: 'Add payment_plan field — version bump, coordinate consumers', evidenceText: 'L9: "payment_frequency": "ANNUAL",' },
-                { dot: '🟢', system: 'Journey app', change: 'Add payment-plan selector to review step', evidenceText: 'not found — verify manually' },
-                { dot: '🟢', system: 'Journey app', change: 'Show instalment schedule on payment link page', evidenceText: 'not found — verify manually' }
-              ]
-            },
-            artifacts: {
-              pdn: '# PDN — Offer monthly premium payment (EMI)\n\n## Impacted systems\n- Core policy system (rating engine, DB)\n- API contract v2 (versioned field)\n- Journey app (UI only)\n\n## Business rules\nAnnual premium divided into 12 interest-free instalments; no change to underwriting outcome.\n\n## Sequencing\n1. Core: rule + schedule calc\n2. Contract: version bump, notify consumers\n3. Journey: selector UI, review + PDF\n\n## Open questions\n- Do we support part-payment default handling in v1?\n\n## Sign-offs\n- [ ] Underwriting\n- [ ] Payments\n- [ ] Compliance',
-              stories: '## Story 1 — Add MONTHLY payment frequency to rating engine\n\n**Component:** premium.rules.yaml · **Points:** 5\n\nExtend payment_frequency_options and compute instalment schedule.\n\n**Acceptance criteria**\n- Given ANNUAL premium, monthly instalment = annual/12, no interest\n- Existing ANNUAL flow unaffected\n\n## Story 2 — Version proposal-v2 contract for payment_plan\n\n**Component:** proposal-v2.contract.json · **Points:** 3\n\n**Acceptance criteria**\n- New optional field, backward compatible\n- Consumers notified via changelog\n\n## Story 3 — Payment-plan selector in journey\n\n**Component:** steps.jsx · **Points:** 5\n\n**Acceptance criteria**\n- Selector shows on review step\n- Selected plan reflected on PDF and payment link',
-              tests: '## Rating engine\n\n### TC-01 — Monthly instalment computed correctly\n\n```gherkin\nGiven an annual premium of ₹24,000\nWhen the customer selects MONTHLY\nThen each instalment is ₹2,000 with no interest\n```\n\n## Journey\n\n### TC-02 — Payment plan persists to PDF\n\n```gherkin\nGiven a customer selects MONTHLY at review\nWhen the proposal PDF is generated\nThen it shows the instalment schedule\n```'
-            }
-          },
-          {
-            id: 'b2', title: 'Add quarterly payment option',
-            status: 'locked', lockedAt: 'locked yesterday', createdAt: now(),
-            sections: {
-              background: "Customers who find annual too large and are wary of monthly EMI's longer commitment want a middle ground. Support quarterly billing.",
-              requirements: ['Offer quarterly premium option alongside annual', 'Show quarterly amount in quote and review screens', 'Apply same discount rules as annual, prorated'],
-              stakeholders: 'Underwriting, Payments team, D2C Journey PM',
-              success: '≥15% of new policies choose quarterly within the first quarter after launch.'
-            },
-            analysis: null, artifacts: null
-          }
-        ]
-      },
-      {
-        id: 'p2', name: 'Nominee & KYC Enhancements',
-        about: 'Compliance-driven improvements to nominee capture and proposer identity checks.',
-        files: [], createdAt: now(),
-        brds: [
-          {
-            id: 'b3', title: 'Make nominee details mandatory',
-            status: 'draft', lockedAt: null, createdAt: now(),
-            sections: {
-              background: 'Nominee is currently optional at proposal; internal data shows a 41% skip rate. Compliance wants nominee capture to become mandatory for all new policies.',
-              requirements: ['Nominee section becomes required, not skippable, at proposal step', 'Block proposal submission until nominee name, relationship and DOB are filled'],
-              stakeholders: 'Compliance, Underwriting, D2C Journey PM',
-              success: ''
-            },
-            analysis: null, artifacts: null
-          },
-          {
-            id: 'b4', title: 'Capture PAN for proposer',
-            status: 'generated', lockedAt: 'locked 2 days ago', createdAt: now(),
-            sections: {
-              background: 'KYC guidelines require PAN capture above a premium threshold. PAN is now a mandatory proposer field ahead of that rollout.',
-              requirements: ['Add proposer PAN field to details step', 'Validate PAN format client-side before submission', 'Store PAN alongside other proposer fields in the v2 contract'],
-              stakeholders: 'Compliance, D2C Journey PM',
-              success: 'PAN capture available with zero increase in details-step drop-off.'
-            },
-            analysis: {
-              overall: 'a', verdictLabel: 'Amber — API contract change, journey-only otherwise', points: 8, sprints: '~half sprint', verified: '2/3',
-              impacts: [
-                { dot: '🟠', system: 'API contract (v2)', change: 'Add optional proposer_pan field', evidenceText: 'L14: "proposer": { "name": "", "mobile": "" }' },
-                { dot: '🟢', system: 'Journey app', change: 'Add PAN input to proposer details form', evidenceText: 'not found — verify manually' },
-                { dot: '🟢', system: 'Journey app', change: 'Add PAN format validator (regex)', evidenceText: 'L74: export const isPanFormat = (v) => /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(v || \'\');' }
-              ]
-            },
-            artifacts: {
-              pdn: '# PDN — Capture PAN for proposer\n\n## Impacted systems\n- API contract v2 (new optional field)\n- Journey app (form + validation)\n\n## Sequencing\n1. Contract: add optional field\n2. Journey: input + validator\n\n## Sign-offs\n- [ ] Compliance\n- [ ] Journey PM',
-              stories: '## Story 1 — Add proposer_pan to v2 contract\n\n**Points:** 2\n\n**Acceptance criteria**\n- Field optional, backward compatible\n\n## Story 2 — PAN input + validation on details step\n\n**Points:** 3\n\n**Acceptance criteria**\n- Client-side regex validation\n- Inline error on invalid format',
-              tests: '### TC-01 — Valid PAN accepted\n\n```gherkin\nGiven a proposer enters a valid PAN\nWhen they submit the details step\nThen the value is stored on the proposal\n```\n\n### TC-02 — Invalid PAN blocked\n\n```gherkin\nGiven a proposer enters an invalid PAN\nWhen they try to continue\nThen an inline error is shown\n```'
-            }
-          }
-        ]
-      }
-    ],
-    tasks: [
-      { id: 't1', title: 'Review EMI PDN with underwriting', due: '2026-07-07', remind: false, done: false, createdAt: now() },
-      { id: 't2', title: 'Sync with payments team on quarterly billing', due: '2026-07-06', remind: false, done: false, createdAt: now() },
-      { id: 't3', title: 'Confirm nominee mandatory rollout date', due: '2026-07-03', remind: false, done: true, createdAt: now() }
-    ],
-    events: [
-      { id: 'e1', title: 'Underwriting sign-off call', time: '11:00' },
-      { id: 'e2', title: 'Jira grooming — payments epic', time: '15:30' }
-    ],
-    models: [],
-    connectors: { outlook: false, gmail: true },
-    activeModelId: null,
-    activity: [
-      { icon: '⚡', text: "PDN generated for 'Offer monthly premium payment (EMI)'", time: '12 min ago' },
-      { icon: '🔒', text: "BRD locked: 'Add quarterly payment option'", time: '1 hr ago' },
-      { icon: '🧪', text: "Test cases generated for 'Capture PAN for proposer'", time: '3 hrs ago' },
-      { icon: '📝', text: "New BRD created: 'Make nominee details mandatory'", time: '1 day ago' },
-      { icon: '🔌', text: 'Connected systems re-indexed (push to zenith-core-service)', time: '1 day ago' }
-    ]
+    ...ws,
+    projects: ws.projects.map((p) => p.id !== pid ? p : {
+      ...p, [TYPES[type].key]: p[TYPES[type].key].map((d) => (d.id === id ? { ...d, ...patch } : d))
+    })
+  };
+}
+export function addDoc(ws, pid, type, doc) {
+  return {
+    ...ws,
+    projects: ws.projects.map((p) => p.id !== pid ? p : { ...p, [TYPES[type].key]: [...p[TYPES[type].key], doc] })
+  };
+}
+export function removeDoc(ws, pid, type, id) {
+  return {
+    ...ws,
+    projects: ws.projects.map((p) => p.id !== pid ? p : { ...p, [TYPES[type].key]: p[TYPES[type].key].filter((d) => d.id !== id) })
   };
 }
 
-const EMPTY = {
-  chats: [], projects: [], tasks: [], events: [], models: [],
-  connectors: { outlook: false, gmail: false }, activeModelId: null, activity: []
-};
+// ---- traceability ----
+export function parentOf(project, type, doc) {
+  const t = TYPES[type];
+  if (!t.parent) return null;
+  const parent = findDoc(project, t.parent, doc[t.parentKey]);
+  return parent ? { type: t.parent, doc: parent } : null;
+}
+export function childrenOf(project, type, doc) {
+  // Research fans out to whatever references it (BRDs and PDNs).
+  if (type === 'research') {
+    return [
+      ...(project.brds || []).filter((b) => (b.researchIds || []).includes(doc.id)).map((d) => ({ type: 'brd', doc: d })),
+      ...(project.pdns || []).filter((p) => (p.researchIds || []).includes(doc.id)).map((d) => ({ type: 'pdn', doc: d }))
+    ];
+  }
+  const childType = CHILD_OF[type];
+  if (!childType) return [];
+  const ct = TYPES[childType];
+  return (project[ct.key] || []).filter((d) => d[ct.parentKey] === doc.id).map((d) => ({ type: childType, doc: d }));
+}
+// Ordered chain from research/BRD down to this doc.
+export function upstreamOf(project, type, doc) {
+  const chain = [];
+  let cur = { type, doc };
+  while (cur) {
+    const p = parentOf(project, cur.type, cur.doc);
+    if (p) chain.unshift(p);
+    cur = p;
+  }
+  // BRDs additionally trace back to their linked research.
+  const top = chain[0] || { type, doc };
+  if (top.type === 'brd') {
+    const research = (top.doc.researchIds || [])
+      .map((rid) => findDoc(project, 'research', rid))
+      .filter(Boolean)
+      .map((d) => ({ type: 'research', doc: d }));
+    return [...research, ...chain];
+  }
+  return chain;
+}
+// Flat downstream list (breadth-first, deduped — research can reach a PDN
+// both directly and through its BRD).
+export function downstreamOf(project, type, doc) {
+  const out = [];
+  const seen = new Set();
+  let frontier = childrenOf(project, type, doc);
+  while (frontier.length) {
+    const fresh = frontier.filter((n) => !seen.has(n.type + n.doc.id));
+    fresh.forEach((n) => seen.add(n.type + n.doc.id));
+    out.push(...fresh);
+    frontier = fresh.flatMap((n) => childrenOf(project, n.type, n.doc));
+  }
+  return out;
+}
 
-export function loadWS() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw === null) return saveWS(seedState());       // first-ever visit: seed a populated demo
-    return { ...EMPTY, ...(JSON.parse(raw) || {}) };
-  } catch { return { ...EMPTY }; }
+// ---- computed staleness ----
+// A PDN is stale when its source BRD has moved past the version it was
+// generated from; everything under a stale PDN inherits it.
+export function staleInfo(project, type, doc) {
+  if (type === 'research' || type === 'brd') return null;
+  let pdn = doc;
+  if (type !== 'pdn') {
+    const chain = upstreamOf(project, type, doc);
+    const hit = chain.find((n) => n.type === 'pdn');
+    if (!hit) return null;
+    pdn = hit.doc;
+  }
+  const brd = findDoc(project, 'brd', pdn.brdId);
+  if (!brd) return null;
+  const cur = brd.versions.length;
+  if (pdn.brdVersion < cur) {
+    return { brd, from: pdn.brdVersion, current: cur, pdn };
+  }
+  return null;
 }
-export function saveWS(next) {
-  try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* ignore */ }
-  return next;
-}
-export const uid = () => Math.random().toString(36).slice(2, 9);
-export const now = () => new Date().toISOString();
 
-export function activeModelLabel(ws) {
-  const m = (ws.models || []).find((x) => x.id === ws.activeModelId);
-  return m ? m.name : 'Feasly demo brain (offline)';
+// ---- generation: derive the delivery chain from an ai.analyze result ----
+export function pdnFromAnalysis(brd, r) {
+  const version = brd.versions.length;
+  const content =
+    (r.pdn_markdown || `# PDN — ${brd.title}`) +
+    `\n\n---\n_Generated from BRD "${brd.title}" v${version} · ${r.verified}/${r.impacts.length} impacts verified against source code._`;
+  return {
+    id: uid(), title: `PDN — ${brd.title}`, brdId: brd.id, brdVersion: version,
+    researchIds: [...(brd.researchIds || [])],
+    content, analysis: r, createdAt: now()
+  };
 }
-
-// ---- project / BRD lookups + immutable updates ----
-export const findProject = (ws, projectId) => (ws.projects || []).find((p) => p.id === projectId) || null;
-export const findBrd = (ws, projectId, brdId) => {
-  const p = findProject(ws, projectId);
-  return p ? p.brds.find((b) => b.id === brdId) || null : null;
-};
-export function updateProject(ws, projectId, patch) {
-  return { ...ws, projects: ws.projects.map((p) => (p.id === projectId ? { ...p, ...patch } : p)) };
+export function deriveEpics(pdn) {
+  const r = pdn.analysis;
+  if (!r) return [];
+  const byLayer = {};
+  for (const im of r.impacts) {
+    const sys = r.layers[im.layer]?.system || im.layer;
+    (byLayer[sys] = byLayer[sys] || []).push(im);
+  }
+  return Object.entries(byLayer).map(([system, impacts]) => ({
+    id: uid(), pdnId: pdn.id, title: `${system} — ${pdn.analysis.text.slice(0, 44)}`,
+    summary: impacts.map((i) => i.change).join('. ') + '.',
+    system, createdAt: now()
+  }));
 }
-export function updateBrd(ws, projectId, brdId, patch) {
-  return updateProject(ws, projectId, {
-    brds: findProject(ws, projectId).brds.map((b) => (b.id === brdId ? { ...b, ...patch } : b))
+export function deriveStories(pdn, epics) {
+  const r = pdn.analysis;
+  if (!r) return [];
+  return (r.stories || []).map((s, i) => {
+    const epic = epics.find((e) => s.summary.toLowerCase().includes((e.system || '').split(' ')[0].toLowerCase()))
+      || epics[i % Math.max(1, epics.length)];
+    return {
+      id: uid(), epicId: epic?.id, title: s.summary,
+      description: s.description, ac: [...(s.ac || [])], points: s.points, component: s.component, createdAt: now()
+    };
   });
 }
-export function updateBrdSections(ws, projectId, brdId, patch) {
-  const brd = findBrd(ws, projectId, brdId);
-  return updateBrd(ws, projectId, brdId, { sections: { ...brd.sections, ...patch } });
+export function deriveFrs(stories) {
+  return stories.flatMap((s) => (s.ac || []).map((ac, i) => ({
+    id: uid(), storyId: s.id,
+    title: `FR — ${ac.length > 70 ? ac.slice(0, 70) + '…' : ac}`,
+    description: `The system shall satisfy: ${ac}`,
+    createdAt: now()
+  })));
 }
-export function newBrd(title) {
-  return { id: uid(), title, status: 'draft', lockedAt: null, createdAt: now(), sections: emptyBrdSections(), analysis: null, artifacts: null };
+export function deriveTests(pdn, stories, frs) {
+  const r = pdn.analysis;
+  if (!r) return [];
+  const out = [];
+  for (const suite of r.test_suites || []) {
+    const story = stories.find((s) => suite.story.includes(s.title.slice(0, 24))) || stories[0];
+    const storyFrs = frs.filter((f) => f.storyId === story?.id);
+    suite.cases.forEach((c, i) => {
+      const fr = storyFrs[i % Math.max(1, storyFrs.length)] || frs[0];
+      if (!fr) return;
+      out.push({ id: uid(), frId: fr.id, title: c.title, gherkin: c.gherkin, createdAt: now() });
+    });
+  }
+  return out;
 }
-export const brdStatusMeta = (brd) => ({
-  emoji: brd.status === 'draft' ? '⚪' : brd.status === 'locked' ? '🔒' : (DOT[brd.analysis?.overall] || '✓'),
-  label: brd.status === 'draft' ? 'Draft' : brd.status === 'locked' ? 'Locked' : 'Generated'
-});
-export const DOT = { g: '🟢', a: '🟠', r: '🔴' };
 
-// BRD Assistant sample chips — matching background copy, so one click can
-// fill a fresh BRD's background + first requirement in a single step.
-export const BRD_SAMPLES = [
-  { req: 'Offer monthly premium payment (EMI) instead of annual only', bg: 'Customers on annual-only plans cite cash-flow strain as the #1 reason for not converting at quote stage. Competitors offer monthly EMI; we currently only support ANNUAL.' },
-  { req: 'Add a ₹2 crore sum insured band', bg: 'High-net-worth customers are quoting elsewhere because our maximum sum insured band tops out below what competitors offer.' },
-  { req: 'Allow customers to add parents-in-law as covered members', bg: 'Joint-family households want parents-in-law covered under the same policy — today only self, spouse, children and parents are supported relationships.' },
-  { req: 'Show PED waiting period per member on the review screen', bg: 'Customers with pre-existing conditions are surprised by waiting periods after purchase. Surface the per-member PED waiting period clearly before payment.' }
-];
-
-// ---- artifact markdown builders (from an /analyze result) ----
-export function storiesToMd(r) {
-  return (r.stories || []).map((s, i) =>
-    `## Story ${i + 1} — ${s.summary}\n\n` +
-    `**Component:** ${s.component} · **Points:** ${s.points}\n\n${s.description}\n\n` +
-    `**Tasks**\n${s.tasks.map((t) => `- ${t}`).join('\n')}\n\n` +
-    `**Acceptance criteria**\n${s.ac.map((a) => `- ${a}`).join('\n')}\n`
-  ).join('\n');
+// ---- inline AI helpers (deterministic, instant) ----
+export function brdCompletenessReview(brd) {
+  const s = brd.sections;
+  const findings = [];
+  if (!s.background.trim()) findings.push('Background is empty — reviewers can\'t judge intent without the business problem.');
+  if (s.requirements.length < 3) findings.push(`Only ${s.requirements.length} requirement(s) — most approved BRDs here carry 3+. Consider edge flows (failure, retry, reversal).`);
+  if (!s.stakeholders.trim()) findings.push('No stakeholders named — sign-off will stall without owners.');
+  if (!s.success.trim()) findings.push('Success criteria missing — add a measurable target so the PDN can carry it into test coverage.');
+  if (!(brd.researchIds || []).length) findings.push('No research linked — link the notes that motivated this so traceability starts at the source.');
+  if (!findings.length) findings.push('Structurally complete: background, 3+ requirements, stakeholders, success criteria and linked research are all present.');
+  return findings;
 }
-export function testsToMd(r) {
-  return (r.test_suites || []).map((suite) =>
-    `## ${suite.story}\n\n` +
-    suite.cases.map((c) => `### ${c.id} — ${c.title}\n\n\`\`\`gherkin\n${c.gherkin}\n\`\`\`\n`).join('\n')
-  ).join('\n');
+export function generateAc(story) {
+  const t = story.title.replace(/\.$/, '');
+  return [
+    `Given the change "${t}", the primary flow completes without regression to existing behaviour`,
+    'Invalid or missing input is rejected with a clear inline message',
+    'The outcome is visible on the review screen and persisted to the proposal record'
+  ];
 }
-export function pdnFallbackMd(r) {
-  return r.pdn_markdown || `# PDN — ${r.text}\n\nVerdict: ${r.verdict_label}`;
+export function edgeCasesFor(fr) {
+  const base = fr.title.replace(/^FR — /, '').replace(/…$/, '');
+  return [
+    { title: `Edge — ${base.slice(0, 40)} under concurrent update`, gherkin: `Given two sessions edit the same proposal\nWhen both submit within the same second\nThen the second write is rejected with a version conflict\nAnd no partial state is persisted` },
+    { title: `Edge — ${base.slice(0, 40)} with boundary input`, gherkin: `Given the input is at its exact boundary value\nWhen the requirement is exercised\nThen the system accepts the boundary and rejects one unit beyond it` }
+  ];
 }
 
 export function downloadText(filename, text) {
@@ -217,4 +248,138 @@ export function downloadText(filename, text) {
   const a = document.createElement('a');
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
+}
+
+// =====================  SEED DATA  =====================
+// One rich project demonstrating the full chain — including a live staleness
+// example: the BRD is at v2, but its PDN was generated from v1, so the whole
+// downstream chain reports "upstream changed" on first load.
+function seedState() {
+  const R1 = 'r-churn', R2 = 'r-engine', R3 = 'r-gateway';
+  const B1 = 'b-emi', B2 = 'b-quarterly';
+  const P1 = 'p-emi';
+  const E1 = 'e-core', E2 = 'e-journey';
+  const S1 = 's-rating', S2 = 's-contract', S3 = 's-selector';
+  const F1 = 'f-instalment', F2 = 'f-annual', F3 = 'f-compat', F4 = 'f-selector', F5 = 'f-pdf';
+  const brdSections = {
+    background: 'Customers on annual-only plans cite cash-flow strain as the #1 reason for not converting at quote stage. Competitors offer monthly EMI; we currently only support ANNUAL. v2 adds the reversal/default handling underwriting asked for.',
+    requirements: [
+      'Offer a monthly EMI option alongside annual at quote and checkout',
+      'Compute an interest-free instalment schedule from the annual premium',
+      'Reflect the payment plan on the review screen and proposal PDF',
+      'Define default handling: two missed instalments pause the policy pending payment'
+    ],
+    stakeholders: 'Underwriting, Payments team, D2C Journey PM',
+    success: 'EMI adoption ≥20% of new policies within one quarter of launch; no increase in payment-default rate.'
+  };
+  const analysis = {
+    matched: true, text: 'Offer monthly premium payment (EMI) instead of annual only',
+    overall: 'r', verdict_label: 'Red — core system change required', effort_points: 13, size: 'XL',
+    sprints: '3–4 sprints; actuarial + finance dependency, start filings first', verified: 3,
+    layers: { core: { system: 'Core policy system' }, api: { system: 'API contract (v2)' }, journey: { system: 'Journey app' } },
+    impacts: [
+      { layer: 'core', v: 'r', change: 'Add MONTHLY to payment_frequency_options', evidence: { line: 6, snippet: 'payment_frequency_options: [ANNUAL]' } },
+      { layer: 'core', v: 'r', change: 'Add EMI schedule + interest-free instalment calc', evidence: { line: 43, snippet: 'function calculate(p) {' } },
+      { layer: 'api', v: 'a', change: 'Add payment_plan field — version bump, coordinate consumers', evidence: { line: 9, snippet: '"payment_frequency": "ANNUAL",' } },
+      { layer: 'journey', v: 'g', change: 'Add payment-plan selector to review step', evidence: null },
+      { layer: 'journey', v: 'g', change: 'Show instalment schedule on payment link page', evidence: null }
+    ],
+    pdn_markdown: '# PDN — Offer monthly premium payment (EMI)\n\n## Impacted systems\n- Core policy system (rating engine, DB)\n- API contract v2 (versioned field)\n- Journey app (UI only)\n\n## Business rules\nAnnual premium divided into 12 interest-free instalments; no change to underwriting outcome.\n\n## Sequencing\n1. Core: rule + schedule calc\n2. Contract: version bump, notify consumers\n3. Journey: selector UI, review + PDF\n\n## Open questions\n- Default handling for missed instalments (added in BRD v2 — not yet reflected here)\n\n## Sign-offs\n- [ ] Underwriting\n- [ ] Payments\n- [ ] Compliance',
+    stories: [
+      { summary: 'Add MONTHLY payment frequency to rating engine', component: 'premium.rules.yaml', points: 5, verdict: 'r', description: 'Extend payment_frequency_options and compute the instalment schedule.', tasks: ['Extend rules enum', 'Schedule calculator', 'Regression on ANNUAL'], ac: ['Given an ANNUAL premium, monthly instalment = annual/12 with no interest', 'Existing ANNUAL flow is unaffected'] },
+      { summary: 'Version proposal-v2 contract for payment_plan', component: 'proposal-v2.contract.json', points: 3, verdict: 'a', description: 'Add the payment_plan field behind a version bump.', tasks: ['Add optional field', 'Changelog + consumer notice'], ac: ['New field is optional and backward compatible', 'Consumers are notified via changelog'] },
+      { summary: 'Payment-plan selector in journey review step', component: 'steps.jsx', points: 5, verdict: 'g', description: 'Surface the plan choice at review and carry it to the PDF and payment link.', tasks: ['Selector UI', 'PDF field', 'Payment page schedule'], ac: ['Selector shows on the review step', 'Selected plan is reflected on the PDF and payment link'] }
+    ],
+    test_suites: [
+      { story: 'Add MONTHLY payment frequency to rating engine', cases: [
+        { id: 'TC-01', title: 'Monthly instalment computed correctly', gherkin: 'Given an annual premium of ₹24,000\nWhen the customer selects MONTHLY\nThen each instalment is ₹2,000 with no interest' },
+        { id: 'TC-02', title: 'Annual flow unchanged', gherkin: 'Given a customer keeps ANNUAL\nWhen the premium is rated\nThen the result matches the pre-change baseline' }
+      ] },
+      { story: 'Payment-plan selector in journey review step', cases: [
+        { id: 'TC-03', title: 'Payment plan persists to PDF', gherkin: 'Given a customer selects MONTHLY at review\nWhen the proposal PDF is generated\nThen it shows the instalment schedule' }
+      ] }
+    ]
+  };
+
+  return {
+    models: [],           // BYO model connections (Settings → Model Hub)
+    activeModelId: null,
+    projects: [
+      {
+        id: 'proj-emi', name: 'EMI & Payment Flexibility',
+        about: 'Give customers more ways to pay premiums without breaking the annual-only rating engine.',
+        createdAt: now(),
+        research: [
+          { id: R1, title: 'Churn interviews — why customers drop at quote', source: 'upload', sourceDetail: 'churn-interviews-jun.pdf', createdAt: now(), content: '12 exit interviews with customers who abandoned at the quote step.\n\nKey pattern: 9 of 12 cited the size of the single annual payment, not the premium itself. Three said verbatim they would have bought "if I could pay like a phone bill."\n\nSecondary: two flagged confusion about what happens if they miss a payment — worth addressing in any instalment design.' },
+          { id: R2, title: 'Current rating engine constraints', source: 'ai', createdAt: now(), content: 'Saved from a Feasly conversation.\n\nThe rating engine only supports annual payment: premium.rules.yaml pins payment_frequency_options to [ANNUAL], and calculate() produces a single annual figure — there is no schedule concept anywhere in core. Any instalment feature is a core change (red), not a journey-side rendering trick.\n\nThe proposal-v2 API contract also serialises a single payment_frequency string, so consumers must be versioned.' },
+          { id: R3, title: 'Payment gateway capabilities — recurring mandates', source: 'api', sourceDetail: 'Imported from gateway API docs', createdAt: now(), content: 'The gateway supports tokenised recurring mandates (UPI Autopay + card standing instructions) with per-instalment webhooks.\n\nRelevant limits: mandate ceiling ₹15,000/instalment without re-auth; webhook retries for 72h; refunds must reference the original instalment id.' }
+        ],
+        conversations: [
+          {
+            id: 'c-emi', title: 'Can we support EMI payments?', updatedAt: now(),
+            messages: [
+              { role: 'assistant', content: "Hi! I'm Feasly, connected to the Zenith Health tenant — code, contracts and docs. Ask me anything.", engine: 'deterministic' },
+              { role: 'user', content: 'Can we support EMI payments?' },
+              { role: 'assistant', content: 'Not today — premium.rules.yaml pins payment_frequency_options to [ANNUAL], and the rating engine produces a single annual figure with no schedule concept. It\'s a core change plus an API v2 contract bump. I\'ve saved the full constraint breakdown to Research.', engine: 'deterministic', savedAsResearchId: R2 }
+            ]
+          }
+        ],
+        brds: [
+          {
+            id: B1, title: 'Offer monthly premium payment (EMI)', owner: 'PM', status: 'In review',
+            researchIds: [R1, R2, R3], sections: brdSections, createdAt: now(),
+            versions: [
+              { v: 1, ts: now(), note: 'Initial draft from churn research', sections: { ...brdSections, requirements: brdSections.requirements.slice(0, 3), background: brdSections.background.replace(' v2 adds the reversal/default handling underwriting asked for.', '') } },
+              { v: 2, ts: now(), note: 'Added default-handling requirement after underwriting review', sections: brdSections }
+            ]
+          },
+          {
+            id: B2, title: 'Quarterly payment option', owner: 'PM', status: 'Draft',
+            researchIds: [R1], createdAt: now(),
+            sections: { background: 'A middle ground for customers who find annual too large but distrust a 12-month commitment.', requirements: ['Offer quarterly premium alongside annual', 'Prorate existing tenure discounts'], stakeholders: 'Payments team', success: '' },
+            versions: [{ v: 1, ts: now(), note: 'Initial draft', sections: { background: 'A middle ground for customers who find annual too large but distrust a 12-month commitment.', requirements: ['Offer quarterly premium alongside annual', 'Prorate existing tenure discounts'], stakeholders: 'Payments team', success: '' } }]
+          }
+        ],
+        // The staleness demo: generated from v1; the BRD is now at v2.
+        pdns: [{ id: P1, title: 'PDN — Offer monthly premium payment (EMI)', brdId: B1, brdVersion: 1, researchIds: [R1, R2, R3], content: analysis.pdn_markdown + '\n\n---\n_Generated from BRD "Offer monthly premium payment (EMI)" v1 · 3/5 impacts verified against source code._', analysis, createdAt: now() }],
+        epics: [
+          { id: E1, pdnId: P1, title: 'Core rating engine — instalment support', system: 'Core policy system', summary: 'Add MONTHLY to payment_frequency_options. Add EMI schedule + interest-free instalment calc.', createdAt: now() },
+          { id: E2, pdnId: P1, title: 'Journey & contract — payment-plan experience', system: 'Journey app', summary: 'Version the proposal-v2 contract, add the payment-plan selector to review, and show the schedule on the payment page.', createdAt: now() }
+        ],
+        stories: [
+          { id: S1, epicId: E1, title: 'Add MONTHLY payment frequency to rating engine', component: 'premium.rules.yaml', points: 5, description: 'Extend payment_frequency_options and compute the instalment schedule.', ac: ['Given an ANNUAL premium, monthly instalment = annual/12 with no interest', 'Existing ANNUAL flow is unaffected'], createdAt: now() },
+          { id: S2, epicId: E2, title: 'Version proposal-v2 contract for payment_plan', component: 'proposal-v2.contract.json', points: 3, description: 'Add the payment_plan field behind a version bump.', ac: ['New field is optional and backward compatible', 'Consumers are notified via changelog'], createdAt: now() },
+          { id: S3, epicId: E2, title: 'Payment-plan selector in journey review step', component: 'steps.jsx', points: 5, description: 'Surface the plan choice at review and carry it to the PDF and payment link.', ac: ['Selector shows on the review step', 'Selected plan is reflected on the PDF and payment link'], createdAt: now() }
+        ],
+        frs: [
+          { id: F1, storyId: S1, title: 'FR — Monthly instalment equals annual/12, interest-free', description: 'The system shall divide the rated annual premium into 12 equal interest-free instalments when MONTHLY is selected.', createdAt: now() },
+          { id: F2, storyId: S1, title: 'FR — Annual rating path unchanged', description: 'The system shall produce byte-identical results for ANNUAL policies before and after the change.', createdAt: now() },
+          { id: F3, storyId: S2, title: 'FR — payment_plan is optional and backward compatible', description: 'The system shall accept proposal-v2 payloads with or without payment_plan.', createdAt: now() },
+          { id: F4, storyId: S3, title: 'FR — Review step exposes the payment-plan selector', description: 'The system shall render the payment-plan selector on the review step with ANNUAL preselected.', createdAt: now() },
+          { id: F5, storyId: S3, title: 'FR — Proposal PDF carries the instalment schedule', description: 'The system shall include the selected schedule in the generated proposal PDF.', createdAt: now() }
+        ],
+        tests: [
+          { id: 't-01', frId: F1, title: 'Monthly instalment computed correctly', gherkin: 'Given an annual premium of ₹24,000\nWhen the customer selects MONTHLY\nThen each instalment is ₹2,000 with no interest', createdAt: now() },
+          { id: 't-02', frId: F2, title: 'Annual flow unchanged', gherkin: 'Given a customer keeps ANNUAL\nWhen the premium is rated\nThen the result matches the pre-change baseline', createdAt: now() },
+          { id: 't-03', frId: F3, title: 'Old consumers unaffected by new field', gherkin: 'Given a consumer on contract v2.0\nWhen a proposal without payment_plan is submitted\nThen it is accepted unchanged', createdAt: now() },
+          { id: 't-04', frId: F4, title: 'Selector defaults to ANNUAL', gherkin: 'Given a customer reaches the review step\nWhen the payment-plan selector renders\nThen ANNUAL is preselected', createdAt: now() },
+          { id: 't-05', frId: F5, title: 'Payment plan persists to PDF', gherkin: 'Given a customer selects MONTHLY at review\nWhen the proposal PDF is generated\nThen it shows the instalment schedule', createdAt: now() }
+        ],
+        releases: [{ id: 'rel-1', name: 'R-2026.08 — EMI foundations', date: '2026-08-15', storyIds: [S1, S2], createdAt: now() }]
+      },
+      {
+        id: 'proj-kyc', name: 'Nominee & KYC Enhancements',
+        about: 'Compliance-driven improvements to nominee capture and proposer identity checks.',
+        createdAt: now(),
+        research: [{ id: 'r-kyc', title: 'KYC circular — PAN capture thresholds', source: 'note', createdAt: now(), content: 'Regulator guidance requires PAN capture above a premium threshold. Current journey already collects PAN as mandatory; verify threshold logic is documented before drafting requirements.' }],
+        conversations: [],
+        brds: [{
+          id: 'b-kyc', title: 'Threshold-based PAN verification', owner: 'PM', status: 'Draft', researchIds: ['r-kyc'], createdAt: now(),
+          sections: { background: 'PAN is captured for all proposers today, but verification (against the issuer) only matters above the regulatory premium threshold.', requirements: ['Verify PAN with the issuer when annual premium exceeds the threshold'], stakeholders: 'Compliance', success: '' },
+          versions: [{ v: 1, ts: now(), note: 'Initial draft', sections: { background: 'PAN is captured for all proposers today, but verification (against the issuer) only matters above the regulatory premium threshold.', requirements: ['Verify PAN with the issuer when annual premium exceeds the threshold'], stakeholders: 'Compliance', success: '' } }]
+        }],
+        pdns: [], epics: [], stories: [], frs: [], tests: [], releases: []
+      }
+    ]
+  };
 }
