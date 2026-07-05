@@ -46,13 +46,15 @@ function Login({ onToken, autoLogin }) {
   useEffect(() => { if (autoLogin) go('pm', 'zenith@123'); /* eslint-disable-line */ }, [autoLogin]);
   return (
     <div className="page narrow dark">
-      <h2>Feasly <span className="accent">· PM workspace</span></h2>
-      <p className="hint">Feasibility verdicts grounded in live code, PDN drafting, stories, test cases, and a PM copilot — connected to the Zenith showcase tenant.</p>
-      <label>Username</label><input value={u} onChange={e => setU(e.target.value)} />
-      <label>Password</label><input type="password" value={p} onChange={e => setP(e.target.value)} onKeyDown={e => e.key === 'Enter' && go()} />
-      {err && <p className="error">{err}</p>}
-      <button className="btn" onClick={() => go()}>Login</button>
-      <p className="hint">Demo credentials prefilled: <code>pm / zenith@123</code></p>
+      <div>
+        <h2>Feasly <span className="accent">· PM workspace</span></h2>
+        <p className="hint">Feasibility verdicts grounded in live code, PDN drafting, stories, test cases, and a PM copilot — connected to the Zenith showcase tenant.</p>
+        <label>Username</label><input value={u} onChange={e => setU(e.target.value)} />
+        <label>Password</label><input type="password" value={p} onChange={e => setP(e.target.value)} onKeyDown={e => e.key === 'Enter' && go()} />
+        {err && <p className="error">{err}</p>}
+        <button className="btn" onClick={() => go()}>Login</button>
+        <p className="hint">Demo credentials prefilled: <code>pm / zenith@123</code></p>
+      </div>
     </div>
   );
 }

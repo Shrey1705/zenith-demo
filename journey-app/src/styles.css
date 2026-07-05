@@ -306,6 +306,8 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 
 /* ---- AI portal (dark) ---- */
 .page.dark { background: var(--dark-bg); color: var(--dark-text); max-width: none; padding: 36px 0 90px; min-height: calc(100vh - 120px); }
+/* Login is a single short card — centre it in the dark canvas instead of pinning to the top. */
+.page.narrow.dark { display: flex; align-items: center; justify-content: center; }
 .page.dark > * { max-width: 1020px; margin-left: auto; margin-right: auto; padding-left: 20px; padding-right: 20px; }
 .page.narrow.dark > * { max-width: 460px; }
 .page.dark input, .page.dark textarea { background: var(--dark-panel); border-color: var(--dark-border); color: var(--dark-text); }
