@@ -38,6 +38,18 @@ function validate(p) {
   for (const a of p.addons || []) if (!RULES.addons[a]) errors.push(`unknown addon ${a}`);
   for (const d of p.discounts || []) if (!RULES.optional_discounts[d]) errors.push(`unknown discount ${d}`);
   if (p.plan && !RULES.plan_variants[p.plan]) errors.push(`unknown plan ${p.plan} (allowed: ${Object.keys(RULES.plan_variants)})`);
+
+  // Mutually exclusive optional benefits (e.g. Co-Payment vs Aggregate Deductible)
+  const chosen = new Set(p.addons || []);
+  for (const [a, b] of RULES.addon_conflicts || []) {
+    if (chosen.has(a) && chosen.has(b)) errors.push(`${a} and ${b} cannot be opted together`);
+  }
+  // Payment-mode constraints (Initial Wait Modifier is annual-payment only)
+  const freq = p.payment_frequency || 'ANNUAL';
+  for (const [code, rule] of Object.entries(RULES.addon_payment_constraints || {})) {
+    if (chosen.has(code) && (rule.blocked_payment_frequencies || []).includes(freq))
+      errors.push(`${code} cannot be combined with ${freq} payment mode`);
+  }
   return errors;
 }
 

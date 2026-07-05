@@ -1,5 +1,6 @@
-// Cashless hospital network lookup — search by name, city, area or pincode,
-// filter by state. Demo directory; production reads the provider-network API.
+// Cashless hospital network lookup. Collapsed by default — the list expands
+// only once the customer searches (pincode, city, area or name) or filters
+// by state. Demo directory; production reads the provider-network API.
 import React, { useState } from 'react';
 import { HOSPITALS, HOSPITAL_STATES } from './hospitals';
 
@@ -9,6 +10,7 @@ export default function HospitalNetwork() {
   const [q, setQ] = useState('');
   const [state, setState] = useState('All');
 
+  const searched = q.trim().length > 0 || state !== 'All';
   const filtered = HOSPITALS.filter((h) =>
     (state === 'All' || h.state === state) &&
     (!q.trim() || [h.name, h.city, h.area, h.pincode].join(' ').toLowerCase().includes(q.trim().toLowerCase()))
@@ -19,7 +21,7 @@ export default function HospitalNetwork() {
     <>
       <div className="hosptools">
         <input
-          placeholder="Search by hospital, city, area or pincode"
+          placeholder="Search by pincode, city, area or hospital name"
           value={q} onChange={(e) => setQ(e.target.value)}
         />
         <select value={state} onChange={(e) => setState(e.target.value)}>
@@ -27,7 +29,9 @@ export default function HospitalNetwork() {
           {HOSPITAL_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
-      {shown.length ? (
+      {!searched ? (
+        <p className="hint">10,000+ cashless hospitals nationwide — search your pincode or city to see the ones near you.</p>
+      ) : shown.length ? (
         <>
           <div className="hospgrid">
             {shown.map((h) => (

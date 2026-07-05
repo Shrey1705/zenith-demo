@@ -91,6 +91,8 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
    selected plan's colour, so the whole page re-themes on plan change. */
 .wizard { --accent2: var(--gold); background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; box-shadow: var(--shadow); margin-bottom: 84px; }
 .stepper { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; flex-wrap: wrap; }
+.demofill { margin-left: auto; border: 1.5px dashed var(--accent2, var(--gold)); background: var(--panel); color: var(--navy); border-radius: 10px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+.demofill:hover { background: var(--gold-tint); }
 .stepper .crumb { display: flex; align-items: center; gap: 8px; background: none; border: none; font-family: inherit; font-size: 13.5px; color: var(--muted); padding: 6px 4px; cursor: default; }
 .stepper .crumb .dot { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: var(--bg); color: var(--muted); font-size: 12px; font-weight: 700; border: 1.5px solid var(--border); }
 .stepper .crumb.cur { color: var(--navy); font-weight: 600; }
@@ -101,9 +103,13 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .navrow { margin-top: 26px; display: flex; justify-content: space-between; align-items: center; }
 .navrow .spacer { flex: 1; }
 
-/* ---- quote step: single column of numbered section cards ---- */
+/* ---- quote step: numbered section cards; 1–4 condensed two-across ---- */
 .qsteps { display: flex; flex-direction: column; gap: 16px; }
 .qsteps h2 { margin-bottom: 2px; }
+.qgrid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; align-items: stretch; }
+.span-g7 { grid-column: span 7; } .span-g5 { grid-column: span 5; }
+.span-g4 { grid-column: span 4; } .span-g8 { grid-column: span 8; }
+@media (max-width: 860px) { .qgrid > * { grid-column: 1 / -1; } }
 .qsection { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; }
 .qsection label:first-child { margin-top: 0; }
 .qsecthead { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
@@ -139,6 +145,11 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .benefiticon { font-size: 20px; }
 .benefitprice { font-size: 10.5px; font-weight: 700; color: var(--gold-deep); background: var(--gold-tint); border-radius: 8px; padding: 3px 8px; white-space: nowrap; }
 .benefitprice.incl { color: var(--green); background: #e2f2ec; }
+.benefitprice.saves { color: var(--green); background: #e2f2ec; }
+.benefitcard.blocked { opacity: 0.75; }
+.benefitnote.warn { color: var(--amber); }
+.subbenefits { margin: 0 0 8px; padding-left: 16px; }
+.subbenefits li { font-size: 11px; color: var(--muted); line-height: 1.55; }
 .benefitcard b { font-size: 13.5px; }
 .benefitcard small { color: var(--muted); font-size: 11.5px; }
 .benefitcard p { color: var(--muted); font-size: 12px; line-height: 1.55; flex: 1; margin: 2px 0 8px; }
@@ -188,6 +199,12 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .pinrow input { max-width: 220px; }
 .pinrow .fieldok, .pinrow .fieldbad { margin-top: 0; font-size: 15px; }
 .pedblock { margin-top: 8px; }
+/* "?" popover explaining pre-existing disease */
+.pedinfo { position: relative; display: inline-block; margin-left: 6px; }
+.pedinfo > button { width: 17px; height: 17px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--panel); color: var(--muted); font-size: 11px; font-weight: 700; cursor: pointer; line-height: 1; font-family: inherit; vertical-align: middle; }
+.pedinfo > button:hover { border-color: var(--navy-soft); color: var(--navy); }
+.pedpop { position: absolute; z-index: 30; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 290px; background: var(--navy-deep); color: #dfe7f1; font-size: 12px; line-height: 1.6; border-radius: 10px; padding: 12px 14px; box-shadow: 0 10px 28px rgba(8, 26, 48, 0.35); font-weight: 400; }
+.pedpop b { color: #fff; }
 .pedrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 10px 0; flex-wrap: wrap; }
 .toggle2 { display: inline-flex; border: 1.5px solid var(--border); border-radius: 20px; overflow: hidden; }
 .toggle2 button { background: var(--panel); border: none; padding: 7px 18px; font-size: 13px; cursor: pointer; font-family: inherit; color: var(--muted); }
@@ -371,6 +388,89 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .codeblock .copybtn { position: absolute; top: 8px; right: 12px; color: #9db1c9; font-size: 11.5px; text-decoration: none; }
 .codeblock .copybtn:hover { color: var(--gold); }
 
+/* ---- PM workspace: chats with history ---- */
+.wschats { display: grid; grid-template-columns: 240px 1fr; gap: 16px; margin-top: 14px; align-items: start; }
+.chatlist { display: flex; flex-direction: column; gap: 8px; }
+.chatitem { position: relative; background: var(--dark-panel); border: 1px solid var(--dark-border); border-radius: 10px; padding: 10px 12px; cursor: pointer; font-size: 12.5px; color: #b3c2d6; display: flex; flex-direction: column; gap: 4px; }
+.chatitem.on { border-color: var(--gold); color: #fff; }
+.chatitem .chattitle { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 44px; }
+.chatitem .chatops { position: absolute; top: 8px; right: 8px; display: none; gap: 2px; }
+.chatitem:hover .chatops { display: inline-flex; }
+.chatitem .chatops button { background: none; border: none; cursor: pointer; font-size: 11px; color: #8ba0ba; }
+.chatitem .chatops button:hover { color: #fff; }
+.chattag { font-size: 10px; color: var(--gold); }
+.chatmain { min-width: 0; }
+.chatassign { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.chatassign label { font-size: 10px; }
+.chatassign select { width: auto; padding: 6px 10px; font-size: 12px; }
+
+/* ---- studio: requirements chat + one-click artifacts ---- */
+.studio2col { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-top: 14px; align-items: start; }
+.studioreqs { background: var(--dark-panel); border: 1px solid var(--dark-border); border-radius: 12px; padding: 16px 18px; }
+.reqrow { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; font-size: 12.5px; color: #dfe7f1; padding: 7px 0; border-bottom: 1px dashed var(--dark-border); line-height: 1.5; }
+.reqrow button { background: none; border: none; color: #8ba0ba; cursor: pointer; font-size: 12px; }
+.reqrow button:hover { color: var(--red); }
+.studioout { margin-top: 20px; }
+.tabsrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.verops { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.verops select { width: auto; padding: 7px 10px; font-size: 12px; }
+.artifactedit { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.6; background: #061120; border-color: var(--dark-border); color: var(--dark-text); }
+
+/* ---- projects & research books ---- */
+.bookbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+.bookadd { display: inline-flex; gap: 8px; }
+.bookadd input { width: 240px; }
+.bookgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.bookcard { display: flex; flex-direction: column; gap: 6px; background: var(--dark-panel); border: 1px solid var(--dark-border); border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #dfe7f1; text-align: left; font-family: inherit; }
+.bookcard.proj { cursor: pointer; }
+.bookcard.proj:hover { border-color: var(--gold); }
+.bookcard small { color: #8ba0ba; font-size: 11.5px; }
+.bookcard select { font-size: 12px; padding: 6px 10px; }
+.projcols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0; }
+.projcol { background: var(--dark-panel); border: 1px solid var(--dark-border); border-radius: 12px; padding: 14px 16px; }
+.projitem { font-size: 12.5px; color: #dfe7f1; padding: 5px 0; border-bottom: 1px dashed var(--dark-border); }
+.projabout { color: #8ba0ba; }
+.filebtn { display: inline-block; margin-top: 10px; border: 1.5px dashed var(--dark-border); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: #9db1c9; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.filebtn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ---- planner ---- */
+.plannercols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+.taskadd { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+.taskadd input[type="date"], .taskadd input[type="time"] { width: auto; }
+.taskadd select { width: auto; }
+.remindlbl { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: #9db1c9; margin: 0; text-transform: none; letter-spacing: 0; }
+.taskrow { display: flex; align-items: center; gap: 10px; background: var(--dark-panel); border: 1px solid var(--dark-border); border-radius: 10px; padding: 9px 12px; margin: 6px 0; font-size: 13px; color: #dfe7f1; }
+.taskrow.done .tasktitle { text-decoration: line-through; color: #6f86a3; }
+.taskrow input[type="checkbox"] { width: auto; }
+.tasktitle { flex: 1; }
+.taskdue { font-size: 11px; color: #8ba0ba; }
+.taskdue.late { color: var(--red); font-weight: 700; }
+.taskdel { background: none; border: none; color: #6f86a3; cursor: pointer; }
+.taskdel:hover { color: var(--red); }
+.calhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: #fff; }
+.calhead button { background: var(--dark-panel); border: 1px solid var(--dark-border); color: #dfe7f1; border-radius: 8px; width: 28px; height: 28px; cursor: pointer; }
+.calgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.caldow { font-size: 10px; color: #6f86a3; text-align: center; padding: 4px 0; text-transform: uppercase; }
+.calday { position: relative; aspect-ratio: 1; background: var(--dark-panel); border: 1px solid var(--dark-border); border-radius: 8px; color: #dfe7f1; font-size: 12px; cursor: pointer; font-family: inherit; }
+.calday.empty { background: transparent; border: none; cursor: default; }
+.calday.today { border-color: var(--gold); }
+.calday.sel { background: rgba(201, 151, 59, 0.18); border-color: var(--gold); font-weight: 700; }
+.evdot { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--navy-deep); font-size: 8.5px; font-weight: 700; border-radius: 7px; padding: 0 4px; }
+
+/* ---- model hub ---- */
+.modelgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.modelcard { display: flex; flex-direction: column; gap: 6px; background: var(--dark-panel); border: 1px solid var(--dark-border); border-radius: 12px; padding: 14px 16px; font-size: 13.5px; color: #dfe7f1; text-align: left; font-family: inherit; }
+.modelcard.on { border-color: var(--gold); }
+.modelcard small { color: #8ba0ba; font-size: 11.5px; word-break: break-all; }
+.modelcard .status { align-self: flex-start; }
+.modelops { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.modelforms { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 8px; max-width: 760px; }
+
+@media (max-width: 860px) {
+  .wschats, .studio2col, .plannercols, .modelforms { grid-template-columns: 1fr; }
+  .projcols { grid-template-columns: 1fr; }
+}
+
 /* ---- copilot chat ---- */
 .chatpage { display: flex; flex-direction: column; }
 .chatlog { background: var(--dark-panel); border: 1px solid var(--dark-border); border-radius: 12px; padding: 18px; margin-top: 14px; min-height: 320px; max-height: 52vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
@@ -391,12 +491,3 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
   .ws-foot { border: none; padding-top: 0; margin-left: auto; }
 }
 
-/* ---- guided walkthrough ---- */
-.tour-spotlight { position: fixed; z-index: 90; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(8, 26, 48, 0.6); border: 2px solid var(--gold); pointer-events: none; transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease; }
-.tour-caption { position: fixed; z-index: 91; bottom: 22px; left: 50%; transform: translateX(-50%); width: min(92vw, 480px); background: var(--navy-deep); color: #fff; border-radius: 14px; padding: 16px 20px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35); display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; }
-.tour-caption.center { bottom: 50%; transform: translate(-50%, 50%); flex-direction: column; align-items: center; text-align: center; }
-.tour-caption-body b { color: var(--gold); font-family: var(--font-display); font-size: 15px; display: block; margin-bottom: 4px; }
-.tour-caption-body p { color: #dfe7f1; font-size: 13px; line-height: 1.55; margin: 0; }
-.tour-caption .tour-exit { color: #9db1c9; font-size: 12px; white-space: nowrap; text-decoration: none; }
-.tour-caption .tour-exit:hover { color: #fff; }
-.tour-caption.center .btn { margin-top: 14px; }

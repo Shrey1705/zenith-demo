@@ -4,8 +4,13 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { useLocation, useNavigate, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import { ai } from '../lib/api';
-import ChatPage from './ChatPage';
-import { FeasibilityPage, PdnPage, StoriesPage, TestsPage, SystemsPage, ApiKeysPage } from './pages';
+import ChatsPage from './ChatsPage';
+import StudioPage from './StudioPage';
+import ProjectsPage from './ProjectsPage';
+import ResearchPage from './ResearchPage';
+import PlannerPage from './PlannerPage';
+import ModelsPage from './ModelsPage';
+import { SystemsPage, ApiKeysPage } from './pages';
 
 const ANALYSIS_KEY = 'feasly-last-analysis';
 
@@ -13,11 +18,12 @@ const WorkspaceContext = createContext(null);
 export const useWorkspace = () => useContext(WorkspaceContext);
 
 const NAV = [
-  { to: 'chat', icon: '💬', label: 'Copilot Chat' },
+  { to: 'chat', icon: '💬', label: 'Chats' },
   { to: 'feasibility', icon: '🚦', label: 'Feasibility Studio' },
-  { to: 'pdn', icon: '📄', label: 'PDN Draft' },
-  { to: 'stories', icon: '🗂', label: 'User Stories' },
-  { to: 'tests', icon: '✅', label: 'Test Cases' },
+  { to: 'projects', icon: '📁', label: 'Projects' },
+  { to: 'research', icon: '🔭', label: 'Research' },
+  { to: 'planner', icon: '🗓', label: 'Planner' },
+  { to: 'models', icon: '🧠', label: 'Model Hub' },
   { to: 'systems', icon: '🔌', label: 'Connected Systems' },
   { to: 'api', icon: '🔑', label: 'API & Webhooks' }
 ];
@@ -72,7 +78,6 @@ function Workspace({ token, onLogout, fromJourney }) {
             {NAV.map((item) => (
               <NavLink key={item.to} to={item.to} className={({ isActive }) => 'ws-link' + (isActive ? ' on' : '')}>
                 <span className="ws-icon">{item.icon}</span> {item.label}
-                {['pdn', 'stories', 'tests'].includes(item.to) && !analysis?.matched && <span className="ws-dim">—</span>}
               </NavLink>
             ))}
           </nav>
@@ -84,13 +89,17 @@ function Workspace({ token, onLogout, fromJourney }) {
         <main className="ws-main page dark">
           <Routes>
             <Route index element={<Navigate to={fromJourney ? 'feasibility' : 'chat'} replace />} />
-            <Route path="chat" element={<ChatPage />} />
-            <Route path="feasibility" element={<FeasibilityPage />} />
-            <Route path="pdn" element={<PdnPage />} />
-            <Route path="stories" element={<StoriesPage />} />
-            <Route path="tests" element={<TestsPage />} />
+            <Route path="chat" element={<ChatsPage />} />
+            <Route path="feasibility" element={<StudioPage />} />
+            <Route path="projects" element={<ProjectsPage />} />
+            <Route path="research" element={<ResearchPage />} />
+            <Route path="planner" element={<PlannerPage />} />
+            <Route path="models" element={<ModelsPage />} />
             <Route path="systems" element={<SystemsPage />} />
             <Route path="api" element={<ApiKeysPage />} />
+            <Route path="pdn" element={<Navigate to="../feasibility" replace />} />
+            <Route path="stories" element={<Navigate to="../feasibility" replace />} />
+            <Route path="tests" element={<Navigate to="../feasibility" replace />} />
             <Route path="*" element={<Navigate to="chat" replace />} />
           </Routes>
         </main>

@@ -63,6 +63,9 @@ async function submitProposal(id) {
   const p = await store.getProposal(id);
   if (!p) return { errors: ['proposal not found'] };
   if (!p.proposer || !p.proposer.name) return { errors: ['proposer details required before submit'] };
+  // underwriting.rules: nominee.required_at_proposal
+  if (premium.UW.nominee.required_at_proposal && (!p.nominee || !p.nominee.name))
+    return { errors: ['nominee details required before submit'] };
   p.status = 'SUBMITTED';
   return { proposal: await store.saveProposal(p) };
 }

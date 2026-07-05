@@ -15,16 +15,16 @@ export function validateProposer(p) {
   if (!p.name?.trim()) errs.push('proposer name required');
   if (!/^[6-9]\d{9}$/.test(p.mobile || '')) errs.push('valid 10-digit mobile required');
   if (!/^\S+@\S+\.\S+$/.test(p.email || '')) errs.push('valid email required');
+  if (!isPanFormat(p.pan || '')) errs.push('valid PAN required (format: ABCDE1234F)');
   return errs;
 }
 
-// Nominee is OPTIONAL at proposal stage (mirrors underwriting.rules.yaml
-// nominee.required_at_proposal: false). null is valid.
+// Nominee is REQUIRED at proposal stage (mirrors underwriting.rules.yaml
+// nominee.required_at_proposal: true).
 export function validateNominee(n) {
-  if (n == null) return [];
   const errs = [];
-  if (!n.name?.trim()) errs.push('nominee name required');
-  if (!n.relation?.trim()) errs.push('nominee relation required');
+  if (!n || !n.name?.trim()) errs.push('nominee name required');
+  if (!n || !n.relation?.trim()) errs.push('nominee relation required');
   return errs;
 }
 

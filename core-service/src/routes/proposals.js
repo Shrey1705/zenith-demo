@@ -11,9 +11,11 @@ router.get('/catalog', (_req, res) => res.json({
   family_discount_pct: RULES.family_discount_pct,
   optional_discounts: Object.entries(RULES.optional_discounts).map(([code, d]) => ({ code, ...d })),
   addon_categories: RULES.addon_categories,
+  addon_conflicts: RULES.addon_conflicts,
   addons: Object.entries(RULES.addons).map(([code, a]) => ({
     code, label: a.label, pct: a.pct, flat: a.flat,
-    category: a.category, icon: a.icon, tagline: a.tagline, description: a.description
+    category: a.category, icon: a.icon, tagline: a.tagline, description: a.description,
+    sub_benefits: a.sub_benefits
   })),
   plan_variants: Object.entries(RULES.plan_variants).map(([code, v]) => ({
     code, label: v.label, tagline: v.tagline, recommended: !!v.recommended,

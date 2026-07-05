@@ -13,11 +13,12 @@ const REL_AVATARS = { SELF: '🧑', SPOUSE: '🧑‍🤝‍🧑', SON: '👦', D
 const SINGLE_RELS = ['SELF', 'SPOUSE', 'FATHER', 'MOTHER'];
 const COUNTED_RELS = ['SON', 'DAUGHTER'];
 
-// Numbered section card — the quote page is a single column of these, each
-// with a symmetric grid inside (equal boxes for equal content).
-function Section({ n, title, subtitle, children }) {
+// Numbered section card — the quote page is a column of these, each with a
+// symmetric grid inside (equal boxes for equal content). Sections 1–4 sit in
+// a condensed two-across grid on desktop to save vertical space.
+function Section({ n, title, subtitle, children, className = '' }) {
   return (
-    <section className="qsection">
+    <section className={'qsection ' + className}>
       <div className="qsecthead">
         <span className="qnum">{n}</span>
         <span>
@@ -30,8 +31,25 @@ function Section({ n, title, subtitle, children }) {
   );
 }
 
+// "?" info popover for the pre-existing disease question.
+function PedInfo() {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <span className="pedinfo">
+      <button aria-label="What is a pre-existing disease?" onClick={() => setOpen((v) => !v)}>?</button>
+      {open && (
+        <span className="pedpop">
+          A <b>pre-existing disease</b> is any condition, ailment, injury or disease that was
+          diagnosed by a physician — or for which medical advice or treatment was recommended
+          or received — within 36 months before your policy's start date.
+        </span>
+      )}
+    </span>
+  );
+}
+
 // ---- DOB text field: auto-slash input, ✓ on valid, age in its own chip ----
-function DobField({ member, onChange, tourTarget }) {
+function DobField({ member, onChange }) {
   const iso = dobToIso(member.dobText);
   const age = ageFromIso(iso);
   const cls = fieldClass(member.dobText, (v) => v.length === 10, () => !!iso);
@@ -42,7 +60,6 @@ function DobField({ member, onChange, tourTarget }) {
         inputMode="numeric"
         placeholder="dd/mm/yyyy"
         value={member.dobText}
-        data-tour={tourTarget}
         className={cls}
         onChange={(e) => {
           const dobText = formatDobInput(e.target.value);
@@ -131,93 +148,99 @@ export function QuoteStep({ catalog, members, setMembers, pincode, setPincode, q
     <div className="qsteps">
       <h2>Get your quote</h2>
 
-      <Section n={1} title="Sum insured" subtitle="The cover amount your family can claim in a policy year.">
-        <div className="chips">
-          {bands.map((b) => (
-            <button key={b} className={'chip ' + (quote.sum_insured === b ? 'on' : '')} onClick={() => setQuote({ ...quote, sum_insured: b })}>
-              {b === 1000000 && <span className="popbadge">POPULAR</span>}
-              {siLabel(b)}
-            </button>
-          ))}
-        </div>
-      </Section>
-
-      <Section n={2} title="Policy tenure" subtitle="Longer tenures lock your premium and earn a discount.">
-        <div className="chips">
-          {(catalog?.tenure_options_years || []).map((t) => (
-            <button key={t} className={'chip ' + (quote.tenure_years === t ? 'on' : '')} onClick={() => setQuote({ ...quote, tenure_years: t })}>
-              {tenureDiscounts[String(t)] && <span className="savebadge">SAVE {tenureDiscounts[String(t)]}%</span>}
-              {t} year{t > 1 ? 's' : ''}
-            </button>
-          ))}
-        </div>
-      </Section>
-
-      <Section n={3} title="Your pincode" subtitle="Pricing varies by city.">
-        <div className="pinrow">
-          <input
-            value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            placeholder="e.g. 400001" className={pincodeCls} data-tour="pincode"
-          />
-          {pincode.length === 6 && (validatePincode(pincode)
-            ? <span className="fieldok">✓</span>
-            : <span className="fieldbad">✕</span>)}
-        </div>
-      </Section>
-
-      <Section n={4} title="Who's being covered?" subtitle={`Up to 4 adults and ${maxKids} children on one policy.`}>
-        <div className="adultgrid">
-          {SINGLE_RELS.map((rel) => (
-            <button key={rel} className={'membercard ' + (countOf(rel) ? 'on' : '')} onClick={() => toggleSingle(rel)}>
-              <span className="avatar">{REL_AVATARS[rel]}</span> {REL_LABELS[rel]}
-            </button>
-          ))}
-        </div>
-        <div className="kidgrid">
-          {COUNTED_RELS.map((rel) => (
-            <span key={rel} className={'membercard ' + (countOf(rel) ? 'on' : '')}>
-              <span className="avatar">{REL_AVATARS[rel]}</span> {REL_LABELS[rel]}
-              <span className="counter">
-                <button onClick={() => removeCounted(rel)} aria-label={`remove ${rel}`}>−</button>
-                <span>{countOf(rel)}</span>
-                <button onClick={() => addCounted(rel)} disabled={kidCount >= maxKids} aria-label={`add ${rel}`}>+</button>
-              </span>
-            </span>
-          ))}
-        </div>
-
-        {members.length > 0 && (
-          <div className="dobblock">
-            <label>Date of birth — dd/mm/yyyy</label>
-            {members.map((m, i) => <DobField key={i} member={m} onChange={(next) => updateMember(i, next)} tourTarget={i === 0 ? 'dob-self' : undefined} />)}
+      {/* Sections 1–4 condensed into a two-across grid: no wasted width. */}
+      <div className="qgrid">
+        <Section n={1} title="Sum insured" subtitle="The cover amount your family can claim in a policy year." className="span-g7">
+          <div className="chips">
+            {bands.map((b) => (
+              <button key={b} className={'chip ' + (quote.sum_insured === b ? 'on' : '')} onClick={() => setQuote({ ...quote, sum_insured: b })}>
+                {b === 1000000 && <span className="popbadge">POPULAR</span>}
+                {siLabel(b)}
+              </button>
+            ))}
           </div>
-        )}
+        </Section>
 
-        {members.map((m, i) => (
-          <div key={'ped' + i} className="pedblock">
-            <div className="pedrow">
-              <span style={{ fontSize: 13.5 }}>Any medical history for <b>{REL_LABELS[m.relationship]}{COUNTED_RELS.includes(m.relationship) ? ` ${members.slice(0, i + 1).filter((x) => x.relationship === m.relationship).length}` : ''}</b>?</span>
-              <span className="toggle2">
-                <button className={m.ped === true ? 'on' : ''} onClick={() => setPed(i, true)}>Yes</button>
-                <button className={m.ped === false ? 'on' : ''} onClick={() => setPed(i, false)} data-tour={i === 0 ? 'ped-no' : undefined}>No</button>
+        <Section n={2} title="Policy tenure" subtitle="Longer tenures lock your premium and earn a discount." className="span-g5">
+          <div className="chips">
+            {(catalog?.tenure_options_years || []).map((t) => (
+              <button key={t} className={'chip ' + (quote.tenure_years === t ? 'on' : '')} onClick={() => setQuote({ ...quote, tenure_years: t })}>
+                {tenureDiscounts[String(t)] && <span className="savebadge">SAVE {tenureDiscounts[String(t)]}%</span>}
+                {t} year{t > 1 ? 's' : ''}
+              </button>
+            ))}
+          </div>
+        </Section>
+
+        <Section n={3} title="Your pincode" subtitle="Pricing varies by city." className="span-g4">
+          <div className="pinrow">
+            <input
+              value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="e.g. 400001" className={pincodeCls}
+            />
+            {pincode.length === 6 && (validatePincode(pincode)
+              ? <span className="fieldok">✓</span>
+              : <span className="fieldbad">✕</span>)}
+          </div>
+        </Section>
+
+        <Section n={4} title="Who's being covered?" subtitle={`Up to 4 adults and ${maxKids} children on one policy.`} className="span-g8">
+          <div className="adultgrid">
+            {SINGLE_RELS.map((rel) => (
+              <button key={rel} className={'membercard ' + (countOf(rel) ? 'on' : '')} onClick={() => toggleSingle(rel)}>
+                <span className="avatar">{REL_AVATARS[rel]}</span> {REL_LABELS[rel]}
+              </button>
+            ))}
+          </div>
+          <div className="kidgrid">
+            {COUNTED_RELS.map((rel) => (
+              <span key={rel} className={'membercard ' + (countOf(rel) ? 'on' : '')}>
+                <span className="avatar">{REL_AVATARS[rel]}</span> {REL_LABELS[rel]}
+                <span className="counter">
+                  <button onClick={() => removeCounted(rel)} aria-label={`remove ${rel}`}>−</button>
+                  <span>{countOf(rel)}</span>
+                  <button onClick={() => addCounted(rel)} disabled={kidCount >= maxKids} aria-label={`add ${rel}`}>+</button>
+                </span>
               </span>
+            ))}
+          </div>
+
+          {members.length > 0 && (
+            <div className="dobblock">
+              <label>Date of birth — dd/mm/yyyy</label>
+              {members.map((m, i) => <DobField key={i} member={m} onChange={(next) => updateMember(i, next)} />)}
             </div>
-            {m.ped === true && (
-              <div className="collapse">
-                {(catalog?.medical_questions || []).map((q) => (
-                  <div className="qrow" key={q.code}>
-                    <span>{q.text}</span>
-                    <span>
-                      <button className={'mini ' + (m.declarations[q.code] === true ? 'on' : '')} onClick={() => setDeclaration(i, q.code, true)}>Yes</button>
-                      <button className={'mini ' + (m.declarations[q.code] === false ? 'on' : '')} onClick={() => setDeclaration(i, q.code, false)}>No</button>
-                    </span>
-                  </div>
-                ))}
+          )}
+
+          {members.map((m, i) => (
+            <div key={'ped' + i} className="pedblock">
+              <div className="pedrow">
+                <span style={{ fontSize: 13.5 }}>
+                  Any pre-existing disease for <b>{REL_LABELS[m.relationship]}{COUNTED_RELS.includes(m.relationship) ? ` ${members.slice(0, i + 1).filter((x) => x.relationship === m.relationship).length}` : ''}</b>?
+                  {i === 0 && <PedInfo />}
+                </span>
+                <span className="toggle2">
+                  <button className={m.ped === true ? 'on' : ''} onClick={() => setPed(i, true)}>Yes</button>
+                  <button className={m.ped === false ? 'on' : ''} onClick={() => setPed(i, false)}>No</button>
+                </span>
               </div>
-            )}
-          </div>
-        ))}
-      </Section>
+              {m.ped === true && (
+                <div className="collapse">
+                  {(catalog?.medical_questions || []).map((q) => (
+                    <div className="qrow" key={q.code}>
+                      <span>{q.text}</span>
+                      <span>
+                        <button className={'mini ' + (m.declarations[q.code] === true ? 'on' : '')} onClick={() => setDeclaration(i, q.code, true)}>Yes</button>
+                        <button className={'mini ' + (m.declarations[q.code] === false ? 'on' : '')} onClick={() => setDeclaration(i, q.code, false)}>No</button>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </Section>
+      </div>
 
       <Section n={5} title="Every plan includes" subtitle="Built into all our plans — tap a tile for detail.">
         <BaseCovers catalog={catalog} />
@@ -249,10 +272,10 @@ export function QuoteStep({ catalog, members, setMembers, pincode, setPincode, q
   );
 }
 
-// ---- Step 2: your details (mobile OTP, proposer, optional nominee) ----
-export function DetailsStep({ proposer, setProposer, nominee, setNominee, nomineeSkipped, setNomineeSkipped, otp, setOtp }) {
+// ---- Step 2: your details (mobile OTP, proposer, nominee) ----
+export function DetailsStep({ proposer, setProposer, nominee, setNominee, otp, setOtp }) {
   const setP = (k, v) => setProposer({ ...proposer, [k]: v });
-  const setN = (k, v) => { setNomineeSkipped(false); setNominee({ ...(nominee || {}), [k]: v }); };
+  const setN = (k, v) => setNominee({ ...(nominee || {}), [k]: v });
 
   const sendOtp = () => {
     if (!/^[6-9]\d{9}$/.test(otp.mobile)) return setOtp({ ...otp, error: 'Enter a valid 10-digit mobile number' });
@@ -274,11 +297,11 @@ export function DetailsStep({ proposer, setProposer, nominee, setNominee, nomine
       <div className="otprow">
         <input
           inputMode="numeric" placeholder="10-digit mobile" maxLength={10} style={{ maxWidth: 220 }}
-          value={otp.mobile} disabled={otp.verified} data-tour="mobile"
+          value={otp.mobile} disabled={otp.verified}
           className={otp.verified ? 'f-valid' : fieldClass(otp.mobile, (v) => v.length === 10, mobileValid)}
           onChange={(e) => setOtp({ ...otp, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) })}
         />
-        {!otp.verified && <button className="btn" onClick={sendOtp} data-tour="send-otp">{otp.sent ? 'Resend OTP' : 'Send OTP'}</button>}
+        {!otp.verified && <button className="btn" onClick={sendOtp}>{otp.sent ? 'Resend OTP' : 'Send OTP'}</button>}
         {otp.verified && <span className="verified">✓ Verified</span>}
       </div>
       {otp.error && <p className="error">{otp.error}</p>}
@@ -287,36 +310,31 @@ export function DetailsStep({ proposer, setProposer, nominee, setNominee, nomine
       <div className="formgrid" style={{ marginTop: 8 }}>
         <div>
           <label>Full name</label>
-          <input value={proposer.name || ''} onChange={(e) => setP('name', e.target.value)} data-tour="proposer-name" className={fieldClass(proposer.name || '', (v) => v.trim().length >= 1, nameValid)} />
+          <input value={proposer.name || ''} onChange={(e) => setP('name', e.target.value)} className={fieldClass(proposer.name || '', (v) => v.trim().length >= 1, nameValid)} />
         </div>
         <div>
           <label>Email</label>
-          <input value={proposer.email || ''} onChange={(e) => setP('email', e.target.value)} data-tour="proposer-email" className={fieldClass(proposer.email || '', (v) => v.length > 5, emailValid)} />
+          <input value={proposer.email || ''} onChange={(e) => setP('email', e.target.value)} className={fieldClass(proposer.email || '', (v) => v.length > 5, emailValid)} />
           {proposer.email && proposer.email.length > 5 && (emailValid(proposer.email)
             ? <span className="fieldok">✓</span>
             : <span className="fieldbad">✕ Check this email</span>)}
         </div>
         <div>
-          <label>PAN <span className="hint" style={{ display: 'inline', marginTop: 0 }}>(optional)</span></label>
-          <input value={proposer.pan || ''} onChange={(e) => setP('pan', e.target.value.toUpperCase().slice(0, 10))} className={fieldClass(proposer.pan || '', (v) => v.length === 10, isPanFormat)} />
+          <label>PAN</label>
+          <input value={proposer.pan || ''} onChange={(e) => setP('pan', e.target.value.toUpperCase().slice(0, 10))} placeholder="ABCDE1234F" className={fieldClass(proposer.pan || '', (v) => v.length === 10, isPanFormat)} />
           {(proposer.pan || '').length === 10 && (isPanFormat(proposer.pan)
             ? <span className="fieldok">✓</span>
             : <span className="fieldbad">✕ Format looks off</span>)}
         </div>
       </div>
 
-      <h2 style={{ marginTop: 28 }}>Nominee <span className="hint">(optional at this stage)</span></h2>
-      {!nomineeSkipped ? (
-        <>
-          <div className="formgrid">
-            <div><label>Nominee name</label><input value={nominee?.name || ''} onChange={(e) => setN('name', e.target.value)} /></div>
-            <div><label>Relation to proposer</label><input value={nominee?.relation || ''} onChange={(e) => setN('relation', e.target.value)} /></div>
-            <div><label>Nominee DOB</label><input type="date" value={nominee?.dob || ''} onChange={(e) => setN('dob', e.target.value)} /></div>
-          </div>
-          {/* ~41% of users skip nominee — measured in journey analytics */}
-          <button className="linkbtn" onClick={() => { setNominee(null); setNomineeSkipped(true); }}>Skip for now →</button>
-        </>
-      ) : <p className="hint">Nominee skipped — can be added before issuance. <button className="linkbtn" onClick={() => setNomineeSkipped(false)}>Add nominee</button></p>}
+      <h2 style={{ marginTop: 28 }}>Nominee</h2>
+      <p className="qsub">The person who receives the claim amount if the worst happens.</p>
+      <div className="formgrid">
+        <div><label>Nominee name</label><input value={nominee?.name || ''} onChange={(e) => setN('name', e.target.value)} className={fieldClass(nominee?.name || '', (v) => v.trim().length >= 1, (v) => v.trim().length >= 2)} /></div>
+        <div><label>Relation to proposer</label><input value={nominee?.relation || ''} onChange={(e) => setN('relation', e.target.value)} placeholder="e.g. Spouse" className={fieldClass(nominee?.relation || '', (v) => v.trim().length >= 1, (v) => v.trim().length >= 2)} /></div>
+        <div><label>Nominee DOB</label><input type="date" value={nominee?.dob || ''} onChange={(e) => setN('dob', e.target.value)} /></div>
+      </div>
     </div>
   );
 }
@@ -351,12 +369,12 @@ export function ReviewStep({ form, onDownloadPdf }) {
 }
 
 // ---- Success + handoff into the AI portal ----
-export function SuccessScreen({ policyNo, proposalId, mode }) {
+export function SuccessScreen({ policyNo, proposalId }) {
   return (
     <div className="success">
       <div className="bigtick">✓</div>
       <h2>Policy issued instantly</h2>
-      <p className="hint">Proposal {proposalId} · payment confirmed by the core policy system{mode === 'agent' ? ' · customer paid via payment link' : ''}</p>
+      <p className="hint">Proposal {proposalId} · payment confirmed by the core policy system</p>
       <p className="policyno">{policyNo}</p>
       <p className="hint">Policy document &amp; health card sent to your registered email (demo).</p>
 
@@ -368,7 +386,7 @@ export function SuccessScreen({ policyNo, proposalId, mode }) {
           system's <b>source code</b> to tell a product manager whether a change is feasible —
           with file-and-line evidence.
         </p>
-        <a className="btn gold" href="/ai?from=journey" data-tour="ai-handoff">Open the Feasly workspace →</a>
+        <a className="btn gold" href="/ai?from=journey">Open the Feasly workspace →</a>
       </div>
     </div>
   );

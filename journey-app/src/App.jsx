@@ -1,20 +1,13 @@
 import React from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link } from 'react-router-dom';
 import JourneyWizard from './journey/JourneyWizard';
-import AgentPortal from './agent/AgentPortal';
 import PayLink from './pay/PayLink';
 import AiPortal from './ai/AiPortal';
 import DemoBanner from './components/DemoBanner';
-import TourOverlay from './components/TourOverlay';
-import { TourProvider, useTour } from './lib/tour';
 
 const LINKEDIN_URL = 'https://www.linkedin.com/in/shrey-sagar-productmanager/';
 
 function Landing() {
-  const nav = useNavigate();
-  const tour = useTour();
-  const guideMe = () => { tour.start(); nav('/buy'); };
-
   return (
     <div className="landing">
       <section className="hero">
@@ -26,7 +19,7 @@ function Landing() {
         </p>
         <div className="herobtns">
           <Link className="btn gold" to="/buy">Start the demo →</Link>
-          <button className="btn ghost light" onClick={guideMe}>Guide me step by step →</button>
+          <Link className="btn ghost light" to="/ai">Open the Feasly workspace →</Link>
         </div>
       </section>
 
@@ -70,9 +63,8 @@ function Landing() {
         <ol>
           <li>Buy: get a quote → your details → simulated payment → policy issued instantly.</li>
           <li>The success screen takes you straight into the Feasly workspace.</li>
-          <li>Try <i>"Make nominee details mandatory"</i> in Feasibility Studio — login <code>pm / zenith@123</code> comes prefilled.</li>
+          <li>Try <i>"Offer monthly premium payment (EMI) instead of annual only"</i> in Feasibility Studio — login <code>pm / zenith@123</code> comes prefilled.</li>
         </ol>
-        <p className="hint">Or click <b>"Guide me step by step"</b> above and we'll spotlight exactly what to do, the whole way through.</p>
       </div>
 
       <div className="about">
@@ -90,7 +82,7 @@ function Landing() {
 
 export default function App() {
   return (
-    <TourProvider>
+    <>
       <DemoBanner />
       <nav className="topnav">
         <Link to="/" className="brand">zenith<span className="accent">demo</span></Link>
@@ -101,12 +93,10 @@ export default function App() {
       </nav>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/buy" element={<div className="page page-wide"><JourneyWizard mode="customer" /></div>} />
-        <Route path="/agent" element={<AgentPortal />} />
+        <Route path="/buy" element={<div className="page page-wide"><JourneyWizard /></div>} />
         <Route path="/pay/:token" element={<PayLink />} />
         <Route path="/ai/*" element={<AiPortal />} />
       </Routes>
-      <TourOverlay />
-    </TourProvider>
+    </>
   );
 }

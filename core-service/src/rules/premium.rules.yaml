@@ -1,5 +1,5 @@
 # ============================================================
-# Premium computation rules — Health Retail (v2.0)
+# Premium computation rules — Health Retail (v3.0)
 # Owned by: Core / Actuarial. Rate changes need actuarial cert.
 # ============================================================
 currency: INR
@@ -44,54 +44,146 @@ addon_categories:
   - { code: GLOBAL_ACCESS,  label: "Global Access",              icon: "🌍" }
   - { code: WELLNESS,       label: "Preventive & Wellness Care", icon: "🍃" }
 
-addons:                                # pct = of base premium, flat = INR
-  EARLY_COVER:         { label: "Early Cover",         category: MUST_HAVE,      icon: "⏳", pct: 18,
-                         tagline: "PED waiting cut from 36 to 12 months",
-                         description: "Cuts the waiting period for pre-existing diseases from 36 months to just 12." }
-  OPD_CARE:            { label: "OPD Care",            category: MUST_HAVE,      icon: "🩹", flat: 4500,
-                         tagline: "Cashless doctor visits & diagnostics",
-                         description: "Doctor consultations, diagnostics and teleconsults covered — cashless." }
-  ROOM_FLEX:           { label: "Room Flex",           category: MUST_HAVE,      icon: "🛏️", pct: 8,
-                         tagline: "Any room category, no rent capping",
-                         description: "Pick any hospital room — no rent caps, no proportional deductions." }
-  CONSUMABLES_COVER:   { label: "Consumables Cover",   category: COST_BENEFIT,   icon: "🧴", pct: 6,
-                         tagline: "Gloves, syringes & the small stuff",
-                         description: "Pays for non-medical consumables that hospital bills usually exclude." }
-  NON_PAYABLES_COVER:  { label: "Non-Payables Cover",  category: COST_BENEFIT,   icon: "🧾", pct: 10,
-                         tagline: "Covers the items most plans skip",
-                         description: "Pays the bill items most policies quietly exclude — kits, disposables, surcharges." }
-  DAILY_HOSPITAL_CASH: { label: "Daily Hospital Cash", category: COST_BENEFIT,   icon: "💰", flat: 2500,
-                         tagline: "Fixed payout per day admitted",
-                         description: "A fixed daily allowance for every day of hospitalisation — spend it as you need." }
-  BONUS_ACCELERATOR:   { label: "Bonus Accelerator",   category: COVER_ENHANCER, icon: "📈", pct: 12,
-                         tagline: "No-claim bonus grows up to 100%/yr",
-                         description: "Every claim-free year grows your cover — up to 100% extra sum insured." }
-  LIMITLESS_SHIELD:    { label: "Limitless Shield",    category: COVER_ENHANCER, icon: "♾️", pct: 15,
-                         tagline: "One unlimited claim, once in a lifetime",
-                         description: "One claim with no upper limit — for the catastrophic event." }
-  COVER_ESCALATOR:     { label: "Cover Escalator",     category: COVER_ENHANCER, icon: "📊", pct: 5,
-                         tagline: "Sum insured rises with inflation",
-                         description: "Your sum insured increases automatically every year to keep pace with inflation." }
-  ACCIDENT_SHIELD:     { label: "Accident Shield",     category: COVER_ENHANCER, icon: "🛡️", flat: 1800,
-                         tagline: "Lump sum on accidental death/disability",
-                         description: "A lump sum payout on accidental death or permanent disability." }
-  GLOBAL_ACCESS:       { label: "Global Access",       category: GLOBAL_ACCESS,  icon: "✈️", pct: 20,
-                         tagline: "Planned & emergency treatment abroad",
-                         description: "Planned or emergency treatment anywhere in the world." }
-  ANNUAL_HEALTH_CHECK: { label: "Annual Health Check", category: WELLNESS,       icon: "🩻", flat: 1200,
-                         tagline: "Full-body check-up every year",
-                         description: "A comprehensive health check-up, cashless, every policy year." }
-  WELLNESS_COMPANION:  { label: "Wellness Companion",  category: WELLNESS,       icon: "🧘", flat: 1500,
-                         tagline: "Mind, nutrition & fitness coaching",
-                         description: "Mental health support, nutrition and fitness coaching, on demand." }
-  PRIORITY_MEMBERSHIP: { label: "Priority Membership", category: WELLNESS,       icon: "👑", pct: 7,
-                         tagline: "Priority claims & dedicated support",
-                         description: "A dedicated relationship team and priority claims processing." }
+# Pairs that cannot be opted together on one policy.
+addon_conflicts:
+  - [CO_PAYMENT, AGGREGATE_DEDUCTIBLE]
+  - [TIERED_NETWORK, EARLY_ALERT]
+  - [WORLDWIDE_CARE, WORLDWIDE_CARE_SI]
+  - [TRAVEL_PAUSE, WORLDWIDE_CARE]
+  - [TRAVEL_PAUSE, WORLDWIDE_CARE_SI]
+  - [TRAVEL_PAUSE, INTERNATIONAL_COVER]
+
+# Payment-mode constraints: Initial Wait Modifier cannot be opted when the
+# premium is paid in instalments (EMI / monthly / quarterly modes).
+addon_payment_constraints:
+  INITIAL_WAIT_MOD: { blocked_payment_frequencies: [EMI, MONTHLY, QUARTERLY] }
+
+addons:                                # pct = of base premium, flat = INR; negative pct reduces premium
+  # ---- Must Haves ----
+  PED_WAIT_MOD:        { label: "PED Wait Modifier",        category: MUST_HAVE,      icon: "⏳", pct: 18,
+                         tagline: "Cut the pre-existing disease wait to 12 months",
+                         description: "Choose a shorter waiting period for pre-existing diseases instead of the standard 36 months. Available only at purchase." }
+  SPECIFIC_WAIT_MOD:   { label: "Specific Disease Wait Modifier", category: MUST_HAVE, icon: "🗓️", pct: 8,
+                         tagline: "Shorten the 24-month specific-disease wait",
+                         description: "Reduce the waiting period for listed specific diseases and procedures. Available only at purchase." }
+  INITIAL_WAIT_MOD:    { label: "Initial Wait Modifier",    category: MUST_HAVE,      icon: "⌛", pct: 5,
+                         tagline: "Shrink the 30-day initial waiting period",
+                         description: "Reduce the initial waiting period that applies to all illnesses. Available only at purchase; cannot be combined with instalment (EMI) payment." }
+  PRE_HOSP_MOD:        { label: "Pre-Hospital Days Modifier",  category: MUST_HAVE,   icon: "📆", pct: 2,
+                         tagline: "Stretch the 60-day pre-admission window",
+                         description: "Modify how many days of expenses before admission are covered. Available only at purchase." }
+  POST_HOSP_MOD:       { label: "Post-Hospital Days Modifier", category: MUST_HAVE,   icon: "🗓", pct: 3,
+                         tagline: "Stretch the 180-day recovery window",
+                         description: "Modify how many days of expenses after discharge are covered. Available only at purchase." }
+  ADVANCED_PLUS:       { label: "Advanced Treatments+",     category: MUST_HAVE,      icon: "🧬", pct: 6,
+                         tagline: "Advanced procedures up to full sum insured",
+                         description: "Removes the sub-limits on listed advanced treatments — robotic surgery, oral chemotherapy, stem-cell transplant and more — up to your sum insured." }
+  AIR_AMBULANCE_PLUS:  { label: "Air Ambulance+",           category: MUST_HAVE,      icon: "🚁", flat: 1200,
+                         tagline: "Enhanced air ambulance limit",
+                         description: "Raises your air ambulance cover to the specified limit, payable alongside a hospitalisation claim with registered providers." }
+
+  # ---- Cost Benefit ----
+  NON_PAYABLES_COVER:  { label: "Non-Payables Cover",       category: COST_BENEFIT,   icon: "🧾", pct: 10,
+                         tagline: "Pays the listed items bills usually exclude",
+                         description: "Covers the standard lists of non-payable items — gloves, kits, disposables and similar charges — on an admissible claim." }
+  AGGREGATE_DEDUCTIBLE: { label: "Annual Aggregate Deductible", category: COST_BENEFIT, icon: "📉", pct: -15,
+                         tagline: "You bear the first slice each year, premium drops",
+                         description: "You pay hospitalisation expenses up to a chosen annual amount; everything above it is on us. Cannot be combined with Co-Payment." }
+  CO_PAYMENT:          { label: "Co-Payment",               category: COST_BENEFIT,   icon: "➗", pct: -12,
+                         tagline: "Share a % of each claim, pay less premium",
+                         description: "You bear a fixed percentage of every admissible claim and your premium reduces. Cannot be combined with the Annual Aggregate Deductible." }
+  CASH_VAULT:          { label: "Cash Vault",               category: COST_BENEFIT,   icon: "💰", pct: 10,
+                         tagline: "Premium back for every claim-free year",
+                         description: "Get 10% of premium back after your first claim-free year and 5% every renewal after, plus a 10% bonus on the balance every 3 years — spendable on OPD, deductibles, co-pays and renewals." }
+  TIERED_NETWORK:      { label: "Tiered Network",           category: COST_BENEFIT,   icon: "🏥", pct: -8,
+                         tagline: "Curated hospital list, lower premium",
+                         description: "Treat within a specific network list and save on premium; treatment outside it carries a flat 20% co-payment. Cannot be combined with Early Alert." }
+  EARLY_ALERT:         { label: "Early Alert",              category: COST_BENEFIT,   icon: "📣", pct: -6,
+                         tagline: "Tell us before admission, pay less",
+                         description: "Inform us 48 hours before a planned admission (24 hours after an emergency) and use a recommended provider; otherwise a 20% co-payment applies. Cannot be combined with Tiered Network." }
+  CONVALESCENCE:       { label: "Convalescence Benefit",    category: COST_BENEFIT,   icon: "🛌", flat: 900,
+                         tagline: "Lump sum for long hospital stays",
+                         description: "A fixed payout if you are continuously hospitalised for more than 10 days. Paid once in a lifetime." }
+  DEPENDENT_STAY:      { label: "Dependent Stay Benefit",   category: COST_BENEFIT,   icon: "🏨", flat: 800,
+                         tagline: "Daily allowance for the family member with you",
+                         description: "A per-day amount for one immediate family member staying with you when you're hospitalised beyond 10 days — for up to 10 days." }
+  COMPASSIONATE_VISIT: { label: "Compassionate Visit",      category: COST_BENEFIT,   icon: "🫂", flat: 700,
+                         tagline: "We fly a loved one to your bedside",
+                         description: "Return economy air or rail fare for an immediate family member when you're hospitalised for more than 10 consecutive days." }
+  MEDICAL_EQUIPMENT:   { label: "Medical Equipment",        category: COST_BENEFIT,   icon: "🦽", flat: 1100,
+                         tagline: "Devices to get life back to normal",
+                         description: "Pays for medically necessary prescribed equipment after an accident — wheelchairs, crutches, hearing aids, hospital beds and more." }
+
+  # ---- Cover Enhancer ----
+  PERSONAL_ACCIDENT:   { label: "Personal Accident",        category: COVER_ENHANCER, icon: "🛡️", flat: 1800,
+                         tagline: "Lump sum for accidental death or disability",
+                         description: "Pays the sum insured on accidental death, up to 125% for permanent total disability, and a scaled amount for permanent partial disability." }
+  CRITICAL_ILLNESS:    { label: "Critical Illness",         category: COVER_ENHANCER, icon: "🫀", pct: 12,
+                         tagline: "One payout when it matters most",
+                         description: "A lump sum on first diagnosis of a listed critical illness after a 90-day initial wait and 30-day survival period. Paid once in a lifetime." }
+  RECOVERY_CARE:       { label: "Recovery Care",            category: COVER_ENHANCER, icon: "🩹", flat: 1000,
+                         tagline: "Serious-accident recovery, at home",
+                         description: "After an accident causing permanent disability: ICU-at-home setup, 12/24-hour nursing, physiotherapy, transfusion support and a financial-guidance session." }
+  ANNUAL_HEALTH_CHECK: { label: "Annual Health Check",      category: COVER_ENHANCER, icon: "🩻", flat: 1200,
+                         tagline: "Full-body check-up every year, from day 1",
+                         description: "A comprehensive cashless health check-up every policy year, booked through the app." }
+  VACCINATION_COVER:   { label: "Vaccination Cover",        category: COVER_ENHANCER, icon: "💉", flat: 600,
+                         tagline: "13 key vaccinations covered yearly",
+                         description: "Covers listed vaccinations — influenza, pneumonia, hepatitis A & B, typhoid, tetanus, MMR and more — once every policy year through our providers." }
+  THIRD_OPINION:       { label: "Third Medical Opinion",    category: COVER_ENHANCER, icon: "🧑‍⚕️", flat: 300,
+                         tagline: "Still unsure? Ask a third specialist",
+                         description: "If the second opinion doesn't settle it, take a third from another empanelled specialist — for as many conditions as you need in a year." }
+  RAPID_SECOND_OPINION: { label: "Rapid Second Opinion",    category: COVER_ENHANCER, icon: "⚡", flat: 500,
+                         tagline: "A top doctor's view within 48 hours",
+                         description: "Once a policy year, get a second opinion from among the country's most reputed doctors — if sought within 48 hours of hospitalisation." }
+
+  # ---- Global Access ----
+  WORLDWIDE_CARE:      { label: "Worldwide Care",           category: GLOBAL_ACCESS,  icon: "🌍", pct: 20,
+                         tagline: "Planned & emergency treatment, anywhere",
+                         description: "Get diagnosed and treated anywhere in the world — planned or emergency, cashless or reimbursement — with co-payment options from 0% to 50%. Indian residents only; standard private room." }
+  WORLDWIDE_CARE_SI:   { label: "Worldwide Care — Major Illness", category: GLOBAL_ACCESS, icon: "🌐", pct: 12,
+                         tagline: "Planned treatment abroad for 9 major illnesses",
+                         description: "Planned worldwide treatment for a specified list of major conditions — cancer, first heart attack, bypass surgery, organ transplant, stroke and more — diagnosed in India after day 90." }
+  INTERNATIONAL_COVER: { label: "International Travel Cover", category: GLOBAL_ACCESS, icon: "✈️", pct: 15,
+                         tagline: "Full travel protection, up to 45 days a trip",
+                         description: "Comprehensive cover while travelling abroad — emergency treatment plus the travel mishaps that come with it.",
+                         sub_benefits: ["Emergency hospitalisation abroad (cashless)", "Emergency medical evacuation", "OPD cover (20% co-pay)", "Loss of passport", "Loss & delay of checked-in baggage", "Trip cancellation, interruption & delay", "Compassionate visit", "Medical repatriation", "Return of mortal remains"] }
+  TRAVEL_PAUSE:        { label: "Travel Pause",             category: GLOBAL_ACCESS,  icon: "🛫", pct: -4,
+                         tagline: "Pause cover while you're abroad",
+                         description: "Travelling out of India? Pause your policy for up to 30 days a year — your policy period extends by the days paused. Cannot be combined with international or worldwide covers." }
+
+  # ---- Preventive & Wellness Care ----
+  OPD_360:             { label: "OPD 360",                  category: WELLNESS,       icon: "🩹", flat: 4500,
+                         tagline: "Complete outpatient care, cashless",
+                         description: "Tele and in-person consultations, prescribed diagnostics and pharmacy, dental, eye and physiotherapy — plus emotional wellness sessions, diet coaching and gym access via partners." }
+  ELDERCARE_COMPANION: { label: "ElderCare Companion",      category: WELLNESS,       icon: "👴", flat: 2000,
+                         tagline: "A care team for the seniors you love",
+                         description: "For members 56+: regular check-ins, a dedicated care manager, family updates, cognitive screening, home fall-risk assessment and a concierge for home nursing and equipment." }
+  EMOTIONAL_WELLNESS:  { label: "Emotional Wellness",       category: WELLNESS,       icon: "🧠", flat: 400,
+                         tagline: "Someone to talk to, online",
+                         description: "Online emotional-wellness sessions for adults through our partner network." }
+  MIND_COUNSELLING:    { label: "Mind Wellness Counselling", category: WELLNESS,      icon: "🧘", flat: 400,
+                         tagline: "Guided mental wellness sessions",
+                         description: "Online counselling sessions covering emotional, mental and mind wellness through our partner network." }
+  SEXUAL_WELLNESS:     { label: "Sexual Health Wellness",   category: WELLNESS,       icon: "💗", flat: 300,
+                         tagline: "Confidential specialist guidance",
+                         description: "Online sexual-health wellness sessions for adults through our partner network." }
+  HEALTH_RISK_ASSESS:  { label: "Health Risk Assessment",   category: WELLNESS,       icon: "📋", flat: 200,
+                         tagline: "Know your health score",
+                         description: "An overall online health assessment on the app, with ongoing updates about your lifestyle and health." }
+  WOMENS_WELLNESS:     { label: "Wellness for Women",       category: WELLNESS,       icon: "🌸", flat: 700,
+                         tagline: "Care built around a woman's needs",
+                         description: "A personal coach, trackers and toolkits, fertility, pregnancy and menopause programs, specialist consults, live webinars, and yoga and strength training — online." }
+  VISION_CARE:         { label: "Vision Care",              category: WELLNESS,       icon: "👓", flat: 900,
+                         tagline: "Glasses, check-ups & eye care",
+                         description: "Prescription glasses (or non-prescription sunglasses), basic eye check-ups, ophthalmologist consultations and surgery discounts — once a policy year via partners." }
+  FIT_LIFE:            { label: "Fit Life",                 category: WELLNESS,       icon: "🏃", flat: 1000,
+                         tagline: "Coaching, classes & gym access",
+                         description: "Diet and nutrition coaching, AI-led fitness coaching, workout classes across the globe, gym memberships and in-app activity tracking." }
 
 # Plan tiers — pre-configured bundles, listed best-first. Each tier applies a
-# rate multiplier to the base premium and bundles a set of add-ons. `color`
-# drives the journey's secondary accent when the tier is selected. CUSTOM is
-# the à-la-carte chassis: essentials only, customer picks every add-on.
+# rate multiplier to the base premium and bundles optional benefits; every
+# tier gets all base benefits. `color` drives the journey's secondary accent.
 plan_variants:
   APEX:
     label: "Apex"
@@ -100,41 +192,39 @@ plan_variants:
     tagline: "Our most complete cover"
     rate_multiplier: 1.25
     recommended: true
-    included_addons: [BONUS_ACCELERATOR, LIMITLESS_SHIELD, EARLY_COVER, ROOM_FLEX]
+    included_addons: [WORLDWIDE_CARE, PED_WAIT_MOD, AIR_AMBULANCE_PLUS, ANNUAL_HEALTH_CHECK, RAPID_SECOND_OPINION]
     benefits:
-      - "🛏️ Any room — incl. suites, no rent caps"
-      - "♻️ Cover restores after first claim, for life"
-      - "🔒 Premium locked to entry age till a claim"
-      - "🏦 Unused cover carries forward, up to 10×"
+      - "🌍 Planned & emergency treatment worldwide"
       - "⏳ PED waiting cut to 12 months"
-      - "🚑 Road ambulance to SI · air to ₹5L"
-      - "🧬 Advanced treatments up to full SI"
+      - "🛏️ Any room — incl. suites, no rent caps"
+      - "🏦 Boost Bank: unused cover grows up to 10×"
+      - "🚁 Air ambulance cover enhanced"
+      - "⚡ 48-hour rapid second opinion"
+      - "🩻 Annual health check, from day 1"
   PRIME:
     label: "Prime"
     icon: "💎"
     color: "#2e5fd7"
     tagline: "Flagship benefits, friendlier price"
     rate_multiplier: 1.10
-    included_addons: [BONUS_ACCELERATOR, LIMITLESS_SHIELD]
+    included_addons: [WORLDWIDE_CARE_SI, ADVANCED_PLUS, ANNUAL_HEALTH_CHECK]
     benefits:
+      - "🌐 Planned treatment abroad for 9 major illnesses"
+      - "🧬 Advanced treatments up to full sum insured"
       - "🛏️ Any room except suites"
-      - "♻️ Cover restores after first claim, for life"
-      - "🔒 Premium locked to entry age till a claim"
-      - "🏦 Unused cover carries forward, up to 5×"
-      - "🚑 Road ambulance to SI · air to ₹5L"
-      - "🧬 Advanced treatments up to full SI"
+      - "🏦 Boost Bank: unused cover grows up to 5×"
+      - "🩻 Annual health check, from day 1"
   CORE:
     label: "Core"
     icon: "🛡️"
     color: "#0f8a7e"
     tagline: "Strong essentials for growing families"
     rate_multiplier: 1.00
-    included_addons: [BONUS_ACCELERATOR]
+    included_addons: [ANNUAL_HEALTH_CHECK]
     benefits:
       - "🛏️ Twin-sharing hospital room"
-      - "🏦 Unused cover carries forward, up to 2×"
-      - "🚑 Road ambulance up to ₹2,000"
-      - "🧬 Advanced treatments up to ₹1L per claim"
+      - "🏦 Boost Bank: unused cover grows up to 3×"
+      - "🩻 Annual health check, from day 1"
       - "⏳ PED waiting 36 months"
   LITE:
     label: "Lite"
@@ -145,8 +235,7 @@ plan_variants:
     included_addons: []
     benefits:
       - "🛏️ General ward hospital room"
-      - "🚑 Road ambulance up to ₹2,000"
-      - "🧬 Advanced treatments up to ₹1L per claim"
+      - "🏦 Boost Bank: unused cover grows up to 2×"
       - "⏳ PED waiting 36 months"
   CUSTOM:
     label: "Build Your Own"
@@ -158,18 +247,33 @@ plan_variants:
     included_addons: []
     benefits:
       - "🛏️ Single private room"
-      - "🚑 Road ambulance up to ₹2,000"
-      - "🧬 Advanced treatments up to ₹1L per claim"
+      - "🏦 Boost Bank: unused cover grows up to 2×"
       - "⏳ PED waiting 36 months"
 
-# Coverage every tier gets, regardless of add-ons — the "base" tiles in the
+# Coverage every plan gets, regardless of add-ons — the "base" tiles in the
 # policy discovery grid. No price: these are never optional.
 common_benefits:
-  - { code: TWO_HOUR_RULE,   icon: "⏱️", label: "2-Hour Rule",        tagline: "Admitted 2+ hours? You're covered.",              description: "Hospitalisation of 2+ hours is covered outright (24 hours at AYUSH hospitals)." }
-  - { code: BEFORE_AFTER,    icon: "📅", label: "Before & After Care", tagline: "Cover starts before you're even admitted.",       description: "60 days of pre-hospitalisation and 180 days of post-hospitalisation expenses, on us." }
-  - { code: CARE_AT_HOME,    icon: "🏠", label: "Care at Home",        tagline: "Some treatment doesn't need a hospital bed.",     description: "Doctor-advised treatment at home — including chemotherapy and dialysis — is covered like an admission." }
-  - { code: DONOR_PROTECT,   icon: "❤️", label: "Donor Protect",       tagline: "Saving a life shouldn't cost you.",               description: "If you donate an organ, your own hospitalisation expenses for the procedure are covered." }
-  - { code: SECOND_LOOK,     icon: "🩺", label: "Expert Second Look",  tagline: "A second opinion, on the house.",                  description: "Unlimited second medical opinions from our specialist network, whenever you want one." }
-  - { code: MOVE_MORE,       icon: "🚶", label: "Move More",           tagline: "Walk more, pay less.",                            description: "Your activity score can knock up to 30% off your renewal premium — synced from your phone." }
+  - { code: REACHING_HOSPITAL, icon: "🚑", label: "Reaching the Hospital", tagline: "Road ambulance covered, air in emergencies.",
+      description: "Road ambulance charges up to your plan limit, and air ambulance in emergencies — payable with a hospitalisation claim, using registered providers." }
+  - { code: HOSPITAL_STAY,     icon: "🏥", label: "During Your Hospital Stay", tagline: "Admitted 2+ hours? You're covered.",
+      description: "Treatment expenses once you're admitted for 2 hours or more (24 hours for AYUSH), with the room category set by your plan. Listed modern treatments like robotic surgery and oral chemotherapy included." }
+  - { code: BEFORE_AFTER,      icon: "📅", label: "Before & After Care", tagline: "60 days before, 180 days after.",
+      description: "Consultations, medicines, physiotherapy and diagnostics for 60 days before admission and 180 days after discharge, when related to the treated condition." }
+  - { code: CARE_AT_HOME,      icon: "🏠", label: "Care at Home", tagline: "Hospital-grade treatment, at home.",
+      description: "Doctor-advised treatment at home with an active line of treatment and daily monitoring — including chemotherapy and peritoneal dialysis at home." }
+  - { code: DONOR_PROTECT,     icon: "❤️", label: "Donor Protect", tagline: "Saving a life shouldn't cost you.",
+      description: "Covers the donor's organ-harvesting hospitalisation when your transplant claim is paid — and if you donate an organ, the harvesting expenses too." }
+  - { code: EVERGREEN_REFILL,  icon: "♻️", label: "Evergreen Refill", tagline: "Your first claim unlocks cover for life.",
+      description: "The first paid claim triggers a lifetime refill: your cover keeps restoring — up to base sum insured per claim — for as long as the policy renews without a break." }
+  - { code: AGE_FREEZE,        icon: "🔒", label: "Age Freeze", tagline: "Your premium age stops the day you join.",
+      description: "Premiums stay locked to your entry age until a claim is paid — buy at 25, keep paying like a 25-year-old." }
+  - { code: BOOST_BANK,        icon: "🏦", label: "Boost Bank", tagline: "Don't lose what you don't use.",
+      description: "Unused base sum insured carries forward every year, accumulating up to 10 times your base cover depending on plan." }
+  - { code: MOVE_MORE,         icon: "🚶", label: "Move More", tagline: "Walk more, pay less.",
+      description: "Earn health points for your steps (1,000 steps = 1 point) and unlock up to 30% off your renewal premium." }
+  - { code: SECOND_LOOK,       icon: "🩺", label: "Second Medical Opinion", tagline: "A second opinion, on the house.",
+      description: "Unlimited second opinions from our panel of specialists and super-specialists for any diagnosed condition or prescribed treatment." }
+  - { code: E_CONSULT,         icon: "💬", label: "e-Consultation", tagline: "A doctor in your pocket, unlimited.",
+      description: "Unlimited e-consultations with general practitioners through our partner network." }
 
 gst_pct: 18

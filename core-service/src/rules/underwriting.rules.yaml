@@ -24,7 +24,7 @@ ped:
   loading_pct: 15                     # premium loading when PED declared
 
 nominee:
-  required_at_proposal: false         # optional at proposal stage; captured at issuance if skipped
+  required_at_proposal: true          # nominee must be captured before submission
 
 # 99999999 is the "Unlimited" cover sentinel — priced via its own SI multiplier
 sum_insured_bands: [500000, 1000000, 2500000, 5000000, 10000000, 99999999]
