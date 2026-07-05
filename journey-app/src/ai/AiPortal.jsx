@@ -1,32 +1,28 @@
-// Feasly — the PM workspace. Login + app shell (left nav) + nested pages.
-// Zenith Health is the connected showcase tenant; the workspace answers
-// "is this feasible?" from its actual code, plus everyday PM craft.
-import React, { useState, useEffect, createContext, useContext } from 'react';
+// Feasly — the PM workspace. Login + app shell (grouped left nav, mobile
+// slide-in drawer) + nested pages. Zenith Health is the connected showcase
+// tenant; the workspace answers "is this feasible?" from its actual code,
+// plus everyday PM craft (BRDs, planner, model routing).
+import React, { useState, createContext, useContext } from 'react';
 import { useLocation, useNavigate, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import { ai } from '../lib/api';
-import ChatsPage from './ChatsPage';
-import StudioPage from './StudioPage';
+import DashboardPage from './DashboardPage';
 import ProjectsPage from './ProjectsPage';
-import ResearchPage from './ResearchPage';
+import ProjectDetailPage from './ProjectDetailPage';
+import BrdPage from './BrdPage';
+import AskFeaslyPage from './AskFeaslyPage';
 import PlannerPage from './PlannerPage';
-import ModelsPage from './ModelsPage';
-import { SystemsPage, ApiKeysPage } from './pages';
-
-const ANALYSIS_KEY = 'feasly-last-analysis';
+import SettingsPage from './SettingsPage';
 
 const WorkspaceContext = createContext(null);
 export const useWorkspace = () => useContext(WorkspaceContext);
 
-const NAV = [
-  { to: 'chat', icon: '💬', label: 'Chats' },
-  { to: 'feasibility', icon: '🚦', label: 'Feasibility Studio' },
+const NAV_WORKSPACE = [
+  { to: '', icon: '🏠', label: 'Dashboard', end: true },
   { to: 'projects', icon: '📁', label: 'Projects' },
-  { to: 'research', icon: '🔭', label: 'Research' },
-  { to: 'planner', icon: '🗓', label: 'Planner' },
-  { to: 'models', icon: '🧠', label: 'Model Hub' },
-  { to: 'systems', icon: '🔌', label: 'Connected Systems' },
-  { to: 'api', icon: '🔑', label: 'API & Webhooks' }
+  { to: 'ask', icon: '💬', label: 'Ask Feasly' },
+  { to: 'planner', icon: '🗓', label: 'Planner' }
 ];
+const NAV_ADMIN = [{ to: 'settings', icon: '⚙️', label: 'Settings' }];
 
 export default function AiPortal() {
   const [token, setToken] = useState(null);
@@ -43,7 +39,7 @@ function Login({ onToken, autoLogin }) {
     catch { setErr('Invalid credentials. Demo login: pm / zenith@123'); }
   };
   // Arriving from the journey's success screen: log straight in.
-  useEffect(() => { if (autoLogin) go('pm', 'zenith@123'); /* eslint-disable-line */ }, [autoLogin]);
+  React.useEffect(() => { if (autoLogin) go('pm', 'zenith@123'); /* eslint-disable-line */ }, [autoLogin]);
   return (
     <div className="page narrow dark">
       <div>
@@ -59,50 +55,69 @@ function Login({ onToken, autoLogin }) {
   );
 }
 
+function NavLinks({ onNavigate }) {
+  return (
+    <>
+      <div className="ws-grouplbl">Workspace</div>
+      <nav className="ws-nav">
+        {NAV_WORKSPACE.map((item) => (
+          <NavLink key={item.label} to={item.to} end={item.end} onClick={onNavigate} className={({ isActive }) => 'ws-link' + (isActive ? ' on' : '')}>
+            <span className="ws-icon">{item.icon}</span> {item.label}
+          </NavLink>
+        ))}
+      </nav>
+      <div className="ws-grouplbl">Admin</div>
+      <nav className="ws-nav">
+        {NAV_ADMIN.map((item) => (
+          <NavLink key={item.label} to={item.to} onClick={onNavigate} className={({ isActive }) => 'ws-link' + (isActive ? ' on' : '')}>
+            <span className="ws-icon">{item.icon}</span> {item.label}
+          </NavLink>
+        ))}
+      </nav>
+    </>
+  );
+}
+
 function Workspace({ token, onLogout, fromJourney }) {
   const nav = useNavigate();
-  // Last analysis survives page switches and the journey handoff.
-  const [analysis, setAnalysisState] = useState(() => {
-    try { return JSON.parse(sessionStorage.getItem(ANALYSIS_KEY)) || null; } catch { return null; }
-  });
-  const setAnalysis = (a) => {
-    setAnalysisState(a);
-    try { sessionStorage.setItem(ANALYSIS_KEY, JSON.stringify(a)); } catch { /* ignore */ }
-  };
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <WorkspaceContext.Provider value={{ token, analysis, setAnalysis }}>
+    <WorkspaceContext.Provider value={{ token }}>
       <div className="workspace">
-        <aside className="ws-side">
-          <div className="ws-brand">feasly<span className="accent">.</span></div>
+        <button className="ws-hamburger" onClick={() => setDrawerOpen(true)} aria-label="Open menu">☰</button>
+        {drawerOpen && <div className="ws-backdrop" onClick={() => setDrawerOpen(false)} />}
+
+        <aside className={'ws-side' + (drawerOpen ? ' open' : '')}>
+          <div className="ws-sidetop">
+            <div className="ws-brand">feasly<span className="accent">.</span></div>
+            <button className="ws-drawerclose" onClick={() => setDrawerOpen(false)} aria-label="Close menu">✕</button>
+          </div>
           <div className="ws-tenant">Tenant: <b>Zenith Health</b> · showcase</div>
-          <nav className="ws-nav">
-            {NAV.map((item) => (
-              <NavLink key={item.to} to={item.to} className={({ isActive }) => 'ws-link' + (isActive ? ' on' : '')}>
-                <span className="ws-icon">{item.icon}</span> {item.label}
-              </NavLink>
-            ))}
-          </nav>
+          <NavLinks onNavigate={() => setDrawerOpen(false)} />
+          <div style={{ flex: 1 }} />
           <div className="ws-foot">
             <div className="ws-user"><span className="ws-avatar">PM</span> pm@zenith · demo</div>
             <button className="linkbtn" onClick={() => { onLogout(); nav('/ai'); }}>Log out</button>
           </div>
         </aside>
+
         <main className="ws-main page dark">
           <Routes>
-            <Route index element={<Navigate to={fromJourney ? 'feasibility' : 'chat'} replace />} />
-            <Route path="chat" element={<ChatsPage />} />
-            <Route path="feasibility" element={<StudioPage />} />
+            <Route index element={fromJourney ? <Navigate to="projects" replace /> : <DashboardPage />} />
             <Route path="projects" element={<ProjectsPage />} />
-            <Route path="research" element={<ResearchPage />} />
+            <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+            <Route path="projects/:projectId/:brdId" element={<BrdPage />} />
+            <Route path="ask" element={<AskFeaslyPage />} />
             <Route path="planner" element={<PlannerPage />} />
-            <Route path="models" element={<ModelsPage />} />
-            <Route path="systems" element={<SystemsPage />} />
-            <Route path="api" element={<ApiKeysPage />} />
-            <Route path="pdn" element={<Navigate to="../feasibility" replace />} />
-            <Route path="stories" element={<Navigate to="../feasibility" replace />} />
-            <Route path="tests" element={<Navigate to="../feasibility" replace />} />
-            <Route path="*" element={<Navigate to="chat" replace />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="chat" element={<Navigate to="../ask" replace />} />
+            <Route path="feasibility" element={<Navigate to="../projects" replace />} />
+            <Route path="research" element={<Navigate to="../projects" replace />} />
+            <Route path="models" element={<Navigate to="../settings" replace />} />
+            <Route path="systems" element={<Navigate to="../settings" replace />} />
+            <Route path="api" element={<Navigate to="../settings" replace />} />
+            <Route path="*" element={<Navigate to="" replace />} />
           </Routes>
         </main>
       </div>
