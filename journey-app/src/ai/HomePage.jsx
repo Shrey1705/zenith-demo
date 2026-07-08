@@ -2,7 +2,7 @@
 // as quiet typographic rows, and the documents you touched most recently.
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useWS, mutate, uid, now, TYPES } from './workspace';
+import { useWS, mutate, resetWS, uid, now, TYPES } from './workspace';
 
 const ROUTE_OF = { research: 'research', brd: 'brds', pdn: 'pdns', epic: 'epics', story: 'stories', fr: 'frs', test: 'tests' };
 
@@ -63,6 +63,12 @@ export default function HomePage() {
             </button>
           ))}
         </div>
+
+        <p style={{ marginTop: 34, opacity: 0.55 }}>
+          <button className="linkbtn" onClick={() => { if (window.confirm('Reset the workspace to its seeded demo state? Everything created in this browser is discarded.')) resetWS(); }}>
+            ↺ Reset demo data
+          </button>
+        </p>
       </div>
     </div>
   );

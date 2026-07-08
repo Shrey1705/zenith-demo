@@ -46,6 +46,9 @@ function pdn(r) {
 }
 
 function stories(r) {
+  // `title` is the clean entity label; `text` may be a whole BRD's joined
+  // requirements — titles must stay readable in Jira and in Feasly's lists.
+  const label = r.title || r.text;
   const byLayer = {};
   for (const i of r.impacts) (byLayer[i.layer] = byLayer[i.layer] || []).push(i);
   const pts = { g: 3, a: 5, r: 8 };
@@ -57,9 +60,9 @@ function stories(r) {
     const v = items.map(i => i.v).includes('r') ? 'r' : items.map(i => i.v).includes('a') ? 'a' : 'g';
     out.push({
       key: lid,
-      summary: `[${L.label}] ${r.text}`,
+      summary: `[${L.label}] ${label}`,
       component: L.system, points: pts[v], verdict: v,
-      description: `Implements the ${L.label.toLowerCase()} portion of: "${r.text}".`,
+      description: `Implements the ${L.label.toLowerCase()} portion of: "${label}".`,
       tasks: items.map(i => `${i.file}: ${i.change}`),
       ac: [
         `Given the change is deployed, when the issuance journey runs end-to-end, then behavior matches PDN for ${items.map(i => i.file.split('/').pop()).join(', ')}`,
@@ -70,11 +73,16 @@ function stories(r) {
       ]
     });
   }
+  // Feature-level stories contributed by matched entities (e.g. missed-
+  // instalment default handling) — these carry their own test suites.
+  for (const fs of r.featureStories || []) {
+    out.push({ key: 'feature', summary: fs.summary, component: fs.component, points: fs.points, verdict: fs.verdict, description: fs.description, tasks: fs.tasks, ac: fs.ac, tests: fs.tests });
+  }
   out.push({
     key: 'qa',
-    summary: `[QA] ${r.text} — cross-system regression`,
+    summary: `[QA] ${label} — cross-system regression`,
     component: 'core-service + journey-app', points: 5, verdict: r.overall,
-    description: `E2E regression across journey → API → core for: "${r.text}".`,
+    description: `E2E regression across journey → API → core for: "${label}".`,
     tasks: [`Regression pack over: ${[...new Set(r.files)].join(', ')}`],
     ac: ['Given the full change set, when E2E issuance scenarios run (D2C + agent + payment link), then premium, persistence, and issuance are correct']
   });
@@ -107,6 +115,9 @@ function testCases(r, storyList) {
       cases.push(
         { id: 'DB-01', title: 'Migration forward + rollback', gherkin: `Given a production-size data copy\nWhen the schema migration runs\nThen it completes in the agreed window, and rollback restores the prior constraint without data loss` }
       );
+    }
+    if (s.key === 'feature' && s.tests) {
+      cases.push(...s.tests);
     }
     if (s.key === 'qa') {
       cases.push(

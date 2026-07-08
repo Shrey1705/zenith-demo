@@ -32,7 +32,8 @@ export default function BrdsPage() {
     const addBrd = () => {
       if (!title.trim()) return;
       const sections = { background: '', requirements: [], stakeholders: '', success: '' };
-      const b = { id: uid(), title: title.trim(), owner: 'PM', status: 'Draft', researchIds: [], sections, createdAt: now(), versions: [{ v: 1, ts: now(), note: 'Initial draft', sections }] };
+      // No snapshot on creation — the author's first explicit save becomes v1.
+      const b = { id: uid(), title: title.trim(), owner: 'PM', status: 'Draft', researchIds: [], sections, createdAt: now(), versions: [] };
       mutate((w) => addDoc(w, pid, 'brd', b));
       setTitle('');
       nav(b.id);
@@ -50,7 +51,7 @@ export default function BrdsPage() {
             <button key={b.id} className="krow" onClick={() => nav(b.id)}>
               <span className="krowmain">
                 <span className="krowtitle">{b.title}</span>
-                <span className="krowmeta">v{b.versions.length} · {b.status} · {b.owner} · {b.researchIds.length} research linked · {childrenOf(project, 'brd', b).length} PDNs</span>
+                <span className="krowmeta">{b.versions.length ? `v${b.versions.length}` : 'draft'} · {b.status} · {b.owner} · {b.researchIds.length} research linked · {childrenOf(project, 'brd', b).length} PDNs</span>
               </span>
               <span className="krowside">{b.status === 'Approved' ? '✓' : ''}</span>
             </button>
@@ -77,7 +78,13 @@ export default function BrdsPage() {
     try {
       const r = await ai.analyze(token, s.requirements.join('. ') || doc.title);
       if (!r.matched) { setErr(r.note || 'Could not ground this BRD in the connected code — refine the requirements.'); setBusy(false); return; }
-      const pdn = pdnFromAnalysis(doc, r);
+      // A PDN must trace to a saved version — auto-save v1 if none exists yet.
+      let brdForPdn = doc;
+      if (doc.versions.length === 0) {
+        brdForPdn = { ...doc, versions: [{ v: 1, ts: now(), note: 'Auto-saved when generating the PDN', sections: s }] };
+        mutate((w) => updateDoc(w, pid, 'brd', doc.id, { versions: brdForPdn.versions }));
+      }
+      const pdn = pdnFromAnalysis(brdForPdn, r);
       mutate((w) => addDoc(w, pid, 'pdn', pdn));
       setTimeout(() => { setBusy(false); nav(`/ai/p/${pid}/pdns/${pdn.id}`); }, 600);
     } catch (e) { setErr(e.message); setBusy(false); }
@@ -113,7 +120,7 @@ export default function BrdsPage() {
       <button className="linkbtn" onClick={() => nav(`/ai/p/${pid}/brds`)}>← BRDs</button>
       <div className="docpane">
         <article className="docbody">
-          <p className="doctype">📋 BRD · v{currentV}</p>
+          <p className="doctype">📋 BRD · {currentV ? `v${currentV}` : 'draft — no versions saved yet'}</p>
           <h1>{doc.title}</h1>
           <div className="brdmeta">
             <label>Owner <input value={doc.owner} onChange={(e) => patch({ owner: e.target.value })} /></label>

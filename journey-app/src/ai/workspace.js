@@ -33,10 +33,27 @@ export function mutate(fn) {
   persist();
   subs.forEach((cb) => cb());
 }
+// Rehearsal helper: wipe the workspace back to the seeded demo state
+// without a reload (login token survives).
+export function resetWS() {
+  try { localStorage.removeItem(KEY); } catch { /* ignore */ }
+  cache = null;
+  read();
+  subs.forEach((cb) => cb());
+}
 
 export const uid = () => Math.random().toString(36).slice(2, 9);
 export const now = () => new Date().toISOString();
 export const shortDate = (iso) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+// Derive a document title from a structured prompt: prefer the "Task:"
+// clause, else the first sentence — so an engineered prompt doesn't become
+// a wall-of-text title.
+export function titleFrom(q) {
+  const task = /task\s*:\s*([^.\n]+)/i.exec(q)?.[1];
+  const t = (task || q.replace(/^\s*(context|role|task)\s*:\s*/i, '').split(/[.\n]/)[0]).trim();
+  const clean = t.charAt(0).toUpperCase() + t.slice(1);
+  return (clean.length > 64 ? clean.slice(0, 63) + '…' : clean) || q.slice(0, 48);
+}
 
 // ---- artifact type registry (chain order matters) ----
 export const TYPES = {
@@ -173,7 +190,7 @@ export function deriveEpics(pdn) {
     (byLayer[sys] = byLayer[sys] || []).push(im);
   }
   return Object.entries(byLayer).map(([system, impacts]) => ({
-    id: uid(), pdnId: pdn.id, title: `${system} — ${pdn.analysis.text.slice(0, 44)}`,
+    id: uid(), pdnId: pdn.id, title: `${system} — ${r.title || r.text.slice(0, 44)}`,
     summary: impacts.map((i) => i.change).join('. ') + '.',
     system, createdAt: now()
   }));
@@ -181,9 +198,11 @@ export function deriveEpics(pdn) {
 export function deriveStories(pdn, epics) {
   const r = pdn.analysis;
   if (!r) return [];
-  return (r.stories || []).map((s, i) => {
-    const epic = epics.find((e) => s.summary.toLowerCase().includes((e.system || '').split(' ')[0].toLowerCase()))
-      || epics[i % Math.max(1, epics.length)];
+  return (r.stories || []).map((s) => {
+    // Generated stories carry the owning system in `component`; match the
+    // epic on it exactly, falling back to the first (core) epic for
+    // cross-system stories like QA regression.
+    const epic = epics.find((e) => e.system === s.component) || epics[0];
     return {
       id: uid(), epicId: epic?.id, title: s.summary,
       description: s.description, ac: [...(s.ac || [])], points: s.points, component: s.component, createdAt: now()
@@ -251,155 +270,96 @@ export function downloadText(filename, text) {
 }
 
 // =====================  SEED DATA  =====================
-// EMI & Payment Flexibility is the flagship walkthrough: research about EMI
-// feasibility, two conversations that motivate the BRD's requirements (the
-// second directly produces the v2 default-handling requirement), a BRD that
-// evolves v1 -> v2, and a PDN generated from the CURRENT version — so every
-// epic, story, functional requirement and test case below traces cleanly to
-// a specific BRD requirement, with nothing left stale or unaccounted for.
+// EMI is deliberately NOT seeded — it is the live interview walkthrough,
+// built from a blank project on stage (research → conversations → BRD v1 →
+// PDN → chain → v2 → staleness → regenerate). What ships pre-seeded is one
+// mature showcase project (₹2 Cr sum-insured expansion, full clean chain)
+// as the fallback/reference, plus a light KYC draft so Home feels lived-in.
 function seedState() {
-  const R1 = 'r-churn', R2 = 'r-engine', R3 = 'r-gateway';
-  const B1 = 'b-emi', B2 = 'b-quarterly';
-  const P1 = 'p-emi';
-  const E1 = 'e-core', E2 = 'e-journey', E3 = 'e-default';
-  const S1 = 's-rating', S2 = 's-contract', S3 = 's-selector', S4 = 's-default';
-  const F1 = 'f-instalment', F2 = 'f-annual', F3 = 'f-compat', F4 = 'f-selector', F5 = 'f-pdf';
-  const F6 = 'f-pause', F7 = 'f-block-claims', F8 = 'f-resume';
-  const brdSections = {
-    background: 'Customers on annual-only plans cite cash-flow strain as the #1 reason for not converting at quote stage. Competitors offer monthly EMI; we currently only support ANNUAL. v2 adds the default-handling rule underwriting asked for after a payments-feasibility conversation.',
+  const R1 = 'r-hni', R2 = 'r-uwband';
+  const B1 = 'b-si';
+  const P1 = 'p-si';
+  const E1 = 'e-si-core', E2 = 'e-si-journey';
+  const S1 = 's-si-band', S2 = 's-si-contract', S3 = 's-si-format';
+  const F1 = 'f-si-band', F2 = 'f-si-rates', F3 = 'f-si-compat', F4 = 'f-si-format';
+  const siSections = {
+    background: 'HNI prospects abandon at quote because our sum-insured selector tops out at \u20b91 crore while their existing group covers already exceed it. Distribution reports losing high-premium quotes weekly to competitors with \u20b92 crore retail bands.',
     requirements: [
-      'Offer a monthly EMI option alongside annual at quote and checkout',
-      'Compute an interest-free instalment schedule from the annual premium',
-      'Reflect the payment plan on the review screen and proposal PDF',
-      'Define default handling: two consecutive missed instalments pause the policy pending payment'
+      'Add a \u20b92 crore sum insured band to the retail catalogue',
+      'Define underwriting limits and the medical-test grid for the new band',
+      'Verify no consumer hardcodes the current maximum sum insured'
     ],
-    stakeholders: 'Underwriting, Payments team, D2C Journey PM',
-    success: 'EMI adoption ≥20% of new policies within one quarter of launch; no increase in payment-default rate.'
+    stakeholders: 'Underwriting, Actuarial, Reinsurance, D2C Journey PM',
+    success: '\u22655% of new policies pick the \u20b92 crore band within two quarters; zero mispriced issuances.'
   };
-  const analysis = {
-    matched: true, text: 'Offer monthly premium payment (EMI) instead of annual only',
-    overall: 'r', verdict_label: 'Red — core system change required', effort_points: 16, size: 'XL',
-    sprints: '3–4 sprints; actuarial + finance dependency, start filings first', verified: 4,
-    layers: { core: { system: 'Core policy system' }, api: { system: 'API contract (v2)' }, journey: { system: 'Journey app' } },
+  const siAnalysis = {
+    matched: true, text: siSections.requirements.join('. '),
+    title: 'Sum-insured bands',
+    overall: 'r', verdict_label: 'Red \u2014 core system change required', effort_points: 8, size: 'M',
+    sprints: '1\u20132 sprints after actuarial rates', verified: 4,
+    layers: { frontend: { label: 'Journey frontend', system: 'journey-app' }, api: { label: 'API contract', system: 'core-service' }, core: { label: 'Core business rules', system: 'core-service' }, db: { label: 'Core data model', system: 'core-service' } },
     impacts: [
-      { layer: 'core', v: 'r', change: 'Add MONTHLY to payment_frequency_options', evidence: { line: 6, snippet: 'payment_frequency_options: [ANNUAL]' } },
-      { layer: 'core', v: 'r', change: 'Add EMI schedule + interest-free instalment calc', evidence: { line: 43, snippet: 'function calculate(p) {' } },
-      { layer: 'core', v: 'r', change: 'Add default handling: pause the policy after two consecutive missed instalments', evidence: { line: 65, snippet: "p.status = 'SUBMITTED';" } },
-      { layer: 'api', v: 'a', change: 'Add payment_plan field — version bump, coordinate consumers', evidence: { line: 9, snippet: '"payment_frequency": "ANNUAL",' } },
-      { layer: 'journey', v: 'g', change: 'Add payment-plan selector to review step', evidence: null },
-      { layer: 'journey', v: 'g', change: 'Show instalment schedule on payment link page', evidence: null }
+      { layer: 'core', v: 'r', file: 'core-service/src/rules/underwriting.rules.yaml', change: 'Extend sum_insured_bands; medical-test grid & UW limits for the new band', evidence: { line: 30, snippet: 'sum_insured_bands: [500000, 1000000, ...]' } },
+      { layer: 'core', v: 'r', file: 'core-service/src/rules/premium.rules.yaml', change: 'sum_insured_multiplier has no rate for the new band \u2014 actuarial input required', evidence: { line: 18, snippet: 'sum_insured_multiplier:' } },
+      { layer: 'api', v: 'g', file: 'core-service/src/api/contracts/proposal-v2.contract.json', change: 'Contract references the band list by enum_ref \u2014 additive, verify no hardcoded caps', evidence: { line: 12, snippet: '"enum_ref": "sum_insured_bands"' } },
+      { layer: 'frontend', v: 'g', file: 'journey-app/src/journey/steps.jsx', change: 'SI selector renders from core catalog API \u2014 verify \u20b9-crore formatting', evidence: null }
     ],
-    pdn_markdown: '# PDN — Offer monthly premium payment (EMI)\n\n## Impacted systems\n- Core policy system (rating engine, DB)\n- API contract v2 (versioned field)\n- Journey app (UI only)\n\n## Business rules\nAnnual premium divided into 12 interest-free instalments; no change to underwriting outcome.\n\n## Default handling\nTwo consecutive missed instalments transition the policy to PAUSED; new claims are blocked until payment resumes, at which point the policy reactivates automatically.\n\n## Sequencing\n1. Core: rating rule + schedule calc\n2. Core: default-handling state machine (pause / resume)\n3. Contract: version bump, notify consumers\n4. Journey: selector UI, review + PDF\n\n## Sign-offs\n- [ ] Underwriting\n- [ ] Payments\n- [ ] Compliance',
-    stories: [
-      { summary: 'Add MONTHLY payment frequency to rating engine', component: 'premium.rules.yaml', points: 5, verdict: 'r', description: 'Extend payment_frequency_options and compute the instalment schedule.', tasks: ['Extend rules enum', 'Schedule calculator', 'Regression on ANNUAL'], ac: ['Given an ANNUAL premium, monthly instalment = annual/12 with no interest', 'Existing ANNUAL flow is unaffected'] },
-      { summary: 'Version proposal-v2 contract for payment_plan', component: 'proposal-v2.contract.json', points: 3, verdict: 'a', description: 'Add the payment_plan field behind a version bump.', tasks: ['Add optional field', 'Changelog + consumer notice'], ac: ['New field is optional and backward compatible', 'Consumers are notified via changelog'] },
-      { summary: 'Payment-plan selector in journey review step', component: 'steps.jsx', points: 5, verdict: 'g', description: 'Surface the plan choice at review and carry it to the PDF and payment link.', tasks: ['Selector UI', 'PDF field', 'Payment page schedule'], ac: ['Selector shows on the review step', 'Selected plan is reflected on the PDF and payment link'] },
-      { summary: 'Handle missed instalments and pause the policy', component: 'proposalService.js', points: 5, verdict: 'r', description: 'When two consecutive EMI instalments are missed, transition the policy to PAUSED and block new claims until payment resumes.', tasks: ['Track missed-instalment count per policy', 'Pause status + claims gate', 'Auto-resume on payment received'], ac: ['Given two consecutive missed instalments, the policy status becomes PAUSED', 'Given a PAUSED policy, new claims are rejected until payment resumes', 'Given payment resumes, the policy status returns to ACTIVE automatically'] }
-    ],
-    test_suites: [
-      { story: 'Add MONTHLY payment frequency to rating engine', cases: [
-        { id: 'TC-01', title: 'Monthly instalment computed correctly', gherkin: 'Given an annual premium of ₹24,000\nWhen the customer selects MONTHLY\nThen each instalment is ₹2,000 with no interest' },
-        { id: 'TC-02', title: 'Annual flow unchanged', gherkin: 'Given a customer keeps ANNUAL\nWhen the premium is rated\nThen the result matches the pre-change baseline' }
-      ] },
-      { story: 'Payment-plan selector in journey review step', cases: [
-        { id: 'TC-03', title: 'Payment plan persists to PDF', gherkin: 'Given a customer selects MONTHLY at review\nWhen the proposal PDF is generated\nThen it shows the instalment schedule' }
-      ] },
-      { story: 'Handle missed instalments and pause the policy', cases: [
-        { id: 'TC-04', title: 'Policy pauses after two missed instalments', gherkin: 'Given a MONTHLY policy has missed 2 consecutive instalments\nWhen the payment scheduler runs\nThen the policy status becomes PAUSED' },
-        { id: 'TC-05', title: 'Paused policy blocks new claims', gherkin: 'Given a policy is PAUSED\nWhen a new claim is submitted\nThen it is rejected with a payment-due message' }
-      ] }
-    ]
+    pdn_markdown: '# PDN \u2014 Add a \u20b92 crore sum-insured band\n\n## Impacted systems\n- Core rules: sum_insured_bands + sum_insured_multiplier (actuarial rate needed)\n- API contract: additive \u2014 band list is enum-referenced\n- Journey: selector renders from catalog; verify crore formatting\n\n## Sequencing\n1. Actuarial rate for the band\n2. Core rules + UW medical grid\n3. Journey verification\n\n## Sign-offs\n- [x] Underwriting\n- [x] Actuarial\n- [x] Reinsurance',
+    stories: [], test_suites: []
   };
 
   return {
-    models: [],           // BYO model connections (Settings → Model Hub)
+    models: [],           // BYO model connections (Settings \u2192 Model Hub)
     activeModelId: null,
     projects: [
       {
-        id: 'proj-emi', name: 'EMI & Payment Flexibility',
-        about: 'Give customers more ways to pay premiums without breaking the annual-only rating engine.',
+        id: 'proj-si', name: 'High-Value Cover Expansion',
+        about: 'Open a \u20b92 crore sum-insured band for HNI customers without breaking underwriting limits.',
         createdAt: now(),
         research: [
-          { id: R1, title: 'Churn interviews — why customers drop at quote', source: 'upload', sourceDetail: 'churn-interviews-jun.pdf', createdAt: now(), content: '12 exit interviews with customers who abandoned at the quote step.\n\nKey pattern: 9 of 12 cited the size of the single annual payment, not the premium itself. Three said verbatim they would have bought "if I could pay like a phone bill."\n\nSecondary: two flagged confusion about what happens if they miss a payment — worth addressing in any instalment design.' },
-          { id: R2, title: 'Current rating engine constraints', source: 'ai', createdAt: now(), content: 'Saved from a Feasly conversation.\n\nThe rating engine only supports annual payment: premium.rules.yaml pins payment_frequency_options to [ANNUAL], and calculate() produces a single annual figure — there is no schedule concept anywhere in core. Any instalment feature is a core change (red), not a journey-side rendering trick.\n\nThe proposal-v2 API contract also serialises a single payment_frequency string, so consumers must be versioned.' },
-          { id: R3, title: 'Payment gateway capabilities — recurring mandates', source: 'api', sourceDetail: 'Imported from gateway API docs', createdAt: now(), content: 'Imported from API documentation.\n\nThe gateway supports tokenised recurring mandates (UPI Autopay + card standing instructions) with per-instalment webhooks.\n\nRelevant limits: mandate ceiling ₹15,000/instalment without re-auth; webhook retries for 72h; refunds must reference the original instalment id.\n\nNo built-in default handling — if an instalment fails, the product has to decide what happens next.' }
+          { id: R1, title: 'HNI demand \u2014 lost-quote analysis', source: 'upload', sourceDetail: 'lost-quotes-q1.pdf', createdAt: now(), content: 'Quarterly review of abandoned high-premium quotes.\n\n38 quotes above \u20b91.5L annual premium abandoned at the sum-insured step this quarter; 31 of those users tried to select a higher band before dropping. Distribution confirms competitors quote \u20b92 crore retail bands to the same profiles.' },
+          { id: R2, title: 'Underwriting & rating constraints for a new SI band', source: 'ai', createdAt: now(), content: 'Saved from a Feasly conversation.\n\nThe band list lives in underwriting.rules.yaml (sum_insured_bands) and every band needs a matching rate in premium.rules.yaml (sum_insured_multiplier) \u2014 a new band without an actuarial rate fails rating. The proposal-v2 contract references the band list by enum_ref, so the API change is additive. High-SI bands typically trigger pre-policy medicals \u2014 a hidden journey branch to scope with UW.' }
         ],
         conversations: [
           {
-            id: 'c-emi', title: 'Can we support EMI payments?', updatedAt: now(),
+            id: 'c-si', title: 'Can we add a \u20b92 crore sum insured band?', updatedAt: now(),
             messages: [
-              { role: 'assistant', content: "Hi! I'm Feasly, connected to the Zenith Health tenant — code, contracts and docs. Ask me anything.", engine: 'deterministic' },
-              { role: 'user', content: 'Can we support EMI payments?' },
-              { role: 'assistant', content: 'Not today — premium.rules.yaml pins payment_frequency_options to [ANNUAL], and the rating engine produces a single annual figure with no schedule concept. It\'s a core change plus an API v2 contract bump. I\'ve saved the full constraint breakdown to Research.', engine: 'deterministic', savedAsResearchId: R2 },
-              { role: 'user', content: 'What would it take from a payments perspective — is the gateway even capable of recurring collection?' },
-              { role: 'assistant', content: "Yes — the gateway supports tokenised recurring mandates via UPI Autopay and card standing instructions, with a webhook per instalment. Two things worth flagging before you scope requirements: a ₹15,000 mandate ceiling without re-auth, and it doesn't handle defaults for you — the product has to define what happens when an instalment fails. I've saved this to Research too.", engine: 'deterministic', savedAsResearchId: R3 }
-            ]
-          },
-          {
-            id: 'c-emi-default', title: 'How should we handle missed EMI instalments?', updatedAt: now(),
-            messages: [
-              { role: 'assistant', content: "Hi! I'm Feasly, connected to the Zenith Health tenant — code, contracts and docs. Ask me anything.", engine: 'deterministic' },
-              { role: 'user', content: "Given the gateway won't handle defaults for us, what's a sane rule for missed EMI payments on a health policy?" },
-              { role: 'assistant', content: 'Given the webhook retries for 72h before giving up, a reasonable rule: after two consecutive missed instalments, pause the policy and block new claims until payment resumes, then auto-reactivate. That keeps underwriting risk bounded without cancelling cover outright over a single missed payment. Want me to add this to the BRD as a requirement?', engine: 'deterministic' },
-              { role: 'user', content: "Yes — add it. Let's get underwriting's sign-off on that exact wording before we lock the BRD." },
-              { role: 'assistant', content: 'Added as a new requirement on "Offer monthly premium payment (EMI)" — save a new BRD version once underwriting confirms the wording, and I\'ll flag every PDN, epic, story and test generated from the old version as needing review.', engine: 'deterministic' }
+              { role: 'assistant', content: "Hi! I'm Feasly, connected to the Zenith Health tenant \u2014 code, contracts and docs. Ask me anything.", engine: 'deterministic' },
+              { role: 'user', content: 'Can we add a \u20b92 crore sum insured band?' },
+              { role: 'assistant', content: 'Feasible but core-gated: sum_insured_bands in underwriting.rules.yaml and a matching sum_insured_multiplier rate are both required \u2014 the rate needs actuarial input. The API side is additive (band list is enum-referenced). I\u2019ve saved the full constraint breakdown to Research.', engine: 'deterministic', savedAsResearchId: R2 }
             ]
           }
         ],
         brds: [
           {
-            id: B1, title: 'Offer monthly premium payment (EMI)', owner: 'PM', status: 'Approved',
-            researchIds: [R1, R2, R3], sections: brdSections, createdAt: now(),
-            versions: [
-              { v: 1, ts: now(), note: 'Initial draft from churn research + rating-engine conversation', sections: { ...brdSections, requirements: brdSections.requirements.slice(0, 3), background: brdSections.background.replace(' v2 adds the default-handling rule underwriting asked for after a payments-feasibility conversation.', '') } },
-              { v: 2, ts: now(), note: 'Added default-handling requirement after the missed-instalments conversation + underwriting sign-off', sections: brdSections }
-            ]
-          },
-          {
-            id: B2, title: 'Quarterly payment option', owner: 'PM', status: 'Draft',
-            researchIds: [R1], createdAt: now(),
-            sections: { background: 'A middle ground for customers who find annual too large but distrust a 12-month commitment.', requirements: ['Offer quarterly premium alongside annual', 'Prorate existing tenure discounts'], stakeholders: 'Payments team', success: '' },
-            versions: [{ v: 1, ts: now(), note: 'Initial draft', sections: { background: 'A middle ground for customers who find annual too large but distrust a 12-month commitment.', requirements: ['Offer quarterly premium alongside annual', 'Prorate existing tenure discounts'], stakeholders: 'Payments team', success: '' } }]
+            id: B1, title: 'Add a \u20b92 crore sum-insured band', owner: 'PM', status: 'Approved',
+            researchIds: [R1, R2], sections: siSections, createdAt: now(),
+            versions: [{ v: 1, ts: now(), note: 'Initial draft from lost-quote research', sections: siSections }]
           }
         ],
-        // Generated from the CURRENT BRD version (v2) — nothing stale here;
-        // every epic/story/FR/test below maps to one of its 4 requirements.
-        pdns: [{ id: P1, title: 'PDN — Offer monthly premium payment (EMI)', brdId: B1, brdVersion: 2, researchIds: [R1, R2, R3], content: analysis.pdn_markdown + '\n\n---\n_Generated from BRD "Offer monthly premium payment (EMI)" v2 · 4/6 impacts verified against source code._', analysis, createdAt: now() }],
+        pdns: [{ id: P1, title: 'PDN \u2014 Add a \u20b92 crore sum-insured band', brdId: B1, brdVersion: 1, researchIds: [R1, R2], content: siAnalysis.pdn_markdown + '\n\n---\n_Generated from BRD "Add a \u20b92 crore sum-insured band" v1 \u00b7 4/4 impacts verified against source code._', analysis: siAnalysis, createdAt: now() }],
         epics: [
-          { id: E1, pdnId: P1, title: 'Core rating engine — instalment support', system: 'Core policy system', summary: 'Add MONTHLY to payment_frequency_options. Add EMI schedule + interest-free instalment calc.', createdAt: now() },
-          { id: E2, pdnId: P1, title: 'Journey & contract — payment-plan experience', system: 'Journey app', summary: 'Version the proposal-v2 contract, add the payment-plan selector to review, and show the schedule on the payment page.', createdAt: now() },
-          { id: E3, pdnId: P1, title: 'Default handling — pause & resume', system: 'Core policy system', summary: 'Track missed instalments and pause the policy after two consecutive misses; block claims while paused; auto-resume once payment lands.', createdAt: now() }
+          { id: E1, pdnId: P1, title: 'core-service \u2014 Sum-insured bands', system: 'core-service', summary: 'Extend sum_insured_bands with UW limits and the medical-test grid; add the actuarial rate to sum_insured_multiplier.', createdAt: now() },
+          { id: E2, pdnId: P1, title: 'journey-app \u2014 Sum-insured bands', system: 'journey-app', summary: 'Verify the SI selector renders the new band from the catalog and formats crore amounts correctly.', createdAt: now() }
         ],
         stories: [
-          { id: S1, epicId: E1, title: 'Add MONTHLY payment frequency to rating engine', component: 'premium.rules.yaml', points: 5, description: 'Extend payment_frequency_options and compute the instalment schedule.', ac: ['Given an ANNUAL premium, monthly instalment = annual/12 with no interest', 'Existing ANNUAL flow is unaffected'], createdAt: now() },
-          { id: S2, epicId: E2, title: 'Version proposal-v2 contract for payment_plan', component: 'proposal-v2.contract.json', points: 3, description: 'Add the payment_plan field behind a version bump.', ac: ['New field is optional and backward compatible', 'Consumers are notified via changelog'], createdAt: now() },
-          { id: S3, epicId: E2, title: 'Payment-plan selector in journey review step', component: 'steps.jsx', points: 5, description: 'Surface the plan choice at review and carry it to the PDF and payment link.', ac: ['Selector shows on the review step', 'Selected plan is reflected on the PDF and payment link'], createdAt: now() },
-          { id: S4, epicId: E3, title: 'Handle missed instalments and pause the policy', component: 'proposalService.js', points: 5, description: 'When two consecutive EMI instalments are missed, transition the policy to PAUSED and block new claims until payment resumes.', ac: ['Given two consecutive missed instalments, the policy status becomes PAUSED', 'Given a PAUSED policy, new claims are rejected until payment resumes', 'Given payment resumes, the policy status returns to ACTIVE automatically'], createdAt: now() }
+          { id: S1, epicId: E1, title: 'Extend sum-insured bands with UW grid and actuarial rate', component: 'core-service', points: 8, description: 'Add the \u20b92 crore band to underwriting rules with its medical-test grid, and the actuarial multiplier to the rating rules.', ac: ['Given the new band is selected, rating uses the certified actuarial multiplier', 'Existing band premiums are unchanged against the regression baseline'], createdAt: now() },
+          { id: S2, epicId: E1, title: 'Verify contract consumers tolerate the extended band list', component: 'core-service', points: 3, description: 'The band list is enum-referenced in proposal-v2; confirm no consumer hardcodes the current maximum.', ac: ['Existing v2 consumers pass contract tests with the extended list'], createdAt: now() },
+          { id: S3, epicId: E2, title: 'Journey SI selector renders and formats the new band', component: 'journey-app', points: 3, description: 'The selector reads bands from the catalog API; verify \u20b92 Cr renders correctly across quote, review and PDF.', ac: ['The \u20b92 crore chip renders from the catalog without a frontend release', 'Crore formatting is correct on quote, review and the proposal PDF'], createdAt: now() }
         ],
         frs: [
-          { id: F1, storyId: S1, title: 'FR — Monthly instalment equals annual/12, interest-free', description: 'The system shall divide the rated annual premium into 12 equal interest-free instalments when MONTHLY is selected.', createdAt: now() },
-          { id: F2, storyId: S1, title: 'FR — Annual rating path unchanged', description: 'The system shall produce byte-identical results for ANNUAL policies before and after the change.', createdAt: now() },
-          { id: F3, storyId: S2, title: 'FR — payment_plan is optional and backward compatible', description: 'The system shall accept proposal-v2 payloads with or without payment_plan.', createdAt: now() },
-          { id: F4, storyId: S3, title: 'FR — Review step exposes the payment-plan selector', description: 'The system shall render the payment-plan selector on the review step with ANNUAL preselected.', createdAt: now() },
-          { id: F5, storyId: S3, title: 'FR — Proposal PDF carries the instalment schedule', description: 'The system shall include the selected schedule in the generated proposal PDF.', createdAt: now() },
-          { id: F6, storyId: S4, title: 'FR — Two consecutive missed instalments pause the policy', description: 'The system shall transition a MONTHLY policy to PAUSED when two consecutive instalments are missed.', createdAt: now() },
-          { id: F7, storyId: S4, title: 'FR — Paused policy rejects new claims', description: 'The system shall reject new claims on a PAUSED policy until payment resumes.', createdAt: now() },
-          { id: F8, storyId: S4, title: 'FR — Policy auto-resumes once payment lands', description: 'The system shall automatically return a PAUSED policy to ACTIVE once the missed instalment is paid.', createdAt: now() }
+          { id: F1, storyId: S1, title: 'FR \u2014 New band rates from the certified multiplier', description: 'The system shall rate the \u20b92 crore band using the certified actuarial multiplier.', createdAt: now() },
+          { id: F2, storyId: S1, title: 'FR \u2014 Existing band premiums unchanged', description: 'The system shall produce unchanged premiums for all existing bands after the rules change.', createdAt: now() },
+          { id: F3, storyId: S2, title: 'FR \u2014 Band list remains additive for v2 consumers', description: 'The system shall accept proposal-v2 payloads from consumers unaware of the new band.', createdAt: now() },
+          { id: F4, storyId: S3, title: 'FR \u2014 Crore formatting across quote, review, PDF', description: 'The system shall format the \u20b92 crore band consistently on the quote selector, review screen and proposal PDF.', createdAt: now() }
         ],
         tests: [
-          { id: 't-01', frId: F1, title: 'Monthly instalment computed correctly', gherkin: 'Given an annual premium of ₹24,000\nWhen the customer selects MONTHLY\nThen each instalment is ₹2,000 with no interest', createdAt: now() },
-          { id: 't-02', frId: F2, title: 'Annual flow unchanged', gherkin: 'Given a customer keeps ANNUAL\nWhen the premium is rated\nThen the result matches the pre-change baseline', createdAt: now() },
-          { id: 't-03', frId: F3, title: 'Old consumers unaffected by new field', gherkin: 'Given a consumer on contract v2.0\nWhen a proposal without payment_plan is submitted\nThen it is accepted unchanged', createdAt: now() },
-          { id: 't-04', frId: F4, title: 'Selector defaults to ANNUAL', gherkin: 'Given a customer reaches the review step\nWhen the payment-plan selector renders\nThen ANNUAL is preselected', createdAt: now() },
-          { id: 't-05', frId: F5, title: 'Payment plan persists to PDF', gherkin: 'Given a customer selects MONTHLY at review\nWhen the proposal PDF is generated\nThen it shows the instalment schedule', createdAt: now() },
-          { id: 't-06', frId: F6, title: 'Policy pauses after two missed instalments', gherkin: 'Given a MONTHLY policy has missed 2 consecutive instalments\nWhen the payment scheduler runs\nThen the policy status becomes PAUSED', createdAt: now() },
-          { id: 't-07', frId: F7, title: 'Paused policy blocks new claims', gherkin: 'Given a policy is PAUSED\nWhen a new claim is submitted\nThen it is rejected with a payment-due message', createdAt: now() },
-          { id: 't-08', frId: F8, title: 'Policy auto-resumes on payment', gherkin: 'Given a PAUSED policy receives the missed instalment\nWhen the payment webhook confirms receipt\nThen the policy status returns to ACTIVE', createdAt: now() }
+          { id: 't-si-01', frId: F1, title: 'New band premium matches actuarial table', gherkin: 'Given a proposal on the \u20b92 crore band\nWhen the premium is rated\nThen it matches the certified actuarial table for the band', createdAt: now() },
+          { id: 't-si-02', frId: F2, title: 'Existing bands regression-clean', gherkin: 'Given the pre-change regression baseline\nWhen the full rating pack re-runs\nThen all existing band premiums are unchanged', createdAt: now() },
+          { id: 't-si-03', frId: F3, title: 'Old consumers unaffected by the new band', gherkin: 'Given a consumer on contract v2.0 without the new band\nWhen it submits a proposal\nThen the request succeeds unchanged', createdAt: now() },
+          { id: 't-si-04', frId: F4, title: 'Crore formatting is correct end-to-end', gherkin: 'Given a customer selects the \u20b92 crore band\nWhen quote, review and PDF render\nThen the amount is formatted as \u20b92 Cr consistently', createdAt: now() }
         ],
-        releases: [
-          { id: 'rel-1', name: 'R-2026.08 — EMI foundations', date: '2026-08-15', storyIds: [S1, S2], createdAt: now() },
-          { id: 'rel-2', name: 'R-2026.09 — EMI experience & default handling', date: '2026-09-05', storyIds: [S3, S4], createdAt: now() }
-        ]
+        releases: [{ id: 'rel-si', name: 'R-2026.07 \u2014 \u20b92 Cr band', date: '2026-07-30', storyIds: [S1, S2, S3], createdAt: now() }]
       },
       {
         id: 'proj-kyc', name: 'Nominee & KYC Enhancements',

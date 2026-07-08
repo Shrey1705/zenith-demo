@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ai } from '../lib/api';
 import { useWorkspace } from './AiPortal';
-import { mutate, uid, now } from './workspace';
+import { mutate, uid, now, titleFrom } from './workspace';
 
 export default function AssistPanel({ project }) {
   const { token } = useWorkspace();
@@ -27,7 +27,7 @@ export default function AssistPanel({ project }) {
       projects: w.projects.map((p) => {
         if (p.id !== project.id) return p;
         if (convId) return { ...p, conversations: p.conversations.map((c) => c.id === convId ? { ...c, messages: msgs, updatedAt: now() } : c) };
-        const c = { id: (convId = uid()), title: q.slice(0, 48), messages: msgs, updatedAt: now() };
+        const c = { id: (convId = uid()), title: titleFrom(q), messages: msgs, updatedAt: now() };
         return { ...p, conversations: [c, ...p.conversations] };
       })
     }));

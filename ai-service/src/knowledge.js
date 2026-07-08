@@ -110,6 +110,45 @@ const ENTITIES = {
     ]
   },
 
+  instalment_default: {
+    label: 'Missed-instalment default handling',
+    keywords: ['missed instalment', 'missed installment', 'missed payment', 'default handling', 'pause the policy', 'instalment default', 'dunning', 'grace period', 'consecutive missed'],
+    size: 'M', sprints: '1 sprint on top of the EMI foundations',
+    impacts: [
+      { layer: 'core', file: 'core-service/src/routes/payments.js', pattern: /confirm/, v: 'r',
+        change: 'Instalment webhook consumer: track consecutive misses; two misses transition the policy to PAUSED (claims blocked) with auto-resume on payment' },
+      { layer: 'core', file: 'core-service/src/store/index.js', pattern: /redisStore|memoryStore/, v: 'a',
+        change: 'Persist a per-policy instalment ledger (paid count, current miss streak) alongside proposal state' }
+    ],
+    risks: [
+      'Pause semantics must be filed with the product — claims teams need an unambiguous PAUSED state',
+      'Webhook retry window (72h at the gateway) must be absorbed before counting a miss'
+    ],
+    openq: [
+      'Does a paused policy accrue waiting-period credit?',
+      'Customer comms cadence between first miss and pause?'
+    ],
+    // Feature-level delivery artifacts — appended to the layer stories when
+    // this entity matches, so a BRD that adds default handling visibly grows
+    // the chain with a dedicated story + test cases.
+    story: {
+      summary: 'Handle missed instalments and pause the policy',
+      component: 'core-service', points: 5, verdict: 'r',
+      description: 'When two consecutive EMI instalments are missed, transition the policy to PAUSED and block new claims until payment resumes.',
+      tasks: ['Track missed-instalment streak per policy', 'PAUSED status + claims gate', 'Auto-resume on payment webhook'],
+      ac: [
+        'Given two consecutive missed instalments, the policy status becomes PAUSED',
+        'Given a PAUSED policy, new claims are rejected until payment resumes',
+        'Given the missed instalment is paid, the policy returns to ACTIVE automatically'
+      ],
+      tests: [
+        { id: 'DFLT-01', title: 'Policy pauses after two consecutive misses', gherkin: 'Given a MONTHLY policy has missed 2 consecutive instalments\nWhen the payment scheduler runs\nThen the policy status becomes PAUSED' },
+        { id: 'DFLT-02', title: 'Paused policy blocks new claims', gherkin: 'Given a policy is PAUSED\nWhen a new claim is submitted\nThen it is rejected with a payment-due message' },
+        { id: 'DFLT-03', title: 'Auto-resume on payment', gherkin: 'Given a PAUSED policy receives the missed instalment\nWhen the payment webhook confirms receipt\nThen the policy status returns to ACTIVE' }
+      ]
+    }
+  },
+
   sum_insured: {
     label: 'Sum-insured bands',
     keywords: ['sum insured', 'si band', 'cover amount', '2 crore', '1 crore', 'higher cover', 'crore'],

@@ -101,7 +101,26 @@ Feasibility questions are my party trick — everything else is standard PM craf
   }
 ];
 
+// Advisory questions about instalment defaults deserve a recommendation,
+// not a feasibility verdict — checked BEFORE the grounded route so the
+// verdict reply doesn't swallow them.
+const DEFAULT_HANDLING = /\b(miss(ed|ing|es)?|default|fail(ed|ing|ure|s)?|laps(e|ed|ing))\b[^]{0,120}?\b(instalment|installment|emi)\b/i;
+const defaultHandlingReply = `🧭 Default-handling recommendation, grounded in the gateway constraints on file:
+
+The gateway retries a failed instalment webhook for ~72 hours, then gives up — it has no native default handling, so the product owns what happens next. Mandates are capped at ₹15,000/instalment with a webhook per collection.
+
+Recommended rule (BRD-ready wording):
+"Define default handling: two consecutive missed instalments pause the policy pending payment — new claims are blocked while paused, and cover auto-resumes once the missed instalment is paid."
+
+Why this shape:
+• One miss ≠ intent — the 72h retry window absorbs transient failures, so acting on the second consecutive miss avoids punishing a payment glitch.
+• Pausing (not cancelling) bounds underwriting exposure without forcing re-underwriting on resume.
+• Auto-resume keeps ops out of the loop and matches the per-instalment webhook model.
+
+Add it to your BRD as a requirement and save a new version — every PDN, epic, story and test generated from the older version will be flagged for review automatically.`;
+
 function chatReply(text) {
+  if (DEFAULT_HANDLING.test(text)) return defaultHandlingReply;
   const grounded = feasibilityReply(text);
   if (grounded) return grounded;
   for (const intent of INTENTS) {

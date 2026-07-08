@@ -5,7 +5,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ai } from '../lib/api';
 import { useWorkspace } from './AiPortal';
-import { useWS, mutate, uid, now, findProject, shortDate } from './workspace';
+import { useWS, mutate, uid, now, titleFrom, findProject, shortDate } from './workspace';
 
 export default function ConversationsPage() {
   const { pid, convId } = useParams();
@@ -35,7 +35,7 @@ export default function ConversationsPage() {
     const q = input.trim();
     if (!q || busy || !conv) return;
     const msgs = [...conv.messages, { role: 'user', content: q }];
-    patchConv(conv.id, (c) => ({ ...c, messages: msgs, title: c.title === 'New conversation' ? q.slice(0, 48) : c.title, updatedAt: now() }));
+    patchConv(conv.id, (c) => ({ ...c, messages: msgs, title: c.title === 'New conversation' ? titleFrom(q) : c.title, updatedAt: now() }));
     setInput(''); setBusy(true);
     try {
       const r = await ai.chat(token, msgs.map(({ role, content }) => ({ role, content })));

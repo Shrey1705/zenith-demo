@@ -55,7 +55,7 @@ export default function TraceRail({ project, type, doc, actions, extra }) {
 }
 
 // Shared stale banner — shown on any document whose source BRD moved on.
-export function StaleBanner({ project, stale, onRegenerate }) {
+export function StaleBanner({ project, stale, onRegenerate, busy }) {
   const nav = useNavigate();
   if (!stale) return null;
   return (
@@ -65,7 +65,11 @@ export function StaleBanner({ project, stale, onRegenerate }) {
         <button className="stalelink" onClick={() => nav(`/ai/p/${project.id}/brds/${stale.brd.id}`)}>{stale.brd.title}</button>{' '}
         is now at <b>v{stale.current}</b>. Review for drift.
       </span>
-      {onRegenerate && <button className="stalefix" onClick={onRegenerate}>Regenerate from v{stale.current}</button>}
+      {onRegenerate && (
+        <button className="stalefix" disabled={busy} onClick={onRegenerate}>
+          {busy ? 'Re-grounding against the codebase…' : `Regenerate from v${stale.current}`}
+        </button>
+      )}
     </div>
   );
 }

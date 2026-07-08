@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ai } from '../lib/api';
 import { useWorkspace } from './AiPortal';
-import { useWS, mutate, uid, now, findProject, findDoc, addDoc, updateDoc, removeDoc, shortDate } from './workspace';
+import { useWS, mutate, uid, now, titleFrom, findProject, findDoc, addDoc, updateDoc, removeDoc, shortDate } from './workspace';
 import TraceRail from './TraceRail';
 
 const SOURCE_LABEL = { note: '✍️ Manual note', ai: '✦ Saved AI answer', upload: '📎 Uploaded file', confluence: '🌐 Confluence import', api: '🔌 API docs import' };
@@ -36,7 +36,7 @@ export default function ResearchPage() {
     setAskBusy(false);
   };
   const saveAnswer = () => {
-    add({ id: uid(), title: answer.q.slice(0, 64), source: 'ai', createdAt: now(), content: 'Saved from an Ask-AI session.\n\nQ: ' + answer.q + '\n\n' + answer.a });
+    add({ id: uid(), title: titleFrom(answer.q), source: 'ai', createdAt: now(), content: 'Saved from an Ask-AI session.\n\nQ: ' + answer.q + '\n\n' + answer.a });
     setAnswer(null); setAsk('');
   };
 
@@ -46,8 +46,8 @@ export default function ResearchPage() {
     content: 'Imported from Confluence.\n\nOperational runbook for the payments integration: settlement windows are T+1, reconciliation jobs run at 02:00 IST, and any schedule-based product must define behaviour for a failed reconciliation before launch.'
   });
   const importApi = () => add({
-    id: uid(), title: 'Core proposal API — contract notes', source: 'api', sourceDetail: 'proposal-v2.contract.json', createdAt: now(),
-    content: 'Imported from API documentation.\n\nThe proposal-v2 contract serialises a single payment_frequency string and has no schedule array. Consumers: journey app, agent tooling, finance exports. Any new field must be optional to stay backward compatible.'
+    id: uid(), title: 'Payment gateway capabilities — recurring mandates', source: 'api', sourceDetail: 'Imported from gateway API docs', createdAt: now(),
+    content: 'Imported from API documentation.\n\nThe gateway supports tokenised recurring mandates (UPI Autopay + card standing instructions) with a webhook per instalment.\n\nRelevant limits: mandate ceiling ₹15,000/instalment without re-auth; webhook retries for 72 hours, then gives up; refunds must reference the original instalment id.\n\nNo built-in default handling — if an instalment fails, the product decides what happens next.'
   });
   const uploadFile = (files) => {
     const f = files[0];

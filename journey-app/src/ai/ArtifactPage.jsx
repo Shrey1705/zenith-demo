@@ -2,8 +2,10 @@
 // Stories, Functional Requirements and Test Cases. A typographic list on
 // the left of the route; the selected document in the centre; traceability
 // and inline AI actions on the right.
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ai } from '../lib/api';
+import { useWorkspace } from './AiPortal';
 import {
   useWS, mutate, uid, now, TYPES, ROUTE_OF, findProject, findDoc, parentOf,
   updateDoc, addDoc, staleInfo, deriveEpics, deriveStories, deriveFrs, deriveTests,
@@ -23,6 +25,9 @@ export default function ArtifactPage({ type }) {
   const { pid, docId } = useParams();
   const nav = useNavigate();
   const ws = useWS();
+  const { token } = useWorkspace();
+  const [regenBusy, setRegenBusy] = useState(false);
+  const [regenErr, setRegenErr] = useState('');
   const project = findProject(ws, pid);
   const t = TYPES[type];
   const docs = project[t.key];
@@ -138,11 +143,47 @@ export default function ArtifactPage({ type }) {
     });
   }
 
-  const regenerate = type === 'pdn' && stale ? () => {
-    mutate((w) => updateDoc(w, pid, 'pdn', doc.id, {
-      brdVersion: stale.current,
-      content: doc.content + `\n\n---\n_Regenerated against BRD v${stale.current} on ${shortDate(now())} — review the diff with underwriting._`
-    }));
+  // Regenerate = re-ground against the CURRENT BRD version: re-run the real
+  // code analysis on today's requirements, refresh the PDN, and grow the
+  // delivery chain with any artifacts the new scope demands (new stories get
+  // their FRs and test cases derived too). Clears staleness chain-wide.
+  const regenerate = type === 'pdn' && stale ? async () => {
+    setRegenBusy(true); setRegenErr('');
+    try {
+      const srcBrd = stale.brd;
+      const r2 = await ai.analyze(token, srcBrd.sections.requirements.join('. ') || srcBrd.title);
+      if (!r2.matched) { setRegenErr(r2.note || 'Could not ground the updated BRD in the connected code.'); setRegenBusy(false); return; }
+      mutate((w) => {
+        let next = w;
+        const proj = findProject(next, pid);
+        const existingTitles = new Set(proj.stories.map((s) => s.title));
+        const pdnEpics = proj.epics.filter((e) => e.pdnId === doc.id);
+        const newStories = [];
+        for (const s of (r2.stories || [])) {
+          if (existingTitles.has(s.summary)) continue;
+          let epic = pdnEpics.find((e) => e.system === s.component);
+          if (!epic) {
+            epic = { id: uid(), pdnId: doc.id, title: `${s.component} — ${r2.title || 'additional scope'}`, system: s.component, summary: s.description, createdAt: now() };
+            next = addDoc(next, pid, 'epic', epic);
+            pdnEpics.push(epic);
+          }
+          const story = { id: uid(), epicId: epic.id, title: s.summary, description: s.description, ac: [...(s.ac || [])], points: s.points, component: s.component, createdAt: now() };
+          next = addDoc(next, pid, 'story', story);
+          newStories.push(story);
+        }
+        const newFrs = deriveFrs(newStories);
+        for (const f of newFrs) next = addDoc(next, pid, 'fr', f);
+        const suites = (r2.test_suites || []).filter((su) => newStories.some((s) => su.story === s.title));
+        for (const t of deriveTests({ analysis: { test_suites: suites } }, newStories, newFrs)) next = addDoc(next, pid, 'test', t);
+        return updateDoc(next, pid, 'pdn', doc.id, {
+          brdVersion: stale.current,
+          analysis: r2,
+          researchIds: [...(srcBrd.researchIds || [])],
+          content: (r2.pdn_markdown || doc.content) + `\n\n---\n_Regenerated from BRD "${srcBrd.title}" v${stale.current} on ${shortDate(now())} · ${r2.verified}/${r2.impacts.length} impacts verified against source code._`
+        });
+      });
+    } catch (e) { setRegenErr(e.message); }
+    setRegenBusy(false);
   } : null;
 
   return (
@@ -152,7 +193,8 @@ export default function ArtifactPage({ type }) {
         <article className="docbody">
           <p className="doctype">{t.icon} {t.one}{doc.createdAt ? ` · ${shortDate(doc.createdAt)}` : ''}</p>
           <h1>{doc.title}</h1>
-          <StaleBanner project={project} stale={stale} onRegenerate={regenerate} />
+          <StaleBanner project={project} stale={stale} onRegenerate={regenerate} busy={regenBusy} />
+          {regenErr && <p className="error">{regenErr}</p>}
 
           {type === 'pdn' && (
             <>

@@ -73,7 +73,13 @@ function analyze(text) {
 
   return {
     matched: true, text,
+    // Clean handle for artifact titles — full requirements text stays in
+    // `text`. Titled after the broadest-impact entity so a BRD that gains a
+    // secondary scope (e.g. default handling on top of EMI) keeps stable
+    // story titles across versions instead of re-titling the whole chain.
+    title: ents.slice().sort((a, b) => b.impacts.length - a.impacts.length)[0].label,
     entities: ents.map(e => ({ id: e.id, label: e.label })),
+    featureStories: ents.filter(e => e.story).map(e => e.story),
     overall: worst(impacts.map(i => i.v)),
     size: maxSize(ents.map(e => e.size)),
     sprints: ents.length === 1 ? ents[0].sprints : 'combined scope — sequence per entity in PDN',
