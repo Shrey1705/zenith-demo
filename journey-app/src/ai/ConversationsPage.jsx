@@ -3,9 +3,10 @@
 // that were saved link back to the document they became.
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ai } from '../lib/api';
 import { useWorkspace } from './AiPortal';
-import { useWS, mutate, uid, now, titleFrom, findProject, shortDate } from './workspace';
+import { askFeasly } from './brain';
+import { TYPE_ICON } from './rag';
+import { useWS, mutate, uid, now, titleFrom, findProject, shortDate, usingLocal, activeModelLabel } from './workspace';
 
 export default function ConversationsPage() {
   const { pid, convId } = useParams();
@@ -38,8 +39,8 @@ export default function ConversationsPage() {
     patchConv(conv.id, (c) => ({ ...c, messages: msgs, title: c.title === 'New conversation' ? titleFrom(q) : c.title, updatedAt: now() }));
     setInput(''); setBusy(true);
     try {
-      const r = await ai.chat(token, msgs.map(({ role, content }) => ({ role, content })));
-      patchConv(conv.id, (c) => ({ ...c, messages: [...msgs, { role: 'assistant', content: r.reply, engine: r.engine }], updatedAt: now() }));
+      const r = await askFeasly({ token, ws, project, messages: msgs });
+      patchConv(conv.id, (c) => ({ ...c, messages: [...msgs, { role: 'assistant', content: r.reply, engine: r.engine, sources: r.sources || undefined }], updatedAt: now() }));
     } catch (e) {
       patchConv(conv.id, (c) => ({ ...c, messages: [...msgs, { role: 'assistant', content: `Something went wrong: ${e.message}`, engine: 'error' }], updatedAt: now() }));
     }
@@ -94,6 +95,13 @@ export default function ConversationsPage() {
           <div key={i} className={'convmsg ' + m.role}>
             <div className="convbubble">
               {m.content}
+              {m.role === 'assistant' && m.sources?.length > 0 && (
+                <div className="srcchips">
+                  <span className="srclbl">Grounded on:</span>
+                  {m.sources.map((s, j) => <span key={j} className="srcchip">{TYPE_ICON(s.type)} {s.title}</span>)}
+                </div>
+              )}
+              {m.role === 'assistant' && m.engine === 'local' && <div className="chatengine">🖥 {activeModelLabel(ws)}</div>}
               {m.role === 'assistant' && i > 0 && (
                 m.savedAsResearchId
                   ? <button className="convchip" onClick={() => nav(`/ai/p/${pid}/research/${m.savedAsResearchId}`)}>🔍 Open in Research →</button>
@@ -102,7 +110,7 @@ export default function ConversationsPage() {
             </div>
           </div>
         ))}
-        {busy && <div className="convmsg assistant"><div className="convbubble">Thinking…</div></div>}
+        {busy && <div className="convmsg assistant"><div className="convbubble">{usingLocal(ws) ? 'Retrieving context and asking the local model…' : 'Thinking…'}</div></div>}
         <div ref={endRef} />
       </div>
       <div className="chatinput">

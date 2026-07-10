@@ -3,9 +3,10 @@
 // API docs; write manual notes. Everything here can ride into a BRD.
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ai } from '../lib/api';
 import { useWorkspace } from './AiPortal';
-import { useWS, mutate, uid, now, titleFrom, findProject, findDoc, addDoc, updateDoc, removeDoc, shortDate } from './workspace';
+import { askFeasly } from './brain';
+import { TYPE_ICON } from './rag';
+import { useWS, mutate, uid, now, titleFrom, findProject, findDoc, addDoc, updateDoc, removeDoc, shortDate, usingLocal, activeModelLabel } from './workspace';
 import TraceRail from './TraceRail';
 
 const SOURCE_LABEL = { note: '✍️ Manual note', ai: '✦ Saved AI answer', upload: '📎 Uploaded file', confluence: '🌐 Confluence import', api: '🔌 API docs import' };
@@ -30,8 +31,8 @@ export default function ResearchPage() {
     if (!q || askBusy) return;
     setAskBusy(true);
     try {
-      const r = await ai.chat(token, [{ role: 'user', content: q }]);
-      setAnswer({ q, a: r.reply });
+      const r = await askFeasly({ token, ws, project, messages: [{ role: 'user', content: q }] });
+      setAnswer({ q, a: r.reply, sources: r.sources, engine: r.engine });
     } catch (e) { setAnswer({ q, a: `Something went wrong: ${e.message}` }); }
     setAskBusy(false);
   };
@@ -63,11 +64,18 @@ export default function ResearchPage() {
       <div className="askbar">
         <input value={ask} placeholder="Ask about the codebase, contracts or docs… e.g. can we support EMI payments?"
           onChange={(e) => setAsk(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && askAi()} />
-        <button disabled={askBusy} onClick={askAi}>{askBusy ? 'Thinking…' : '✦ Ask'}</button>
+        <button disabled={askBusy} onClick={askAi}>{askBusy ? (usingLocal(ws) ? 'Asking local model…' : 'Thinking…') : '✦ Ask'}</button>
       </div>
       {answer && (
         <div className="askanswer">
           <pre className="prose">{answer.a}</pre>
+          {answer.sources?.length > 0 && (
+            <div className="srcchips">
+              <span className="srclbl">Grounded on:</span>
+              {answer.sources.map((s, j) => <span key={j} className="srcchip">{TYPE_ICON(s.type)} {s.title}</span>)}
+            </div>
+          )}
+          {answer.engine === 'local' && <p className="chatengine">🖥 {activeModelLabel(ws)}</p>}
           <span>
             <button className="linkbtn gold" onClick={saveAnswer}>Save as research document</button>
             <button className="linkbtn" onClick={() => setAnswer(null)}>Discard</button>

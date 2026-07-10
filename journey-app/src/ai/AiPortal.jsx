@@ -9,12 +9,15 @@ import { useWS, findProject, TYPES } from './workspace';
 import HomePage from './HomePage';
 import ResearchPage from './ResearchPage';
 import ConversationsPage from './ConversationsPage';
+import LibraryPage from './LibraryPage';
 import BrdsPage from './BrdsPage';
 import ArtifactPage from './ArtifactPage';
 import GraphPage from './GraphPage';
+import SemanticMapPage from './SemanticMapPage';
 import ReleasesPage from './ReleasesPage';
 import SettingsPage from './SettingsPage';
 import AssistPanel from './AssistPanel';
+import DemoCoach, { startCoach } from './DemoCoach';
 
 const WorkspaceContext = createContext(null);
 export const useWorkspace = () => useContext(WorkspaceContext);
@@ -25,6 +28,7 @@ export default function AiPortal() {
   if (!token) return <Login onToken={setToken} autoLogin={fromJourney} />;
   return (
     <WorkspaceContext.Provider value={{ token, logout: () => setToken(null) }}>
+      <DemoCoach />
       <Routes>
         <Route index element={<HomePage />} />
         <Route path="p/:pid/*" element={<ProjectShell />} />
@@ -61,7 +65,8 @@ function Login({ onToken, autoLogin }) {
 const NAV = [
   { group: 'Knowledge', items: [
     { to: 'research', icon: TYPES.research.icon, label: 'Research', count: (p) => p.research.length },
-    { to: 'conversations', icon: '💬', label: 'Conversations', count: (p) => p.conversations.length }
+    { to: 'conversations', icon: '💬', label: 'Conversations', count: (p) => p.conversations.length },
+    { to: 'library', icon: '🗄', label: 'Library' }
   ] },
   { group: 'Delivery', items: [
     { to: 'brds', icon: TYPES.brd.icon, label: 'BRDs', count: (p) => p.brds.length },
@@ -73,6 +78,7 @@ const NAV = [
   ] },
   { group: 'Project', items: [
     { to: 'graph', icon: '🕸', label: 'Knowledge Graph' },
+    { to: 'map', icon: '🌌', label: 'Semantic Map' },
     { to: 'releases', icon: '🚀', label: 'Releases', count: (p) => p.releases.length },
     { to: 'settings', icon: '⚙️', label: 'Settings' }
   ] }
@@ -119,6 +125,7 @@ function ProjectShell() {
         <div style={{ flex: 1 }} />
         <div className="ws-foot">
           <div className="ws-user"><span className="ws-avatar">PM</span> pm@zenith · demo</div>
+          <button className="linkbtn" onClick={startCoach}>🎬 Guided demo</button>
           <button className="linkbtn" onClick={() => { logout(); nav('/ai'); }}>Log out</button>
         </div>
       </aside>
@@ -128,6 +135,7 @@ function ProjectShell() {
           <Route index element={<Navigate to="research" replace />} />
           <Route path="research/:docId?" element={<ResearchPage />} />
           <Route path="conversations/:convId?" element={<ConversationsPage />} />
+          <Route path="library" element={<LibraryPage />} />
           <Route path="brds/:docId?" element={<BrdsPage />} />
           <Route path="pdns/:docId?" element={<ArtifactPage type="pdn" />} />
           <Route path="epics/:docId?" element={<ArtifactPage type="epic" />} />
@@ -135,6 +143,7 @@ function ProjectShell() {
           <Route path="frs/:docId?" element={<ArtifactPage type="fr" />} />
           <Route path="tests/:docId?" element={<ArtifactPage type="test" />} />
           <Route path="graph" element={<GraphPage />} />
+          <Route path="map" element={<SemanticMapPage />} />
           <Route path="releases" element={<ReleasesPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="research" replace />} />

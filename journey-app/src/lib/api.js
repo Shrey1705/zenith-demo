@@ -27,7 +27,8 @@ export const core = {
 export const ai = {
   login: (username, password) => req('/api/ai', '/login', { method: 'POST', body: { username, password } }),
   analyze: (token, text) => req('/api/ai', '/analyze', { method: 'POST', body: { text }, headers: { Authorization: `Bearer ${token}` } }),
-  chat: (token, messages) => req('/api/ai', '/chat', { method: 'POST', body: { messages }, headers: { Authorization: `Bearer ${token}` } })
+  chat: (token, messages) => req('/api/ai', '/chat', { method: 'POST', body: { messages }, headers: { Authorization: `Bearer ${token}` } }),
+  sources: (token) => req('/api/ai', '/sources', { headers: { Authorization: `Bearer ${token}` } })
 };
 
 export const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');

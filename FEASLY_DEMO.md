@@ -24,11 +24,12 @@ connected codebase, so nothing can hallucinate on stage.
 
 ## Pre-demo checklist (2 minutes before)
 
-1. Open **zenith-health-demo.vercel.app/ai** (or localhost) → login is prefilled → click **Login**.
-2. On Home, click **↺ Reset demo data** (bottom) if you've rehearsed in this browser.
-3. Confirm Home shows two projects: *High-Value Cover Expansion* (the mature fallback) and *Nominee & KYC Enhancements*. **No EMI project** — that's the point.
-4. Keep this file open on a second screen for the prompts (or memorise them).
-5. Fallback plan: if anything misbehaves, open **High-Value Cover Expansion** — it's the same workflow, fully built — and narrate it instead.
+1. **Local (recommended — enables the live local-AI act):** double-click **Feasly.command** on the Desktop (or run `./start-feasly.command`). It boots Ollama + all three services and opens the browser. Otherwise open **zenith-health-demo.vercel.app/ai**.
+2. Login is prefilled → click **Login**.
+3. On Home, click **↺ Reset demo data** (bottom) if you've rehearsed in this browser.
+4. Confirm Home shows two projects: *High-Value Cover Expansion* (the mature fallback) and *Nominee & KYC Enhancements*. **No EMI project** — that's the point.
+5. Don't want to memorise the script? Click **🎬 Guided demo** (Home footer or the sidebar) — a step-by-step coach walks you through every act with one-click Copy buttons for all prompts. It survives navigation and reloads.
+6. Fallback plan: if anything misbehaves, open **High-Value Cover Expansion** — it's the same workflow, fully built — and narrate it instead.
 
 ---
 
@@ -133,6 +134,26 @@ Output: one BRD-ready requirement sentence plus a 3-line rationale.
 
 **Click:** **Knowledge Graph** one last time — the web is visibly bigger.
 
+### Act 5 — Real AI, running on this Mac (2 minutes, local run only)
+
+**Say:** "Everything so far was the deterministic demo brain — grounded and repeatable by design. Now let me swap in a real LLM. It's running on this laptop. No cloud."
+
+**Click:** **Settings → Model Hub** → **↻ Detect Ollama** → it lists the models on this machine (llama3.2 + nomic-embed-text). **Point at the temperature slider:** locked low at 0.1 — *"factual, minimal hallucination"*. **Click Set active** on the Ollama card.
+
+**Click:** **Research** → type into the Ask bar:
+
+```
+What happens when a customer misses an EMI instalment?
+```
+
+**Point:** the first ask builds a **vector index** — every document and code file in the project embedded locally. Then the answer arrives from llama3.2 with **"Grounded on:"** source chips (the story, the FRs, the DFLT tests it retrieved) and the engine label `llama3.2 @ Ollama · temp 0.1 · RAG`.
+
+**Say:** "That's retrieval-augmented generation: retrieve by meaning, generate at temperature 0.1, and the system prompt forces it to cite or say *cannot verify* — never guess."
+
+**Click:** Sidebar → **Semantic Map**.
+
+**Say:** "And this is what the AI actually stores — not words, vectors. Each dot is a document or code chunk in 768 dimensions, projected to 2D. Watch: the BRD's nearest neighbors *by meaning* are its own PDN and the payment rules — nobody told it that." Click the BRD dot to show it. "Add a document, re-index, the constellation grows."
+
 ### Close (20 seconds)
 
 **Click:** **Settings → Connected Systems.**
@@ -149,7 +170,14 @@ Output: one BRD-ready requirement sentence plus a 3-line rationale.
 
 ## If asked "is the AI real?"
 
-> "The workspace is fully real — persistence, versioning, traceability, staleness, the graph. The AI layer is deliberately deterministic for the demo: it keyword-routes to a knowledge map and verifies every claim against the actual source files, which is exactly the grounding architecture I'd productionise — swap the router for an LLM with retrieval over the same code index, keep the evidence contract. There's literally an `ANTHROPIC_API_KEY` switch in the backend that upgrades the chat to a live model."
+> "Both layers are real, and that's deliberate. The demo brain is deterministic — it keyword-routes to a knowledge map and verifies every claim against the actual source files, so the scripted part of the demo can never hallucinate on stage. And then I switch to a genuinely real LLM: llama3.2 running on this laptop through Ollama, with RAG I built — the workspace's documents and the connected code are chunked, embedded with nomic-embed-text into 768-dimensional vectors, retrieved by cosine similarity, and generated at temperature 0.1 under a cite-or-say-unverified system contract. Same grounding architecture, two engines."
+
+## Running the local AI
+
+- **One command:** double-click `Feasly.command` on the Desktop (or `./start-feasly.command`). It starts Ollama if needed, boots all services, waits, and opens the browser.
+- **Models required once:** `ollama pull llama3.2` and `ollama pull nomic-embed-text`.
+- **The deployed HTTPS page** (zenith-health-demo.vercel.app) can also reach your local Ollama, but the browser blocks it unless Ollama allows the origin: run `launchctl setenv OLLAMA_ORIGINS "https://zenith-health-demo.vercel.app"` and restart Ollama (or `OLLAMA_ORIGINS=… ollama serve`). On localhost no setup is needed — Ollama allows localhost origins by default.
+- Everything degrades gracefully: with no Ollama detected, the Model Hub says so and the demo brain answers everything.
 
 ## Q&A ammo
 

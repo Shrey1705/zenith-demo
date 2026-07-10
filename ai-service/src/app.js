@@ -3,7 +3,8 @@
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
-const { analyze, LAYERS } = require('./analyzer');
+const { analyze, LAYERS, readSource } = require('./analyzer');
+const { ENTITIES } = require('./knowledge');
 const gen = require('./generators');
 
 const app = express();
@@ -67,6 +68,18 @@ const auth = (req, res, next) => {
 };
 
 app.get('/health', (_req, res) => res.json({ service: 'ai-feasibility-service', status: 'up' }));
+
+// The indexed source files, for client-side RAG: a locally-hosted model can
+// embed and cite the ACTUAL code the deterministic analyzer grounds on.
+app.get('/sources', auth, (_req, res) => {
+  const files = [...new Set(Object.values(ENTITIES).flatMap((e) => e.impacts.map((i) => i.file)))];
+  res.json({
+    files: files
+      .map((file) => ({ file, content: readSource(file) }))
+      .filter((f) => f.content != null)
+      .map((f) => ({ file: f.file, content: f.content.slice(0, 8000) }))
+  });
+});
 
 app.post('/analyze', auth, (req, res) => {
   const text = (req.body?.text || '').trim();

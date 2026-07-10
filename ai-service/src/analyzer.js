@@ -93,4 +93,4 @@ function analyze(text) {
   };
 }
 
-module.exports = { analyze, LAYERS };
+module.exports = { analyze, LAYERS, readSource };

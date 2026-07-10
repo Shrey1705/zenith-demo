@@ -55,6 +55,14 @@ export function titleFrom(q) {
   return (clean.length > 64 ? clean.slice(0, 63) + '…' : clean) || q.slice(0, 48);
 }
 
+// ---- model routing ----
+export const usingLocal = (ws) => ws.activeModelId === 'local' && !!ws.local?.chatModel;
+export function activeModelLabel(ws) {
+  if (usingLocal(ws)) return `${ws.local.chatModel} @ Ollama · temp ${ws.local.temperature ?? 0.1} · RAG`;
+  const m = (ws.models || []).find((x) => x.id === ws.activeModelId);
+  return m ? m.name : 'Feasly demo brain (offline)';
+}
+
 // ---- artifact type registry (chain order matters) ----
 export const TYPES = {
   research: { key: 'research', label: 'Research', one: 'Research note', icon: '🔍', parent: null },
@@ -309,8 +317,9 @@ function seedState() {
   };
 
   return {
-    models: [],           // BYO model connections (Settings \u2192 Model Hub)
-    activeModelId: null,
+    models: [],           // BYO cloud-key connections (Settings \u2192 Model Hub)
+    activeModelId: null,  // null = demo brain \u00b7 'local' = Ollama via ws.local
+    local: { endpoint: 'http://localhost:11434', chatModel: '', embedModel: '', temperature: 0.1 },
     projects: [
       {
         id: 'proj-si', name: 'High-Value Cover Expansion',

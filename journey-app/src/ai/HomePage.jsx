@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWS, mutate, resetWS, uid, now, TYPES } from './workspace';
+import { startCoach } from './DemoCoach';
 
 const ROUTE_OF = { research: 'research', brd: 'brds', pdn: 'pdns', epic: 'epics', story: 'stories', fr: 'frs', test: 'tests' };
 
@@ -64,7 +65,8 @@ export default function HomePage() {
           ))}
         </div>
 
-        <p style={{ marginTop: 34, opacity: 0.55 }}>
+        <p style={{ marginTop: 34, opacity: 0.55, display: 'flex', gap: 18 }}>
+          <button className="linkbtn" onClick={startCoach}>🎬 Guided demo</button>
           <button className="linkbtn" onClick={() => { if (window.confirm('Reset the workspace to its seeded demo state? Everything created in this browser is discarded.')) resetWS(); }}>
             ↺ Reset demo data
           </button>

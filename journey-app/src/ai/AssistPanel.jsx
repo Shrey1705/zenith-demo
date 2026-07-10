@@ -2,12 +2,14 @@
 // the interface. Binds to the project's most recent conversation; replies
 // can be saved straight into Research.
 import React, { useState, useRef, useEffect } from 'react';
-import { ai } from '../lib/api';
 import { useWorkspace } from './AiPortal';
-import { mutate, uid, now, titleFrom } from './workspace';
+import { askFeasly } from './brain';
+import { TYPE_ICON } from './rag';
+import { useWS, mutate, uid, now, titleFrom, usingLocal } from './workspace';
 
 export default function AssistPanel({ project }) {
   const { token } = useWorkspace();
+  const ws = useWS();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -32,8 +34,8 @@ export default function AssistPanel({ project }) {
       })
     }));
     try {
-      const r = await ai.chat(token, msgs.map(({ role, content }) => ({ role, content })));
-      msgs = [...msgs, { role: 'assistant', content: r.reply, engine: r.engine }];
+      const r = await askFeasly({ token, ws, project, messages: msgs });
+      msgs = [...msgs, { role: 'assistant', content: r.reply, engine: r.engine, sources: r.sources || undefined }];
     } catch (e) {
       msgs = [...msgs, { role: 'assistant', content: `Something went wrong: ${e.message}`, engine: 'error' }];
     }
@@ -73,6 +75,11 @@ export default function AssistPanel({ project }) {
         {(conv?.messages || [{ role: 'assistant', content: 'Ask anything — I read this tenant\'s code, contracts and docs. Answers can be saved to Research.' }]).map((m, i) => (
           <div key={i} className={'assistmsg ' + m.role}>
             {m.content}
+            {m.role === 'assistant' && m.sources?.length > 0 && (
+              <div className="srcchips">
+                {m.sources.slice(0, 3).map((s, j) => <span key={j} className="srcchip">{TYPE_ICON(s.type)} {s.title}</span>)}
+              </div>
+            )}
             {m.role === 'assistant' && conv && (
               m.savedAsResearchId
                 ? <span className="assistsaved">✓ Saved to Research</span>
@@ -80,7 +87,7 @@ export default function AssistPanel({ project }) {
             )}
           </div>
         ))}
-        {busy && <div className="assistmsg assistant">Thinking…</div>}
+        {busy && <div className="assistmsg assistant">{usingLocal(ws) ? 'Retrieving context and asking the local model…' : 'Thinking…'}</div>}
         <div ref={endRef} />
       </div>
       <div className="assistinput">

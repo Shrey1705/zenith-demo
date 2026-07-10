@@ -34,7 +34,18 @@ npm run install:all    # installs all three packages
 npm run dev            # boots core (:4001), ai (:4002), web (:5173)
 ```
 
-Open http://localhost:5173
+Open http://localhost:5173 — or just double-click **`start-feasly.command`** (macOS), which additionally starts Ollama for the local-AI features and opens the browser when everything is up.
+
+### Local AI (optional, fully on-device)
+
+Feasly has two AI engines. The **demo brain** is deterministic — keyword-routed and verified against real source files, so demos can't hallucinate. The **local engine** is a real LLM via [Ollama](https://ollama.com) with RAG built in the app: workspace documents + connected code are chunked, embedded (`nomic-embed-text`, 768-dim vectors, stored client-side), retrieved by cosine similarity, and answered at temperature 0.1 under a cite-or-say-unverified system prompt. Setup:
+
+```bash
+brew install ollama
+ollama pull llama3.2 && ollama pull nomic-embed-text
+```
+
+Then in the app: **Settings → Model Hub → Detect Ollama → Set active**. The **Semantic Map** page visualizes the vector index (PCA to 2D) and grows as knowledge is added. A **🎬 Guided demo** coach (Home footer) walks through the entire interview script with copy-paste prompts.
 
 | Portal | Login |
 |---|---|

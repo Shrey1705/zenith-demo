@@ -1,8 +1,10 @@
 // Settings — connected systems, model routing and API access in one tabbed
 // screen. Connectors are the ground truth behind every verdict and PDN.
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ai } from '../lib/api';
-import { useWS, mutate, uid } from './workspace';
+import { detectOllama } from '../lib/ollama';
+import { clearIndex } from './rag';
+import { useWS, mutate, uid, usingLocal } from './workspace';
 
 const TABS = ['Connected Systems', 'Model Hub', 'API & Webhooks'];
 
@@ -45,56 +47,92 @@ function SystemsTab() {
 
 function ModelsTab() {
   const ws = useWS();
-  const models = ws.models || [];
-  const [local, setLocal] = useState({ name: '', endpoint: 'http://localhost:11434' });
+  const local = ws.local || { endpoint: 'http://localhost:11434', chatModel: '', embedModel: '', temperature: 0.1 };
+  const [detected, setDetected] = useState(null);   // null = not tried · [] = ollama up, no models · false = unreachable
+  const [detecting, setDetecting] = useState(false);
   const [cloud, setCloud] = useState({ provider: 'anthropic', name: '', key: '' });
-  const [tested, setTested] = useState({});
 
-  const addLocal = () => {
-    if (!local.name.trim()) return;
-    mutate((w) => ({ ...w, models: [...(w.models || []), { id: uid(), name: local.name.trim(), provider: 'local', endpoint: local.endpoint }] }));
-    setLocal({ name: '', endpoint: 'http://localhost:11434' });
+  const patchLocal = (p) => {
+    // Changing the embedding model or endpoint invalidates stored vectors.
+    if (p.embedModel !== undefined || p.endpoint !== undefined) clearIndex();
+    mutate((w) => ({ ...w, local: { ...(w.local || local), ...p } }));
   };
+  const detect = async (endpoint = local.endpoint) => {
+    setDetecting(true);
+    const models = await detectOllama(endpoint);
+    setDetected(models === null ? false : models);
+    if (models?.length) {
+      const chat = models.filter((m) => !/embed/i.test(m.name));
+      const embed = models.filter((m) => /embed/i.test(m.name));
+      mutate((w) => {
+        const cur = w.local || local;
+        return { ...w, local: { ...cur,
+          chatModel: chat.some((m) => m.name === cur.chatModel) ? cur.chatModel : (chat[0]?.name || ''),
+          embedModel: embed.some((m) => m.name === cur.embedModel) ? cur.embedModel : (embed[0]?.name || '')
+        } };
+      });
+    }
+    setDetecting(false);
+  };
+  useEffect(() => { detect(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  const chatModels = (detected || []).filter((m) => !/embed/i.test(m.name));
+  const embedModels = (detected || []).filter((m) => /embed/i.test(m.name));
+  const localReady = detected && detected.length > 0 && local.chatModel && local.embedModel;
+  const isLocalActive = usingLocal(ws);
+
   const addCloud = () => {
     if (!cloud.name.trim() || cloud.key.length < 8) return;
     mutate((w) => ({ ...w, models: [...(w.models || []), { id: uid(), name: cloud.name.trim(), provider: cloud.provider, keyMasked: '••••' + cloud.key.slice(-4) }] }));
     setCloud({ provider: 'anthropic', name: '', key: '' });
   };
-  const remove = (id) => mutate((w) => ({ ...w, models: (w.models || []).filter((m) => m.id !== id), activeModelId: w.activeModelId === id ? null : w.activeModelId }));
-  const setActive = (id) => mutate((w) => ({ ...w, activeModelId: id }));
 
   return (
     <div>
       <h3 className="ws-h3" style={{ marginTop: 0 }}>Active model</h3>
       <div className="modelgrid">
-        <button className={'modelcard' + (!ws.activeModelId ? ' on' : '')} onClick={() => setActive(null)}>
+        <button className={'modelcard' + (!isLocalActive ? ' on' : '')} onClick={() => mutate((w) => ({ ...w, activeModelId: null }))}>
           <b>🔒 Feasly demo brain</b>
-          <small>Offline · deterministic · code-grounded feasibility</small>
-          {!ws.activeModelId && <span className="status issued">ACTIVE</span>}
+          <small>Offline · deterministic · code-grounded feasibility. Works everywhere, zero setup.</small>
+          {!isLocalActive && <span className="status issued">ACTIVE</span>}
         </button>
-        {models.map((m) => (
-          <div key={m.id} className={'modelcard' + (ws.activeModelId === m.id ? ' on' : '')}>
-            <b>{m.provider === 'local' ? '💻' : '☁️'} {m.name}</b>
-            <small>{m.provider === 'local' ? `Local · ${m.endpoint}` : `${m.provider} · key ${m.keyMasked}`}</small>
-            <span className="modelops">
-              {ws.activeModelId === m.id
-                ? <span className="status issued">ACTIVE</span>
-                : <button className="linkbtn" onClick={() => setActive(m.id)}>Set active</button>}
-              <button className="linkbtn" onClick={() => setTested((t) => ({ ...t, [m.id]: true }))}>{tested[m.id] ? '✓ Connection OK' : 'Test'}</button>
-              <button className="linkbtn" onClick={() => remove(m.id)}>Remove</button>
-            </span>
-          </div>
-        ))}
+        <div className={'modelcard' + (isLocalActive ? ' on' : '')}>
+          <b>🖥 Ollama on this machine</b>
+          <small>
+            {detected === null && 'Checking for a local Ollama server…'}
+            {detected === false && `No Ollama server at ${local.endpoint}. Start it with \`ollama serve\`, then detect again.`}
+            {detected && detected.length === 0 && 'Ollama is running but has no models. Try `ollama pull llama3.2` and `ollama pull nomic-embed-text`.'}
+            {detected && detected.length > 0 && `${detected.length} model${detected.length > 1 ? 's' : ''} available · real LLM + RAG over this project's documents and code, fully on-device.`}
+          </small>
+          <span className="modelops">
+            {isLocalActive
+              ? <span className="status issued">ACTIVE</span>
+              : <button className="linkbtn gold" disabled={!localReady} onClick={() => mutate((w) => ({ ...w, activeModelId: 'local' }))}>Set active</button>}
+            <button className="linkbtn" disabled={detecting} onClick={() => detect()}>{detecting ? 'Detecting…' : '↻ Detect Ollama'}</button>
+          </span>
+        </div>
       </div>
 
       <div className="modelforms">
         <div>
-          <h3 className="ws-h3">💻 Connect a local model</h3>
-          <label>Model name</label>
-          <input value={local.name} placeholder="e.g. llama3 on my Mac" onChange={(e) => setLocal({ ...local, name: e.target.value })} />
-          <label>Endpoint</label>
-          <input value={local.endpoint} onChange={(e) => setLocal({ ...local, endpoint: e.target.value })} />
-          <button className="btn" onClick={addLocal}>Add local model</button>
+          <h3 className="ws-h3">🖥 Local model configuration</h3>
+          <label>Ollama endpoint</label>
+          <input value={local.endpoint} onChange={(e) => patchLocal({ endpoint: e.target.value })} onBlur={() => detect()} />
+          <label>Chat model (answers questions)</label>
+          {chatModels.length > 0 ? (
+            <select value={local.chatModel} onChange={(e) => patchLocal({ chatModel: e.target.value })}>
+              {chatModels.map((m) => <option key={m.name} value={m.name}>{m.name} · {m.sizeGb} GB</option>)}
+            </select>
+          ) : <p className="hint">No chat models detected. <code>ollama pull llama3.2</code></p>}
+          <label>Embedding model (turns documents into vectors)</label>
+          {embedModels.length > 0 ? (
+            <select value={local.embedModel} onChange={(e) => patchLocal({ embedModel: e.target.value })}>
+              {embedModels.map((m) => <option key={m.name} value={m.name}>{m.name} · {m.sizeGb} GB</option>)}
+            </select>
+          ) : <p className="hint">No embedding models detected. <code>ollama pull nomic-embed-text</code></p>}
+          <label>Temperature — {Number(local.temperature ?? 0.1).toFixed(2)} {Number(local.temperature ?? 0.1) <= 0.2 ? '· factual, minimal hallucination' : Number(local.temperature) <= 0.5 ? '· balanced' : '· creative (not recommended for grounded answers)'}</label>
+          <input type="range" min="0" max="1" step="0.05" value={local.temperature ?? 0.1} onChange={(e) => patchLocal({ temperature: Number(e.target.value) })} />
+          <p className="hint">Kept low (0.1) so the model sticks to the retrieved documents and code instead of inventing details.</p>
         </div>
         <div>
           <h3 className="ws-h3">☁️ Connect a cloud API key</h3>
@@ -108,6 +146,7 @@ function ModelsTab() {
           <label>API key</label>
           <input type="password" value={cloud.key} placeholder="sk-…" onChange={(e) => setCloud({ ...cloud, key: e.target.value })} />
           <button className="btn" onClick={addCloud}>Add cloud model</button>
+          <p className="hint">Cloud keys are stored masked in this demo and not used for routing — local + demo brain are the two live engines.</p>
         </div>
       </div>
     </div>
