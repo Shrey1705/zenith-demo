@@ -359,7 +359,9 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 }
 
 /* ---- Feasly workspace ---- */
-.workspace { display: flex; min-height: calc(100vh - 105px); align-items: stretch; position: relative; }
+/* The shell (sidebar + content) is centered with a max width so it fills a
+   laptop screen edge-to-edge but doesn't sprawl on an ultra-wide monitor. */
+.workspace { display: flex; min-height: calc(100vh - 105px); align-items: stretch; position: relative; max-width: 1520px; margin: 0 auto; }
 .ws-side { width: 236px; flex-shrink: 0; background: var(--navy-deep); color: #dfe7f1; display: flex; flex-direction: column; padding: 20px 14px; position: sticky; top: 63px; height: calc(100vh - 63px); transition: transform 0.25s ease; }
 .ws-sidetop { display: flex; align-items: center; justify-content: space-between; }
 .ws-brand { font-family: var(--font-display); font-weight: 700; font-size: 22px; color: #fff; padding: 0 10px 4px; }
@@ -378,6 +380,10 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .ws-foot .linkbtn { color: #8ba0ba; font-size: 12px; }
 .ws-main { flex: 1; min-width: 0; }
 .page.dark.ws-main { min-height: auto; }
+/* Left-align workspace content (instead of the centered column that floated
+   with a big right gutter next to the sidebar) and let it fill the pane. */
+.ws-main.page.dark { padding: 30px 0 96px; }
+.ws-main.page.dark > * { margin-left: 0; margin-right: 0; max-width: none; padding-left: 46px; padding-right: 46px; }
 .ws-hamburger { display: none; }
 .ws-drawerclose { display: none; }
 .ws-backdrop { display: none; }
@@ -401,7 +407,7 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
    ============================================================ */
 
 /* ---- shared document scaffolding ---- */
-.docwrap { max-width: 1080px; animation: fs-fade 0.25s ease; }
+.docwrap { max-width: 1180px; animation: fs-fade 0.25s ease; }
 @keyframes fs-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .doch1 { font-family: var(--font-display); font-size: 27px; color: #fff; }
 .docsub { color: #8ba0ba; font-size: 13.5px; margin: 6px 0 18px; max-width: 640px; line-height: 1.6; }
@@ -539,12 +545,22 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 
 /* Demo coach */
 .coach { position: fixed; left: 18px; bottom: 18px; z-index: 60; width: 380px; max-width: calc(100vw - 36px); max-height: 72vh; overflow-y: auto; background: #0d2038; border: 1px solid rgba(201, 151, 59, 0.45); border-radius: 16px; padding: 16px 18px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55); }
-.coachhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.coachact { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); }
+.coachhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.coachact { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); white-space: nowrap; }
+.coachops { display: flex; align-items: center; gap: 2px; }
 .coachops button { background: none; border: none; color: #8ba0ba; cursor: pointer; font-size: 13px; padding: 2px 6px; }
 .coachops button:hover { color: #fff; }
-.coach h4 { font-family: var(--font-display); font-size: 16px; color: #fff; margin: 0 0 6px; }
+.coachplay { border: 1px solid rgba(201, 151, 59, 0.5) !important; border-radius: 8px !important; color: var(--gold) !important; font-size: 11px !important; font-weight: 600; padding: 3px 10px !important; }
+.coachplay:hover { background: rgba(201, 151, 59, 0.12); }
+.coachplay.on { background: rgba(201, 151, 59, 0.16); color: #fff !important; }
+.coach h4 { font-family: var(--font-display); font-size: 16px; color: #fff; margin: 0 0 6px; line-height: 1.25; }
 .coach p { font-size: 12.5px; line-height: 1.65; color: #b9c8da; margin: 0 0 10px; }
+.coachmanual { color: #9db1c9 !important; font-size: 12px !important; }
+.coachwatch { background: rgba(201, 151, 59, 0.08); border-left: 2px solid var(--gold); border-radius: 0 8px 8px 0; padding: 8px 11px !important; color: #e4dcc8 !important; font-size: 12px !important; margin-bottom: 12px !important; }
+.coachdo { display: block; width: 100%; background: rgba(201, 151, 59, 0.14); border: 1px solid var(--gold); color: var(--gold); border-radius: 10px; padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; margin-bottom: 10px; transition: background 0.15s; }
+.coachdo:hover:not(:disabled) { background: rgba(201, 151, 59, 0.24); color: #fff; }
+.coachdo:disabled { opacity: 0.55; cursor: default; }
+.coacherr { color: #f0a3a3 !important; font-size: 11.5px !important; background: rgba(196, 56, 79, 0.12); border-radius: 8px; padding: 8px 10px !important; }
 .coachcopy { position: relative; background: #061120; border: 1px solid var(--dark-border); border-radius: 10px; padding: 9px 11px; margin-bottom: 8px; }
 .coachcopylabel { display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: #5b7291; margin-bottom: 4px; }
 .coachcopy pre { font-size: 11px; line-height: 1.55; color: #dfe7f1; white-space: pre-wrap; word-break: break-word; margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; max-height: 110px; overflow-y: auto; }
@@ -553,7 +569,7 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .coachprog { font-size: 11px; color: #5b7291; }
 .coachnext { background: var(--gold); color: var(--navy-deep); border: none; border-radius: 10px; padding: 7px 16px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .coachmin { position: fixed; left: 18px; bottom: 18px; z-index: 60; background: #0d2038; border: 1px solid rgba(201, 151, 59, 0.45); color: var(--gold); border-radius: 20px; padding: 9px 16px; font-size: 12.5px; cursor: pointer; font-family: inherit; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
-@media (max-width: 860px) { .coach { width: calc(100vw - 36px); max-height: 55vh; } }
+@media (max-width: 860px) { .coach { left: 12px; right: 12px; width: auto; max-width: none; max-height: 68vh; } .coachmin { left: 12px; } }
 
 /* Library */
 .libpane { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 26px; align-items: start; }
@@ -649,8 +665,8 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .undertab.on { font-weight: 600; color: var(--gold); border-bottom-color: var(--gold); }
 
 @media (max-width: 860px) {
-  .modelforms, .docpane, .graphpane { grid-template-columns: 1fr; }
-  .tracerail, .graphside { border-left: none; padding-left: 0; border-top: 1px solid rgba(255, 255, 255, 0.07); padding-top: 18px; position: static; }
+  .modelforms, .docpane, .graphpane, .mappane { grid-template-columns: 1fr; }
+  .tracerail, .graphside, .mapside { border-left: none; padding-left: 0; border-top: 1px solid rgba(255, 255, 255, 0.07); padding-top: 18px; position: static; }
   .assistpanel { max-height: 70vh; }
   /* Wide data tables scroll horizontally instead of overflowing. */
   .dashtable { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -665,11 +681,20 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 @media (max-width: 860px) {
   /* Sits just below the site's own sticky topnav (top:0, z-index:40) rather
      than stacking on top of it. */
-  .ws-hamburger { display: flex; align-items: center; justify-content: center; position: sticky; top: 10px; z-index: 39; width: 40px; height: 40px; margin: 10px 0 0 10px; background: var(--navy-deep); color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; font-size: 18px; cursor: pointer; }
+  /* Absolute (not sticky) so it doesn't reserve a flex column — that was
+     leaving a light gutter to the left of the content on phones. */
+  .ws-hamburger { display: flex; align-items: center; justify-content: center; position: absolute; top: 10px; left: 10px; z-index: 39; width: 40px; height: 40px; margin: 0; background: var(--navy-deep); color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; font-size: 18px; cursor: pointer; }
   .ws-drawerclose { display: block; background: none; border: none; color: #8ba0ba; font-size: 18px; cursor: pointer; padding: 4px; }
   .ws-backdrop { display: block; position: fixed; inset: 0; z-index: 48; background: rgba(5, 12, 24, 0.6); }
   .ws-side { position: fixed; top: 0; left: 0; z-index: 49; width: 260px; max-width: 82vw; height: 100vh; transform: translateX(-100%); box-shadow: 8px 0 30px rgba(0, 0, 0, 0.35); }
   .ws-side.open { transform: translateX(0); }
   .ws-main { padding-top: 6px; }
+  /* Snug gutters on phones — the 46px desktop gutters would waste the screen.
+     Top padding clears the absolutely-positioned hamburger. */
+  .ws-main.page.dark { padding-top: 56px; padding-bottom: 80px; }
+  .ws-main.page.dark > * { padding-left: 16px; padding-right: 16px; }
+  .docwrap { max-width: 100%; }
+  .doch1 { font-size: 23px; }
+  .docbody h1 { font-size: 22px; }
 }
 

@@ -1,8 +1,11 @@
-// Demo Coach — a floating step-by-step guide through the full interview
-// run-of-show (see FEASLY_DEMO.md). State lives in localStorage so it
-// survives navigation and reloads; prompts have one-click copy buttons so
-// nothing needs to be typed on stage.
-import React, { useState, useEffect } from 'react';
+// Demo Coach — a friendly, self-guided walkthrough. Anyone can open it and
+// follow along in plain language, OR let Feasly do each step (or the whole
+// demo) for them. Progress lives in localStorage so it survives navigation
+// and reloads. Every "Do it for me" drives the real store via demoActions.
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useWorkspace } from './AiPortal';
+import { ACTIONS, PROMPT_1, PROMPT_2 } from './demoActions';
 
 const KEY = 'feasly-coach-v1';
 
@@ -11,53 +14,162 @@ const write = (s) => { localStorage.setItem(KEY, JSON.stringify(s)); window.disp
 
 export function startCoach() { write({ on: true, i: 0, min: false }); }
 
-const PROMPT_1 = `Task: assess whether Zenith can offer monthly EMI premium payments today.
-Scope: rating rules, payment lifecycle, proposal API contract.
-Constraints: cite file-and-line evidence for every claim; if something cannot be verified in code, flag it — do not guess.
-Output: current constraint, impacted systems, severity.`;
+const LOCAL_Q = 'What happens when a customer misses an EMI instalment?';
 
-const PROMPT_2 = `Context: our payment gateway retries a failed instalment webhook for 72 hours and has no native default handling; mandates are capped at ₹15,000 per instalment.
-Task: recommend a default-handling rule for missed EMI instalments on a health policy that bounds underwriting risk without cancelling cover.
-Output: one BRD-ready requirement sentence plus a 3-line rationale.`;
-
+// Each step: plain-English what & why. `do` maps to a demoActions key that
+// performs the step for real; `doLabel` names its button. `copies` are
+// one-click snippets. `core` steps make up the one-click auto-play (Acts 1–4).
 const STEPS = [
-  { act: 'Before you start', title: 'The story you\'re telling', body: 'Frame it in 30 seconds: "Today my AI workflow is a chat window and a Word document — the AI forgets context and hallucinates, and no document knows when another one changed. Feasly fixes both: every answer is grounded in the actual codebase with evidence, and every output is a document in a knowledge graph. Let me build a real feature from an empty project, right now."' },
-  { act: 'Before you start', title: 'Reset to a clean slate', body: 'On Home, click "↺ Reset demo data" (bottom of the page) if you\'ve rehearsed in this browser. Confirm there is NO EMI project — only High-Value Cover Expansion (your fallback) and Nominee & KYC. Building EMI live is the whole point.' },
-  { act: 'Act 1 · Research', title: 'Create the project', body: 'On Home, type the project name into "New project…" and click Create. You\'ll land in an empty Research workspace — every feature starts as a question, not a document.', copies: [{ label: 'Project name', text: 'EMI & Payment Flexibility' }] },
-  { act: 'Act 1 · Research', title: 'Ask the engineered prompt', body: 'Paste Prompt 1 into the Ask bar. Point out the structure — Task, Scope, Constraints, Output — and the answer: a red verdict with file-and-line evidence like premium.rules.yaml:6. It reads the connected repo; the constraints forbid guessing.', copies: [{ label: 'Prompt 1 — feasibility', text: PROMPT_1 }] },
-  { act: 'Act 1 · Research', title: 'Save the answer as knowledge', body: 'Click "Save as research document". In a chat workflow this answer would scroll away and die; here it becomes a first-class document a BRD can cite. Then click "← Research" to go back.' },
-  { act: 'Act 1 · Research', title: 'Import the gateway docs', body: 'Click "🔌 Import API docs". A gateway-capabilities document appears: recurring mandates, ₹15k ceiling per instalment, 72-hour webhook retries, and — crucially — no native default handling. Two research documents in under two minutes.' },
-  { act: 'Act 2 · BRD', title: 'Create the BRD', body: 'Sidebar → BRDs → type the title → Create.', copies: [{ label: 'BRD title', text: 'Offer monthly premium payment (EMI)' }] },
-  { act: 'Act 2 · BRD', title: 'Add the three requirements', body: 'Add each requirement with Enter. Then set Stakeholders and tick BOTH research documents under "Research in context" — the BRD is written from knowledge, not from memory.', copies: [
-    { label: 'Requirement 1', text: 'Offer a monthly EMI payment option alongside annual at quote and checkout' },
-    { label: 'Requirement 2', text: 'Compute an interest-free instalment schedule from the annual premium' },
-    { label: 'Requirement 3', text: 'Reflect the selected payment plan on the review screen and proposal PDF' },
-    { label: 'Stakeholders', text: 'Underwriting, Payments, D2C Journey PM' }
-  ] },
-  { act: 'Act 2 · BRD', title: 'Let the AI review it', body: 'Click "✦ Check completeness" in the right rail. It reviews the BRD like a colleague — and catches that success criteria are missing. Fill them in, then in the Versions rail save as v1.', copies: [
-    { label: 'Success criteria', text: 'EMI adoption ≥20% of new policies in the first quarter; no rise in payment-default rate' },
-    { label: 'Version note', text: 'Initial draft from EMI research' }
-  ] },
-  { act: 'Act 3 · One click', title: 'Generate the PDN', body: 'Click "⚡ Generate PDN". This isn\'t a template — it re-analysed your requirements against the codebase. Show the impact table with file-and-line evidence, and the trace rail: the PDN knows it came from BRD v1 and both research documents.' },
-  { act: 'Act 3 · One click', title: 'Generate the delivery chain', body: 'Click "⚡ Generate delivery chain". Point at the sidebar: 2 Epics, 5 User Stories, 9 Functional Reqs, 10 Test Cases — the entire delivery scaffold from one click, all traceable.' },
-  { act: 'Act 3 · One click', title: 'Walk the chain upstream', body: 'Open any Test Case and walk the Upstream rail out loud: test → FR → story → epic → PDN → BRD v1 → the research. "In Word this chain lives in my head. Here it\'s structural."' },
-  { act: 'Act 3 · One click', title: 'Show the Knowledge Graph', body: 'Sidebar → Knowledge Graph → click the BRD node. This is the project as knowledge, not folders — one click shows everything this BRD created.' },
-  { act: 'Act 4 · The change', title: 'A new constraint appears', body: '"Now the thing that breaks every chat-plus-Word workflow: the requirement changes." Sidebar → Conversations → + New conversation → paste Prompt 2. The answer recommends pausing the policy after two consecutive missed instalments, grounded in the gateway research. Click "Save to Research" on the reply.', copies: [{ label: 'Prompt 2 — default handling', text: PROMPT_2 }] },
-  { act: 'Act 4 · The change', title: 'Change the BRD → v2', body: 'Open the EMI BRD, add requirement 4, then save as v2 with the note.', copies: [
-    { label: 'Requirement 4', text: 'Define default handling: two consecutive missed instalments pause the policy pending payment' },
-    { label: 'Version note', text: 'Added default handling after underwriting review' }
-  ] },
-  { act: 'Act 4 · The change', title: 'The moment: everything knows', body: 'Sidebar → Test Cases. Every single one is flagged "upstream changed". Say it slowly: "I changed one sentence. Nobody emailed QA. The workspace knows, structurally, that these were generated from v1 and the BRD is now at v2."' },
-  { act: 'Act 4 · The change', title: 'Regenerate — the chain grows', body: 'Open the PDN → amber banner → "Regenerate from v2". Staleness clears (0/13 flagged) and the chain GREW: 5→6 stories, 9→12 FRs, 10→13 tests. The new story "Handle missed instalments and pause the policy" arrived with its own FRs and DFLT Gherkin tests. Show the Knowledge Graph — visibly bigger.' },
-  { act: 'Act 5 · Real AI, locally', title: 'Switch on the local model', body: 'Settings → Model Hub. Click "↻ Detect Ollama" — it finds the models running on this Mac. Point at the temperature slider locked low at 0.1: "factual, minimal hallucination". Click "Set active" on the Ollama card. From now on, answers come from a real LLM on this machine — no cloud.' },
-  { act: 'Act 5 · Real AI, locally', title: 'Ask the real model', body: 'Go to Research (or any conversation) and ask a free-form question. First ask builds the vector index — every document and code file embedded locally. The answer arrives with "Grounded on:" source chips and the engine label. This is RAG: retrieve by meaning, generate at temp 0.1, cite or say unverified.', copies: [{ label: 'Local-model question', text: 'What happens when a customer misses an EMI instalment?' }] },
-  { act: 'Act 5 · Real AI, locally', title: 'Show the Semantic Map', body: 'Sidebar → Semantic Map. "The knowledge isn\'t stored as words — it\'s stored as 768-dimensional vectors." Click the BRD dot: its nearest neighbors by meaning are its own PDN and the payment rules. Add a document later, re-index, and the constellation grows.' },
-  { act: 'Close', title: 'Why it can\'t hallucinate', body: 'Settings → Connected Systems. "Read-only connectors to the actual repos, every claim carries evidence, low-temperature retrieval-grounded generation, and everything the AI produces becomes a versioned, linked document instead of context-window residue. That\'s my answer to the copy-paste-into-Word workflow." Done — end the tour.' }
+  {
+    act: 'Welcome',
+    title: 'Build a real feature in 2 minutes',
+    body: "You're about to take a product idea — letting customers pay monthly instead of yearly — all the way from a blank project to a complete, connected delivery plan. Follow the steps yourself, or let Feasly run the whole thing for you.",
+    watch: "Tip: press ▶ Auto-play (top of this card) and just watch — Feasly builds everything on its own."
+  },
+  {
+    act: 'Setup',
+    title: 'Start from a clean slate',
+    body: 'If this demo has been run in this browser before, clear it so we start fresh. Nothing valuable is lost — the two sample projects come right back.',
+    manual: 'On the Home screen, click "↺ Reset demo data" at the bottom.',
+    do: 'reset', doLabel: 'Reset for me'
+  },
+  {
+    act: 'Step 1 · Ask',
+    title: 'Create a project',
+    body: 'Every feature begins as a question. Make a project to hold everything about monthly payments.',
+    manual: 'On Home, type the name into "New project…" and click Create.',
+    copies: [{ label: 'Project name', text: 'EMI & Payment Flexibility' }],
+    do: 'createProject', doLabel: 'Create it for me', core: true
+  },
+  {
+    act: 'Step 1 · Ask',
+    title: 'Ask Feasly if it\'s even possible',
+    body: 'Paste this question into the "Ask" box on the Research page. Feasly reads the real code and answers with a clear verdict — and it points to the exact file and line, so it can\'t just make things up.',
+    watch: 'You\'ll get a red "this needs a core change" answer that quotes the pricing rules. Save it as a research note.',
+    copies: [{ label: 'Question to ask', text: PROMPT_1 }],
+    do: 'askResearch1', doLabel: 'Ask & save for me', core: true
+  },
+  {
+    act: 'Step 1 · Ask',
+    title: 'Bring in the payment facts',
+    body: 'Good decisions need real constraints. Import the payment provider\'s capabilities so they sit right next to your research.',
+    manual: 'On the Research page, click "🔌 Import API docs".',
+    do: 'importGateway', doLabel: 'Import it for me', core: true
+  },
+  {
+    act: 'Step 2 · Plan',
+    title: 'Turn the research into a plan (BRD)',
+    body: 'A BRD is just the plan for the feature. Create one, add the three things it must do, name who signs off, and tick both research notes so the plan is built on what you learned.',
+    copies: [
+      { label: 'BRD title', text: 'Offer monthly premium payment (EMI)' },
+      { label: 'Requirement 1', text: 'Offer a monthly EMI payment option alongside annual at quote and checkout' },
+      { label: 'Requirement 2', text: 'Compute an interest-free instalment schedule from the annual premium' },
+      { label: 'Requirement 3', text: 'Reflect the selected payment plan on the review screen and proposal PDF' },
+      { label: 'Stakeholders', text: 'Underwriting, Payments, D2C Journey PM' }
+    ],
+    do: 'fillBrd', doLabel: 'Write the plan for me', core: true
+  },
+  {
+    act: 'Step 2 · Plan',
+    title: 'Let Feasly check it, then save v1',
+    body: 'Click "✦ Check completeness". Feasly reviews the plan like a teammate and spots that the success measure is missing. Add it, then save the plan as version 1.',
+    copies: [
+      { label: 'Success criteria', text: 'EMI adoption ≥20% of new policies in the first quarter; no rise in the payment-default rate.' },
+      { label: 'Version note', text: 'Initial draft from EMI research' }
+    ],
+    do: 'completeAndSaveV1', doLabel: 'Finish & save v1 for me', core: true
+  },
+  {
+    act: 'Step 3 · Build',
+    title: 'Generate the design note',
+    body: 'Click "⚡ Generate PDN". Feasly checks your plan against the live code again and writes a design note — with an evidence table and a link back to exactly which plan version and research it came from.',
+    do: 'generatePdn', doLabel: 'Generate it for me', core: true
+  },
+  {
+    act: 'Step 3 · Build',
+    title: 'Generate the whole delivery plan',
+    body: 'Click "⚡ Generate delivery chain". Epics, user stories, detailed requirements and test cases all appear at once — each one linked back to the design note.',
+    watch: 'The sidebar fills up: 2 epics, 5 stories, 9 requirements, 10 test cases — from one click.',
+    do: 'generateChain', doLabel: 'Generate it for me', core: true
+  },
+  {
+    act: 'Step 3 · Build',
+    title: 'See how it all connects',
+    body: 'Open any Test Case and look at the "Upstream" panel on the right. It traces the whole line: test → requirement → story → epic → design note → plan → the original research. Nothing floats loose.',
+    do: 'gotoTest', doLabel: 'Take me there', core: true
+  },
+  {
+    act: 'Step 3 · Build',
+    title: 'See the project as a map',
+    body: 'Open the Knowledge Graph and click the plan (BRD) box. This is the whole project as connected knowledge — not a pile of separate files.',
+    do: 'gotoGraph', doLabel: 'Show me the map', core: true
+  },
+  {
+    act: 'Step 4 · Change',
+    title: 'Now the requirement changes',
+    body: 'This is the part that breaks a normal chat-and-document workflow. Open Conversations, start a new one, and ask Feasly how to handle missed payments. It answers using the payment facts you imported earlier — then save that answer.',
+    copies: [{ label: 'Question to ask', text: PROMPT_2 }],
+    do: 'askConversation2', doLabel: 'Ask & save for me', core: true
+  },
+  {
+    act: 'Step 4 · Change',
+    title: 'Add the new rule and save v2',
+    body: 'Open the plan again, add a fourth requirement for handling missed payments, and save it as version 2.',
+    copies: [
+      { label: 'Requirement 4', text: 'Define default handling: two consecutive missed instalments pause the policy pending payment' },
+      { label: 'Version note', text: 'Added default handling after underwriting review' }
+    ],
+    do: 'addReq4SaveV2', doLabel: 'Update the plan for me', core: true
+  },
+  {
+    act: 'Step 4 · Change',
+    title: 'Watch everything notice the change',
+    body: 'Open Test Cases. Every single one now says "upstream changed". You edited one sentence — and the entire plan knew instantly. Nobody had to chase anyone down.',
+    do: 'gotoTest', doLabel: 'Show me the flagged tests', core: true
+  },
+  {
+    act: 'Step 4 · Change',
+    title: 'Regenerate — and watch the plan grow',
+    body: 'Open the design note and click "Regenerate". The warnings clear everywhere, and the plan grows to cover the new rule: a new story about pausing the policy arrives with its own requirements and tests.',
+    watch: 'Stories 5→6, requirements 9→12, tests 10→13 — and nothing left flagged.',
+    do: 'regeneratePdn', doLabel: 'Regenerate for me', core: true
+  },
+  {
+    act: 'Step 5 · Real AI (optional)',
+    title: 'Switch to a real AI on this computer',
+    body: 'Everything so far used Feasly\'s built-in offline brain. If you have Ollama running on this machine, you can switch to a real language model. Open Settings → Model Hub, detect it, and set it active — the "temperature" is kept low so it stays factual.',
+    watch: 'This step needs Ollama running locally. If you don\'t have it, just skip ahead — the demo above is complete on its own.',
+    do: 'detectLocal', doLabel: 'Detect & switch for me'
+  },
+  {
+    act: 'Step 5 · Real AI (optional)',
+    title: 'Ask the real model a question',
+    body: 'Go to Research and ask this. The first question quietly turns every document and code file into numbers it can search, then the local model answers — showing chips for exactly which sources it used.',
+    copies: [{ label: 'Question to ask', text: LOCAL_Q }],
+    do: 'gotoResearch', doLabel: 'Take me to Research'
+  },
+  {
+    act: 'Step 5 · Real AI (optional)',
+    title: 'See the AI\'s memory as a map',
+    body: 'Open the Semantic Map. Every dot is a document or piece of code turned into numbers. Dots that mean similar things sit close together. Click the plan\'s dot to see its nearest neighbours.',
+    do: 'gotoMap', doLabel: 'Show me the map'
+  },
+  {
+    act: 'Done',
+    title: 'That\'s the whole idea',
+    body: 'Feasly grounds every answer in real code, and turns each answer into a linked, versioned document — so when one thing changes, everything downstream knows. That\'s the difference from chatting into a document that forgets what you told it.'
+  }
 ];
 
 export default function DemoCoach() {
+  const nav = useNavigate();
+  const { token } = useWorkspace();
   const [state, setState] = useState(read);
   const [copied, setCopied] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [playing, setPlaying] = useState(false);
+  const stopRef = useRef(false);
 
   useEffect(() => {
     const sync = () => setState(read());
@@ -68,14 +180,44 @@ export default function DemoCoach() {
   if (!state?.on) return null;
   const i = Math.min(state.i, STEPS.length - 1);
   const step = STEPS[i];
-  const go = (di) => write({ ...state, i: Math.max(0, Math.min(STEPS.length - 1, i + di)) });
-  const end = () => write({ on: false, i: 0, min: false });
+  const setStep = (idx) => write({ ...state, i: Math.max(0, Math.min(STEPS.length - 1, idx)) });
+  const go = (di) => setStep(i + di);
+  const end = () => { stopRef.current = true; write({ on: false, i: 0, min: false }); };
   const copy = (label, text) => { navigator.clipboard.writeText(text); setCopied(label); setTimeout(() => setCopied(''), 1400); };
+
+  // Run one step's action, then advance.
+  const doStep = async () => {
+    if (!step.do || busy) return;
+    setBusy(true); setErr('');
+    try {
+      await ACTIONS[step.do]({ token, nav });
+      setBusy(false);
+      setTimeout(() => go(1), 350);
+    } catch (e) { setErr(e.message || 'Something went wrong.'); setBusy(false); }
+  };
+
+  // Auto-play every core step (Acts 1–4) with a short pause between each so
+  // the viewer can watch the workspace fill in.
+  const autoPlay = async () => {
+    if (playing) { stopRef.current = true; return; }
+    setErr(''); setPlaying(true); stopRef.current = false;
+    const coreIdx = STEPS.map((s, idx) => (s.core ? idx : -1)).filter((x) => x >= 0);
+    try {
+      for (const idx of coreIdx) {
+        if (stopRef.current) break;
+        setStep(idx);
+        await new Promise((r) => setTimeout(r, 550));
+        await ACTIONS[STEPS[idx].do]({ token, nav });
+        await new Promise((r) => setTimeout(r, 650));
+      }
+    } catch (e) { setErr(e.message || 'Auto-play stopped.'); }
+    setPlaying(false);
+  };
 
   if (state.min) {
     return (
       <button className="coachmin" onClick={() => write({ ...state, min: false })}>
-        🎬 Demo · step {i + 1}/{STEPS.length}
+        🎬 Guided demo · {i + 1}/{STEPS.length}{playing ? ' · playing…' : ''}
       </button>
     );
   }
@@ -83,14 +225,21 @@ export default function DemoCoach() {
   return (
     <div className="coach">
       <div className="coachhead">
-        <span className="coachact">{step.act}</span>
+        <span className="coachact">🎬 {step.act}</span>
         <span className="coachops">
+          <button className={'coachplay' + (playing ? ' on' : '')} onClick={autoPlay} title="Let Feasly run the whole demo">
+            {playing ? '⏸ Stop' : '▶ Auto-play'}
+          </button>
           <button title="Minimize" onClick={() => write({ ...state, min: true })}>—</button>
-          <button title="End the guided demo" onClick={end}>✕</button>
+          <button title="Exit the guided demo" onClick={end}>✕</button>
         </span>
       </div>
+
       <h4>{step.title}</h4>
       <p>{step.body}</p>
+      {step.manual && <p className="coachmanual">👉 {step.manual}</p>}
+      {step.watch && <p className="coachwatch">✨ {step.watch}</p>}
+
       {step.copies?.map((c) => (
         <div key={c.label} className="coachcopy">
           <span className="coachcopylabel">{c.label}</span>
@@ -98,11 +247,19 @@ export default function DemoCoach() {
           <button onClick={() => copy(c.label, c.text)}>{copied === c.label ? 'Copied ✓' : 'Copy'}</button>
         </div>
       ))}
+
+      {step.do && (
+        <button className="coachdo" disabled={busy || playing} onClick={doStep}>
+          {busy ? 'Working…' : `✨ ${step.doLabel}`}
+        </button>
+      )}
+      {err && <p className="coacherr">{err}</p>}
+
       <div className="coachfoot">
-        <button className="linkbtn" disabled={i === 0} onClick={() => go(-1)}>← Back</button>
-        <span className="coachprog">Step {i + 1} / {STEPS.length}</span>
+        <button className="linkbtn" disabled={i === 0 || playing} onClick={() => go(-1)}>← Back</button>
+        <span className="coachprog">{i + 1} / {STEPS.length}</span>
         {i < STEPS.length - 1
-          ? <button className="coachnext" onClick={() => go(1)}>Next →</button>
+          ? <button className="coachnext" disabled={playing} onClick={() => go(1)}>Next →</button>
           : <button className="coachnext" onClick={end}>Finish 🎉</button>}
       </div>
     </div>
