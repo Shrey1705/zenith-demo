@@ -5,7 +5,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useWorkspace } from './AiPortal';
 import { askFeasly } from './brain';
-import { TYPE_ICON } from './rag';
+import { I, TypeIcon } from './icons';
 import { useWS, mutate, uid, now, titleFrom, findProject, shortDate, usingLocal, activeModelLabel } from './workspace';
 
 export default function ConversationsPage() {
@@ -97,14 +97,14 @@ export default function ConversationsPage() {
               {m.content}
               {m.role === 'assistant' && m.sources?.length > 0 && (
                 <div className="srcchips">
-                  <span className="srclbl">Grounded on:</span>
-                  {m.sources.map((s, j) => <span key={j} className="srcchip">{TYPE_ICON(s.type)} {s.title}</span>)}
+                  <span className="srclbl">Grounded on</span>
+                  {m.sources.map((s, j) => <span key={j} className="srcchip"><TypeIcon type={s.type} s={11} /> {s.title}</span>)}
                 </div>
               )}
-              {m.role === 'assistant' && m.engine === 'local' && <div className="chatengine">🖥 {activeModelLabel(ws)}</div>}
+              {m.role === 'assistant' && m.engine === 'local' && <div className="chatengine"><I n="cpu" s={11} /> {activeModelLabel(ws)}</div>}
               {m.role === 'assistant' && i > 0 && (
                 m.savedAsResearchId
-                  ? <button className="convchip" onClick={() => nav(`/ai/p/${pid}/research/${m.savedAsResearchId}`)}>🔍 Open in Research →</button>
+                  ? <button className="convchip" onClick={() => nav(`/ai/p/${pid}/research/${m.savedAsResearchId}`)}>Open in Research →</button>
                   : <button className="convchip ghost" onClick={() => saveToResearch(i)}>Save to Research</button>
               )}
             </div>

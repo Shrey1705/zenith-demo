@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from './AiPortal';
+import { I } from './icons';
 import { ACTIONS, PROMPT_1, PROMPT_2 } from './demoActions';
 
 const KEY = 'feasly-coach-v1';
@@ -30,14 +31,14 @@ const STEPS = [
     act: 'Setup',
     title: 'Start from a clean slate',
     body: 'If this demo has been run in this browser before, clear it so we start fresh. Nothing valuable is lost — the two sample projects come right back.',
-    manual: 'On the Home screen, click "↺ Reset demo data" at the bottom.',
+    manual: 'In the sidebar footer, click "Reset demo data".',
     do: 'reset', doLabel: 'Reset for me'
   },
   {
     act: 'Step 1 · Ask',
     title: 'Create a project',
     body: 'Every feature begins as a question. Make a project to hold everything about monthly payments.',
-    manual: 'On Home, type the name into "New project…" and click Create.',
+    manual: 'In the sidebar, press + next to "Projects" and type the name.',
     copies: [{ label: 'Project name', text: 'EMI & Payment Flexibility' }],
     do: 'createProject', doLabel: 'Create it for me', core: true
   },
@@ -53,7 +54,7 @@ const STEPS = [
     act: 'Step 1 · Ask',
     title: 'Bring in the payment facts',
     body: 'Good decisions need real constraints. Import the payment provider\'s capabilities so they sit right next to your research.',
-    manual: 'On the Research page, click "🔌 Import API docs".',
+    manual: 'On the Research page, click "Import API docs".',
     do: 'importGateway', doLabel: 'Import it for me', core: true
   },
   {
@@ -72,7 +73,7 @@ const STEPS = [
   {
     act: 'Step 2 · Plan',
     title: 'Let Feasly check it, then save v1',
-    body: 'Click "✦ Check completeness". Feasly reviews the plan like a teammate and spots that the success measure is missing. Add it, then save the plan as version 1.',
+    body: 'Click "Check completeness". Feasly reviews the plan like a teammate and spots that the success measure is missing. Add it, then save the plan as version 1.',
     copies: [
       { label: 'Success criteria', text: 'EMI adoption ≥20% of new policies in the first quarter; no rise in the payment-default rate.' },
       { label: 'Version note', text: 'Initial draft from EMI research' }
@@ -82,13 +83,13 @@ const STEPS = [
   {
     act: 'Step 3 · Build',
     title: 'Generate the design note',
-    body: 'Click "⚡ Generate PDN". Feasly checks your plan against the live code again and writes a design note — with an evidence table and a link back to exactly which plan version and research it came from.',
+    body: 'Click "Generate PDN". Feasly checks your plan against the live code again and writes a design note — with an evidence table and a link back to exactly which plan version and research it came from.',
     do: 'generatePdn', doLabel: 'Generate it for me', core: true
   },
   {
     act: 'Step 3 · Build',
     title: 'Generate the whole delivery plan',
-    body: 'Click "⚡ Generate delivery chain". Epics, user stories, detailed requirements and test cases all appear at once — each one linked back to the design note.',
+    body: 'Click "Generate delivery chain". Epics, user stories, detailed requirements and test cases all appear at once — each one linked back to the design note.',
     watch: 'The sidebar fills up: 2 epics, 5 stories, 9 requirements, 10 test cases — from one click.',
     do: 'generateChain', doLabel: 'Generate it for me', core: true
   },
@@ -217,7 +218,7 @@ export default function DemoCoach() {
   if (state.min) {
     return (
       <button className="coachmin" onClick={() => write({ ...state, min: false })}>
-        🎬 Guided demo · {i + 1}/{STEPS.length}{playing ? ' · playing…' : ''}
+        <I n="play" s={12} /> Guided demo · {i + 1}/{STEPS.length}{playing ? ' · playing…' : ''}
       </button>
     );
   }
@@ -225,20 +226,20 @@ export default function DemoCoach() {
   return (
     <div className="coach">
       <div className="coachhead">
-        <span className="coachact">🎬 {step.act}</span>
+        <span className="coachact"><I n="sparkle" s={11} /> {step.act}</span>
         <span className="coachops">
           <button className={'coachplay' + (playing ? ' on' : '')} onClick={autoPlay} title="Let Feasly run the whole demo">
-            {playing ? '⏸ Stop' : '▶ Auto-play'}
+            <I n={playing ? 'pause' : 'play'} s={11} /> {playing ? 'Stop' : 'Auto-play'}
           </button>
           <button title="Minimize" onClick={() => write({ ...state, min: true })}>—</button>
-          <button title="Exit the guided demo" onClick={end}>✕</button>
+          <button title="Exit the guided demo" onClick={end}><I n="x" s={13} /></button>
         </span>
       </div>
 
       <h4>{step.title}</h4>
       <p>{step.body}</p>
-      {step.manual && <p className="coachmanual">👉 {step.manual}</p>}
-      {step.watch && <p className="coachwatch">✨ {step.watch}</p>}
+      {step.manual && <p className="coachmanual">{step.manual}</p>}
+      {step.watch && <p className="coachwatch">{step.watch}</p>}
 
       {step.copies?.map((c) => (
         <div key={c.label} className="coachcopy">
@@ -250,7 +251,7 @@ export default function DemoCoach() {
 
       {step.do && (
         <button className="coachdo" disabled={busy || playing} onClick={doStep}>
-          {busy ? 'Working…' : `✨ ${step.doLabel}`}
+          {busy ? 'Working…' : <><I n="sparkle" s={13} /> {step.doLabel}</>}
         </button>
       )}
       {err && <p className="coacherr">{err}</p>}

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
+import { I } from './icons';
 import { useWS, mutate, uid, now, findProject, shortDate } from './workspace';
 
 export default function ReleasesPage() {
@@ -37,7 +38,7 @@ export default function ReleasesPage() {
           return (
             <div key={r.id} className="krow static">
               <span className="krowmain">
-                <span className="krowtitle">🚀 {r.name}</span>
+                <span className="krowtitle"><I n="rocket" s={14} style={{ color: 'var(--p)' }} /> {r.name}</span>
                 <span className="krowmeta">{r.date} · {stories.length} stories · {pts} points</span>
                 <span className="relstories">
                   {stories.map((s) => (

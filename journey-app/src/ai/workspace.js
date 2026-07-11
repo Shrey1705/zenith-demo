@@ -34,13 +34,27 @@ export function mutate(fn) {
   subs.forEach((cb) => cb());
 }
 // Rehearsal helper: wipe the workspace back to the seeded demo state
-// without a reload (login token survives).
+// without a reload (login token survives). Personal setup — theme colors
+// and the local-model connection — deliberately survives a demo reset.
 export function resetWS() {
+  const keep = cache ? { theme: cache.theme, local: cache.local, activeModelId: cache.activeModelId } : null;
   try { localStorage.removeItem(KEY); } catch { /* ignore */ }
   cache = null;
   read();
+  if (keep) {
+    cache = {
+      ...cache,
+      ...(keep.theme ? { theme: keep.theme } : {}),
+      ...(keep.local ? { local: keep.local } : {}),
+      activeModelId: keep.activeModelId ?? cache.activeModelId
+    };
+    persist();
+  }
   subs.forEach((cb) => cb());
 }
+
+// ---- appearance: user-tunable primary / secondary / tertiary ----
+export const DEFAULT_THEME = { primary: '#0071e3', secondary: '#5e5ce6', tertiary: '#30b0c7' };
 
 export const uid = () => Math.random().toString(36).slice(2, 9);
 export const now = () => new Date().toISOString();
@@ -320,6 +334,8 @@ function seedState() {
     models: [],           // BYO cloud-key connections (Settings \u2192 Model Hub)
     activeModelId: null,  // null = demo brain \u00b7 'local' = Ollama via ws.local
     local: { endpoint: 'http://localhost:11434', chatModel: '', embedModel: '', temperature: 0.1 },
+    theme: { ...DEFAULT_THEME },
+    homeChat: { messages: [] },   // the workspace-level chat on the landing page
     projects: [
       {
         id: 'proj-si', name: 'High-Value Cover Expansion',

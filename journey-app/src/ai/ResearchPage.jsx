@@ -5,11 +5,11 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useWorkspace } from './AiPortal';
 import { askFeasly } from './brain';
-import { TYPE_ICON } from './rag';
+import { I, TypeIcon } from './icons';
 import { useWS, mutate, uid, now, titleFrom, findProject, findDoc, addDoc, updateDoc, removeDoc, shortDate, usingLocal, activeModelLabel } from './workspace';
 import TraceRail from './TraceRail';
 
-const SOURCE_LABEL = { note: '✍️ Manual note', ai: '✦ Saved AI answer', upload: '📎 Uploaded file', confluence: '🌐 Confluence import', api: '🔌 API docs import' };
+const SOURCE_LABEL = { note: 'Manual note', ai: 'Saved AI answer', upload: 'Uploaded file', confluence: 'Confluence import', api: 'API docs import' };
 
 export default function ResearchPage() {
   const { pid, docId } = useParams();
@@ -71,11 +71,11 @@ export default function ResearchPage() {
           <pre className="prose">{answer.a}</pre>
           {answer.sources?.length > 0 && (
             <div className="srcchips">
-              <span className="srclbl">Grounded on:</span>
-              {answer.sources.map((s, j) => <span key={j} className="srcchip">{TYPE_ICON(s.type)} {s.title}</span>)}
+              <span className="srclbl">Grounded on</span>
+              {answer.sources.map((s, j) => <span key={j} className="srcchip"><TypeIcon type={s.type} s={11} /> {s.title}</span>)}
             </div>
           )}
-          {answer.engine === 'local' && <p className="chatengine">🖥 {activeModelLabel(ws)}</p>}
+          {answer.engine === 'local' && <p className="chatengine"><I n="cpu" s={11} /> {activeModelLabel(ws)}</p>}
           <span>
             <button className="linkbtn gold" onClick={saveAnswer}>Save as research document</button>
             <button className="linkbtn" onClick={() => setAnswer(null)}>Discard</button>
@@ -84,10 +84,10 @@ export default function ResearchPage() {
       )}
 
       <div className="resadders">
-        <button onClick={newNote}>✍️ New note</button>
-        <label className="resupload">📎 Upload file<input type="file" style={{ display: 'none' }} onChange={(e) => uploadFile(e.target.files)} /></label>
-        <button onClick={importConfluence}>🌐 Import from Confluence</button>
-        <button onClick={importApi}>🔌 Import API docs</button>
+        <button onClick={newNote}><I n="pen" s={13} /> New note</button>
+        <label className="resupload"><I n="upload" s={13} /> Upload file<input type="file" style={{ display: 'none' }} onChange={(e) => uploadFile(e.target.files)} /></label>
+        <button onClick={importConfluence}><I n="globe" s={13} /> Import from Confluence</button>
+        <button onClick={importApi}><I n="plug" s={13} /> Import API docs</button>
       </div>
 
       <div className="klist">
@@ -111,14 +111,14 @@ function ResearchDoc({ project, doc, pid }) {
 
   const actions = [
     {
-      label: '✦ Summarize', done: doc.content.startsWith('TL;DR'),
+      label: 'Summarize', done: doc.content.startsWith('TL;DR'),
       disabled: doc.content.startsWith('TL;DR'),
       run: () => {
         const firstLines = doc.content.split(/\n+/).filter((l) => l.trim().length > 30).slice(0, 2).join(' ');
         patch({ content: `TL;DR — ${firstLines.slice(0, 220)}\n\n${doc.content}` });
       }
     },
-    { label: '🗑 Delete note', run: () => { mutate((w) => removeDoc(w, pid, 'research', doc.id)); nav(`/ai/p/${pid}/research`); } }
+    { label: 'Delete note', run: () => { mutate((w) => removeDoc(w, pid, 'research', doc.id)); nav(`/ai/p/${pid}/research`); } }
   ];
 
   return (

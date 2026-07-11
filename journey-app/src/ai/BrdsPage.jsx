@@ -9,6 +9,7 @@ import {
   useWS, mutate, uid, now, findProject, findDoc, updateDoc, addDoc,
   childrenOf, pdnFromAnalysis, brdCompletenessReview, shortDate
 } from './workspace';
+import { TypeIcon } from './icons';
 import TraceRail from './TraceRail';
 
 const STATUSES = ['Draft', 'In review', 'Approved'];
@@ -91,8 +92,8 @@ export default function BrdsPage() {
   };
 
   const actions = [
-    { label: '✦ Check completeness', run: () => setReview(brdCompletenessReview(doc)) },
-    { label: busy ? 'Scanning connected systems…' : '⚡ Generate PDN', disabled: busy, hint: `Grounds v${currentV} + linked research against the codebase`, run: generatePdn }
+    { label: 'Check completeness', run: () => setReview(brdCompletenessReview(doc)) },
+    { label: busy ? 'Scanning connected systems…' : 'Generate PDN', disabled: busy, hint: `Grounds v${currentV} + linked research against the codebase`, run: generatePdn }
   ];
 
   const versionsRail = (
@@ -120,7 +121,7 @@ export default function BrdsPage() {
       <button className="linkbtn" onClick={() => nav(`/ai/p/${pid}/brds`)}>← BRDs</button>
       <div className="docpane">
         <article className="docbody">
-          <p className="doctype">📋 BRD · {currentV ? `v${currentV}` : 'draft — no versions saved yet'}</p>
+          <p className="doctype"><TypeIcon type="brd" s={13} /> BRD · {currentV ? `v${currentV}` : 'draft — no versions saved yet'}</p>
           <h1>{doc.title}</h1>
           <div className="brdmeta">
             <label>Owner <input value={doc.owner} onChange={(e) => patch({ owner: e.target.value })} /></label>
@@ -144,7 +145,7 @@ export default function BrdsPage() {
 
           {review && (
             <div className="aireview">
-              <b>✦ Completeness review</b>
+              <b>Completeness review</b>
               <ul>{review.map((f, i) => <li key={i}>{f}</li>)}</ul>
               <button className="linkbtn" onClick={() => setReview(null)}>Dismiss</button>
             </div>

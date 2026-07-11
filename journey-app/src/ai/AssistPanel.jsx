@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useWorkspace } from './AiPortal';
 import { askFeasly } from './brain';
-import { TYPE_ICON } from './rag';
+import { I, TypeIcon } from './icons';
 import { useWS, mutate, uid, now, titleFrom, usingLocal } from './workspace';
 
 export default function AssistPanel({ project }) {
@@ -62,14 +62,14 @@ export default function AssistPanel({ project }) {
   };
 
   if (!open) {
-    return <button className="assistfab" onClick={() => setOpen(true)}>✦ Ask Feasly</button>;
+    return <button className="assistfab" onClick={() => setOpen(true)}><I n="sparkle" s={14} /> Ask Feasly</button>;
   }
   return (
     <div className="assistpanel">
       <div className="assisthead">
-        <b>✦ Ask Feasly</b>
+        <b><I n="sparkle" s={13} style={{ color: 'var(--p)' }} /> Ask Feasly</b>
         <span className="assisthint">{project.name}</span>
-        <button onClick={() => setOpen(false)} aria-label="Close">✕</button>
+        <button onClick={() => setOpen(false)} aria-label="Close"><I n="x" s={14} /></button>
       </div>
       <div className="assistlog">
         {(conv?.messages || [{ role: 'assistant', content: 'Ask anything — I read this tenant\'s code, contracts and docs. Answers can be saved to Research.' }]).map((m, i) => (
@@ -77,7 +77,7 @@ export default function AssistPanel({ project }) {
             {m.content}
             {m.role === 'assistant' && m.sources?.length > 0 && (
               <div className="srcchips">
-                {m.sources.slice(0, 3).map((s, j) => <span key={j} className="srcchip">{TYPE_ICON(s.type)} {s.title}</span>)}
+                {m.sources.slice(0, 3).map((s, j) => <span key={j} className="srcchip"><TypeIcon type={s.type} s={11} /> {s.title}</span>)}
               </div>
             )}
             {m.role === 'assistant' && conv && (

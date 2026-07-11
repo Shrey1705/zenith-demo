@@ -7,7 +7,10 @@ import { askLocal } from './rag';
 import { usingLocal } from './workspace';
 
 export async function askFeasly({ token, ws, project, messages, onProgress }) {
-  if (usingLocal(ws)) {
+  // Local RAG needs a project corpus to ground on; without one (e.g. the
+  // workspace-level home chat before any project exists) fall through to
+  // the deterministic backend.
+  if (usingLocal(ws) && project) {
     const question = messages[messages.length - 1].content;
     return askLocal({ question, project, token, local: ws.local, onProgress });
   }

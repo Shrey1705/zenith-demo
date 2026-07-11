@@ -1,12 +1,13 @@
-// Feasly — an AI product-management workspace. Login + workspace home +
-// project shell. Philosophy: navigate knowledge, not folders. The sidebar
-// is the artifact chain; the centre is always a document; AI is embedded
-// everywhere and additionally reachable through a floating assist panel.
+// Feasly — an AI product-management workspace, in a light "liquid glass"
+// design language. One persistent shell: a floating translucent sidebar
+// where everything nests (Chat, Projects → Knowledge/Delivery/Project,
+// Recent), and a chat-first landing. Theme colors are user tokens.
 import React, { useState, createContext, useContext } from 'react';
-import { useLocation, Routes, Route, NavLink, Navigate, useParams, useNavigate } from 'react-router-dom';
+import { useLocation, Routes, Route, NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { ai } from '../lib/api';
-import { useWS, findProject, TYPES } from './workspace';
-import HomePage from './HomePage';
+import { useWS, mutate, resetWS, uid, now, findProject, DEFAULT_THEME, TYPES, ROUTE_OF } from './workspace';
+import { I, TypeIcon } from './icons';
+import ChatHome from './ChatHome';
 import ResearchPage from './ResearchPage';
 import ConversationsPage from './ConversationsPage';
 import LibraryPage from './LibraryPage';
@@ -22,19 +23,30 @@ import DemoCoach, { startCoach } from './DemoCoach';
 const WorkspaceContext = createContext(null);
 export const useWorkspace = () => useContext(WorkspaceContext);
 
+// Theme variables flow from the store so Appearance changes apply live.
+function themeVars(ws) {
+  const t = ws.theme || DEFAULT_THEME;
+  return { '--p': t.primary, '--s': t.secondary, '--t': t.tertiary };
+}
+
 export default function AiPortal() {
   const [token, setToken] = useState(null);
+  const ws = useWS();
   const fromJourney = useLocation().search.includes('from=journey');
-  if (!token) return <Login onToken={setToken} autoLogin={fromJourney} />;
+  if (!token) return <div className="fs-root" style={themeVars(ws)}><Login onToken={setToken} autoLogin={fromJourney} /></div>;
   return (
-    <WorkspaceContext.Provider value={{ token, logout: () => setToken(null) }}>
-      <DemoCoach />
-      <Routes>
-        <Route index element={<HomePage />} />
-        <Route path="p/:pid/*" element={<ProjectShell />} />
-        <Route path="*" element={<Navigate to="" replace />} />
-      </Routes>
-    </WorkspaceContext.Provider>
+    <div className="fs-root" style={themeVars(ws)}>
+      <WorkspaceContext.Provider value={{ token, logout: () => setToken(null) }}>
+        <DemoCoach />
+        <Routes>
+          <Route path="/" element={<Shell />}>
+            <Route index element={<ChatHome />} />
+            <Route path="p/:pid/*" element={<ProjectRoutes />} />
+            <Route path="*" element={<Navigate to="" replace />} />
+          </Route>
+        </Routes>
+      </WorkspaceContext.Provider>
+    </div>
   );
 }
 
@@ -47,110 +59,196 @@ function Login({ onToken, autoLogin }) {
   };
   React.useEffect(() => { if (autoLogin) go('pm', 'zenith@123'); /* eslint-disable-line */ }, [autoLogin]);
   return (
-    <div className="page narrow dark">
-      <div>
-        <h2>Feasly <span className="accent">· PM workspace</span></h2>
-        <p className="hint">Research, BRDs, PDNs, epics, stories and test cases — interconnected, versioned, and traceable back to the business question. Connected to the Zenith showcase tenant.</p>
+    <div className="fs-loginwrap">
+      <div className="fs-login">
+        <div className="fs-loginbrand"><I n="sparkle" s={22} style={{ color: 'var(--p)' }} /> <b>feasly</b></div>
+        <h2>PM workspace</h2>
+        <p className="hint">Research, BRDs, PDNs, stories and tests — interconnected, versioned, and traceable back to the business question. Connected to the Zenith showcase tenant.</p>
         <label>Username</label><input value={u} onChange={e => setU(e.target.value)} />
         <label>Password</label><input type="password" value={p} onChange={e => setP(e.target.value)} onKeyDown={e => e.key === 'Enter' && go()} />
         {err && <p className="error">{err}</p>}
-        <button className="btn" onClick={() => go()}>Login</button>
+        <button className="btn" onClick={() => go()}>Log in</button>
         <p className="hint">Demo credentials prefilled: <code>pm / zenith@123</code></p>
       </div>
     </div>
   );
 }
 
-// Sidebar groups — the artifact chain reads top-to-bottom like the workflow.
-const NAV = [
-  { group: 'Knowledge', items: [
-    { to: 'research', icon: TYPES.research.icon, label: 'Research', count: (p) => p.research.length },
-    { to: 'conversations', icon: '💬', label: 'Conversations', count: (p) => p.conversations.length },
-    { to: 'library', icon: '🗄', label: 'Library' }
-  ] },
-  { group: 'Delivery', items: [
-    { to: 'brds', icon: TYPES.brd.icon, label: 'BRDs', count: (p) => p.brds.length },
-    { to: 'pdns', icon: TYPES.pdn.icon, label: 'PDNs', count: (p) => p.pdns.length },
-    { to: 'epics', icon: TYPES.epic.icon, label: 'Epics', count: (p) => p.epics.length },
-    { to: 'stories', icon: TYPES.story.icon, label: 'User Stories', count: (p) => p.stories.length },
-    { to: 'frs', icon: TYPES.fr.icon, label: 'Functional Reqs', count: (p) => p.frs.length },
-    { to: 'tests', icon: TYPES.test.icon, label: 'Test Cases', count: (p) => p.tests.length }
-  ] },
-  { group: 'Project', items: [
-    { to: 'graph', icon: '🕸', label: 'Knowledge Graph' },
-    { to: 'map', icon: '🌌', label: 'Semantic Map' },
-    { to: 'releases', icon: '🚀', label: 'Releases', count: (p) => p.releases.length },
-    { to: 'settings', icon: '⚙️', label: 'Settings' }
-  ] }
-];
-
-function ProjectShell() {
-  const { pid } = useParams();
-  const nav = useNavigate();
+// ---- shared shell: floating sidebar + content pane ----
+function Shell() {
   const ws = useWS();
-  const { logout } = useWorkspace();
+  const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const project = findProject(ws, pid);
-  if (!project) return <Navigate to="/ai" replace />;
+  const pid = location.pathname.match(/\/ai\/p\/([^/]+)/)?.[1] || null;
+  const project = pid ? findProject(ws, pid) : null;
 
   return (
     <div className="workspace">
-      <button className="ws-hamburger" onClick={() => setDrawerOpen(true)} aria-label="Open menu">☰</button>
+      <button className="ws-hamburger" onClick={() => setDrawerOpen(true)} aria-label="Open menu"><I n="chevronLeft" s={17} style={{ transform: 'rotate(180deg)' }} /></button>
       {drawerOpen && <div className="ws-backdrop" onClick={() => setDrawerOpen(false)} />}
-
-      <aside className={'ws-side' + (drawerOpen ? ' open' : '')}>
-        <div className="ws-sidetop">
-          <div className="ws-brand">feasly<span className="accent">.</span></div>
-          <button className="ws-drawerclose" onClick={() => setDrawerOpen(false)} aria-label="Close menu">✕</button>
-        </div>
-        <button className="ws-projname" onClick={() => nav('/ai')} title="Back to all projects">
-          <span className="ws-projback">←</span> {project.name}
-        </button>
-
-        {NAV.map((g) => (
-          <React.Fragment key={g.group}>
-            <div className="ws-grouplbl">{g.group}</div>
-            <nav className="ws-nav">
-              {g.items.map((item) => (
-                <NavLink key={item.to} to={item.to} onClick={() => setDrawerOpen(false)}
-                  className={({ isActive }) => 'ws-link' + (isActive ? ' on' : '')}>
-                  <span className="ws-icon">{item.icon}</span> {item.label}
-                  {item.count && <span className="ws-count">{item.count(project)}</span>}
-                </NavLink>
-              ))}
-            </nav>
-          </React.Fragment>
-        ))}
-
-        <div style={{ flex: 1 }} />
-        <div className="ws-foot">
-          <div className="ws-user"><span className="ws-avatar">PM</span> pm@zenith · demo</div>
-          <button className="linkbtn" onClick={startCoach}>🎬 Guided demo</button>
-          <button className="linkbtn" onClick={() => { logout(); nav('/ai'); }}>Log out</button>
-        </div>
-      </aside>
-
-      <main className="ws-main page dark">
-        <Routes>
-          <Route index element={<Navigate to="research" replace />} />
-          <Route path="research/:docId?" element={<ResearchPage />} />
-          <Route path="conversations/:convId?" element={<ConversationsPage />} />
-          <Route path="library" element={<LibraryPage />} />
-          <Route path="brds/:docId?" element={<BrdsPage />} />
-          <Route path="pdns/:docId?" element={<ArtifactPage type="pdn" />} />
-          <Route path="epics/:docId?" element={<ArtifactPage type="epic" />} />
-          <Route path="stories/:docId?" element={<ArtifactPage type="story" />} />
-          <Route path="frs/:docId?" element={<ArtifactPage type="fr" />} />
-          <Route path="tests/:docId?" element={<ArtifactPage type="test" />} />
-          <Route path="graph" element={<GraphPage />} />
-          <Route path="map" element={<SemanticMapPage />} />
-          <Route path="releases" element={<ReleasesPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="research" replace />} />
-        </Routes>
+      <Sidebar project={project} open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <main className="ws-main">
+        <Outlet />
       </main>
-
-      <AssistPanel project={project} />
+      {project && <AssistPanel project={project} />}
     </div>
+  );
+}
+
+function ProjectRoutes() {
+  const location = useLocation();
+  const ws = useWS();
+  const pid = location.pathname.match(/\/ai\/p\/([^/]+)/)?.[1];
+  if (!findProject(ws, pid)) return <Navigate to="/ai" replace />;
+  return (
+    <Routes>
+      <Route index element={<Navigate to="research" replace />} />
+      <Route path="research/:docId?" element={<ResearchPage />} />
+      <Route path="conversations/:convId?" element={<ConversationsPage />} />
+      <Route path="library" element={<LibraryPage />} />
+      <Route path="brds/:docId?" element={<BrdsPage />} />
+      <Route path="pdns/:docId?" element={<ArtifactPage type="pdn" />} />
+      <Route path="epics/:docId?" element={<ArtifactPage type="epic" />} />
+      <Route path="stories/:docId?" element={<ArtifactPage type="story" />} />
+      <Route path="frs/:docId?" element={<ArtifactPage type="fr" />} />
+      <Route path="tests/:docId?" element={<ArtifactPage type="test" />} />
+      <Route path="graph" element={<GraphPage />} />
+      <Route path="map" element={<SemanticMapPage />} />
+      <Route path="releases" element={<ReleasesPage />} />
+      <Route path="settings" element={<SettingsPage />} />
+      <Route path="*" element={<Navigate to="research" replace />} />
+    </Routes>
+  );
+}
+
+// ---- collapsible sidebar group ----
+const navState = () => { try { return JSON.parse(localStorage.getItem('fs-nav') || '{}'); } catch { return {}; } };
+function Group({ id, label, action, children, small }) {
+  const [open, setOpen] = useState(() => navState()[id] ?? true);
+  const toggle = () => {
+    const v = !open; setOpen(v);
+    try { const m = navState(); m[id] = v; localStorage.setItem('fs-nav', JSON.stringify(m)); } catch { /* ignore */ }
+  };
+  return (
+    <div className={'fs-group' + (small ? ' small' : '')}>
+      <div className="fs-grouphead">
+        <button className="fs-grouptoggle" onClick={toggle}>
+          <I n="chevronDown" s={11} className={open ? '' : 'closed'} /> <span>{label}</span>
+        </button>
+        {action}
+      </div>
+      {open && <div className="fs-groupbody">{children}</div>}
+    </div>
+  );
+}
+
+// The project's own tree — nested under the active project row.
+const PROJECT_NAV = [
+  { g: 'knowledge', label: 'Knowledge', items: [
+    { to: 'research', glyph: 'book', label: 'Research', count: (p) => p.research.length },
+    { to: 'conversations', glyph: 'message', label: 'Conversations', count: (p) => p.conversations.length },
+    { to: 'library', glyph: 'archive', label: 'Library' }
+  ] },
+  { g: 'delivery', label: 'Delivery', items: [
+    { to: 'brds', glyph: 'clipboard', label: 'BRDs', count: (p) => p.brds.length },
+    { to: 'pdns', glyph: 'file', label: 'PDNs', count: (p) => p.pdns.length },
+    { to: 'epics', glyph: 'layers', label: 'Epics', count: (p) => p.epics.length },
+    { to: 'stories', glyph: 'card', label: 'User Stories', count: (p) => p.stories.length },
+    { to: 'frs', glyph: 'checks', label: 'Functional Reqs', count: (p) => p.frs.length },
+    { to: 'tests', glyph: 'flask', label: 'Test Cases', count: (p) => p.tests.length }
+  ] },
+  { g: 'project', label: 'Project', items: [
+    { to: 'graph', glyph: 'network', label: 'Knowledge Graph' },
+    { to: 'map', glyph: 'scatter', label: 'Semantic Map' },
+    { to: 'releases', glyph: 'rocket', label: 'Releases', count: (p) => p.releases.length },
+    { to: 'settings', glyph: 'sliders', label: 'Settings' }
+  ] }
+];
+
+function Sidebar({ project, open, onClose }) {
+  const ws = useWS();
+  const nav = useNavigate();
+  const { logout } = useWorkspace();
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+
+  const createProject = () => {
+    if (!name.trim()) { setAdding(false); return; }
+    const p = { id: uid(), name: name.trim(), about: '', createdAt: now(), folders: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: [] };
+    mutate((w) => ({ ...w, projects: [p, ...w.projects] }));
+    setName(''); setAdding(false);
+    nav(`/ai/p/${p.id}/research`);
+  };
+
+  // Recent documents across every project, newest first.
+  const recent = ws.projects.flatMap((p) =>
+    Object.keys(TYPES).flatMap((t) => (p[TYPES[t].key] || []).map((d) => ({ p, t, d })))
+  ).sort((a, b) => (b.d.createdAt || '').localeCompare(a.d.createdAt || '')).slice(0, 5);
+
+  return (
+    <aside className={'ws-side' + (open ? ' open' : '')}>
+      <div className="ws-sidetop">
+        <NavLink to="/ai" end className="ws-brand"><I n="sparkle" s={17} style={{ color: 'var(--p)' }} /> feasly</NavLink>
+        <button className="ws-drawerclose" onClick={onClose} aria-label="Close menu"><I n="x" s={16} /></button>
+      </div>
+
+      <div className="fs-nav">
+        <NavLink to="/ai" end className={({ isActive }) => 'fs-link home' + (isActive ? ' on' : '')} onClick={onClose}>
+          <I n="message" s={15} /> Chat
+        </NavLink>
+
+        <Group id="projects" label="Projects"
+          action={<button className="fs-groupaction" title="New project" onClick={() => setAdding(true)}><I n="plus" s={13} /></button>}>
+          {adding && (
+            <div className="fs-newproj">
+              <input autoFocus value={name} placeholder="Project name…" onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') createProject(); if (e.key === 'Escape') setAdding(false); }}
+                onBlur={() => (name.trim() ? createProject() : setAdding(false))} />
+            </div>
+          )}
+          {ws.projects.map((p) => (
+            <div key={p.id}>
+              <button className={'fs-link' + (project?.id === p.id ? ' cur' : '')} onClick={() => { nav(`/ai/p/${p.id}/research`); }}>
+                <I n="folder" s={14} style={project?.id === p.id ? { color: 'var(--p)' } : undefined} />
+                <span className="fs-linklabel">{p.name}</span>
+              </button>
+              {project?.id === p.id && (
+                <div className="fs-tree">
+                  {PROJECT_NAV.map((g) => (
+                    <Group key={g.g} id={g.g} label={g.label} small>
+                      {g.items.map((item) => (
+                        <NavLink key={item.to} to={`/ai/p/${p.id}/${item.to}`} onClick={onClose}
+                          className={({ isActive }) => 'fs-link sub' + (isActive ? ' on' : '')}>
+                          <I n={item.glyph} s={14} />
+                          <span className="fs-linklabel">{item.label}</span>
+                          {item.count ? <span className="fs-count">{item.count(p)}</span> : null}
+                        </NavLink>
+                      ))}
+                    </Group>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </Group>
+
+        <Group id="recent" label="Recent">
+          {recent.map(({ p, t, d }) => (
+            <button key={t + d.id} className="fs-link" onClick={() => { nav(`/ai/p/${p.id}/${ROUTE_OF[t]}/${d.id}`); onClose(); }}>
+              <TypeIcon type={t} s={13} />
+              <span className="fs-linklabel">{d.title}</span>
+            </button>
+          ))}
+          {!recent.length && <p className="fs-empty">Documents you create appear here.</p>}
+        </Group>
+      </div>
+
+      <div className="ws-foot">
+        <div className="ws-user"><span className="ws-avatar">PM</span><span>pm@zenith · demo</span></div>
+        <button className="fs-footbtn" onClick={startCoach}><I n="play" s={12} /> Guided demo</button>
+        <button className="fs-footbtn" onClick={() => { if (window.confirm('Reset the workspace to its seeded demo state? Everything created in this browser is discarded.')) { resetWS(); nav('/ai'); } }}><I n="refresh" s={12} /> Reset demo data</button>
+        <button className="fs-footbtn" onClick={() => { logout(); nav('/ai'); }}><I n="logout" s={12} /> Log out</button>
+      </div>
+    </aside>
   );
 }

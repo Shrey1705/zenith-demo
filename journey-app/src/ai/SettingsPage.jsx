@@ -1,12 +1,18 @@
-// Settings — connected systems, model routing and API access in one tabbed
-// screen. Connectors are the ground truth behind every verdict and PDN.
+// Settings — connected systems, model routing, appearance and API access in
+// one tabbed screen. Connectors are the ground truth behind every verdict.
 import React, { useState, useEffect } from 'react';
 import { ai } from '../lib/api';
 import { detectOllama } from '../lib/ollama';
 import { clearIndex } from './rag';
-import { useWS, mutate, uid, usingLocal } from './workspace';
+import { I } from './icons';
+import { useWS, mutate, uid, usingLocal, DEFAULT_THEME } from './workspace';
 
-const TABS = ['Connected Systems', 'Model Hub', 'API & Webhooks'];
+const TABS = [
+  { id: 'Connected Systems', glyph: 'plug' },
+  { id: 'Model Hub', glyph: 'cpu' },
+  { id: 'Appearance', glyph: 'sliders' },
+  { id: 'API & Webhooks', glyph: 'code' }
+];
 
 const CONNECTORS = [
   { name: 'zenith-core-service', kind: 'Core policy system', lang: 'Node · Express', files: ['rules/premium.rules.yaml', 'rules/underwriting.rules.yaml', 'db/schema.sql', 'api/contracts/proposal-v2.contract.json', 'services/*.js'] },
@@ -24,7 +30,7 @@ function SystemsTab() {
       {CONNECTORS.map((c) => (
         <div className="connector" key={c.name}>
           <div>
-            <h4>🔌 {c.name}</h4>
+            <h4><I n="plug" s={14} /> {c.name}</h4>
             <p className="hint">{c.kind} · {c.lang}</p>
             <p className="hint">Indexed: {c.files.join(' · ')}</p>
           </div>
@@ -92,12 +98,12 @@ function ModelsTab() {
       <h3 className="ws-h3" style={{ marginTop: 0 }}>Active model</h3>
       <div className="modelgrid">
         <button className={'modelcard' + (!isLocalActive ? ' on' : '')} onClick={() => mutate((w) => ({ ...w, activeModelId: null }))}>
-          <b>🔒 Feasly demo brain</b>
+          <b><I n="lock" s={14} /> Feasly demo brain</b>
           <small>Offline · deterministic · code-grounded feasibility. Works everywhere, zero setup.</small>
           {!isLocalActive && <span className="status issued">ACTIVE</span>}
         </button>
         <div className={'modelcard' + (isLocalActive ? ' on' : '')}>
-          <b>🖥 Ollama on this machine</b>
+          <b><I n="cpu" s={14} /> Ollama on this machine</b>
           <small>
             {detected === null && 'Checking for a local Ollama server…'}
             {detected === false && `No Ollama server at ${local.endpoint}. Start it with \`ollama serve\`, then detect again.`}
@@ -107,15 +113,15 @@ function ModelsTab() {
           <span className="modelops">
             {isLocalActive
               ? <span className="status issued">ACTIVE</span>
-              : <button className="linkbtn gold" disabled={!localReady} onClick={() => mutate((w) => ({ ...w, activeModelId: 'local' }))}>Set active</button>}
-            <button className="linkbtn" disabled={detecting} onClick={() => detect()}>{detecting ? 'Detecting…' : '↻ Detect Ollama'}</button>
+              : <button className="linkbtn" disabled={!localReady} onClick={() => mutate((w) => ({ ...w, activeModelId: 'local' }))}>Set active</button>}
+            <button className="linkbtn" disabled={detecting} onClick={() => detect()}><I n="refresh" s={12} /> {detecting ? 'Detecting…' : 'Detect Ollama'}</button>
           </span>
         </div>
       </div>
 
       <div className="modelforms">
         <div>
-          <h3 className="ws-h3">🖥 Local model configuration</h3>
+          <h3 className="ws-h3">Local model configuration</h3>
           <label>Ollama endpoint</label>
           <input value={local.endpoint} onChange={(e) => patchLocal({ endpoint: e.target.value })} onBlur={() => detect()} />
           <label>Chat model (answers questions)</label>
@@ -135,7 +141,7 @@ function ModelsTab() {
           <p className="hint">Kept low (0.1) so the model sticks to the retrieved documents and code instead of inventing details.</p>
         </div>
         <div>
-          <h3 className="ws-h3">☁️ Connect a cloud API key</h3>
+          <h3 className="ws-h3">Connect a cloud API key</h3>
           <label>Provider</label>
           <select value={cloud.provider} onChange={(e) => setCloud({ ...cloud, provider: e.target.value })}>
             <option value="anthropic">Anthropic</option>
@@ -149,6 +155,60 @@ function ModelsTab() {
           <p className="hint">Cloud keys are stored masked in this demo and not used for routing — local + demo brain are the two live engines.</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---- appearance: the user's three colour tokens ----
+const PRESETS = [
+  { name: 'Zenith', primary: '#0071e3', secondary: '#5e5ce6', tertiary: '#30b0c7' },
+  { name: 'Graphite', primary: '#3a3a3c', secondary: '#6e6e73', tertiary: '#8e8e93' },
+  { name: 'Sage', primary: '#2e7d5b', secondary: '#5fa777', tertiary: '#30b0c7' },
+  { name: 'Sunset', primary: '#e8590c', secondary: '#e64980', tertiary: '#f2a30f' },
+  { name: 'Orchid', primary: '#7048e8', secondary: '#bf5af2', tertiary: '#f26eb1' }
+];
+const ROLES = [
+  { k: 'primary', label: 'Primary', hint: 'Buttons, active navigation, links, focus rings' },
+  { k: 'secondary', label: 'Secondary', hint: 'Gradients, secondary accents and highlights' },
+  { k: 'tertiary', label: 'Tertiary', hint: 'Badges, tags and tertiary highlights' }
+];
+
+function AppearanceTab() {
+  const ws = useWS();
+  const theme = ws.theme || DEFAULT_THEME;
+  const set = (k, v) => mutate((w) => ({ ...w, theme: { ...(w.theme || DEFAULT_THEME), [k]: v } }));
+  const apply = (p) => mutate((w) => ({ ...w, theme: { primary: p.primary, secondary: p.secondary, tertiary: p.tertiary } }));
+  const isCurrent = (p) => p.primary === theme.primary && p.secondary === theme.secondary && p.tertiary === theme.tertiary;
+
+  return (
+    <div className="appearance">
+      <h3 className="ws-h3" style={{ marginTop: 0 }}>Theme colours</h3>
+      <p className="hint" style={{ marginBottom: 14 }}>Changes apply live across the whole workspace and survive demo resets.</p>
+      {ROLES.map((r) => (
+        <div className="colorrow" key={r.k}>
+          <label className="colorwell" style={{ background: theme[r.k] }}>
+            <input type="color" value={theme[r.k]} onChange={(e) => set(r.k, e.target.value)} />
+          </label>
+          <span className="colormain">
+            <b>{r.label}</b>
+            <small>{r.hint}</small>
+          </span>
+          <code>{theme[r.k]}</code>
+        </div>
+      ))}
+
+      <h3 className="ws-h3">Presets</h3>
+      <div className="presetrow">
+        {PRESETS.map((p) => (
+          <button key={p.name} className={'preset' + (isCurrent(p) ? ' on' : '')} onClick={() => apply(p)}>
+            <span className="presetdots">
+              <i style={{ background: p.primary }} /><i style={{ background: p.secondary }} /><i style={{ background: p.tertiary }} />
+            </span>
+            {p.name}
+          </button>
+        ))}
+      </div>
+      <button className="linkbtn" style={{ marginTop: 14 }} onClick={() => apply(DEFAULT_THEME)}>Reset to default</button>
     </div>
   );
 }
@@ -169,7 +229,7 @@ function ApiTab() {
       <p className="hint" style={{ marginBottom: 16 }}>Feasly is API-first — everything the workspace does is available over REST. This demo key is real — the curl below works from your terminal, right now.</p>
       {key
         ? <div className="keybox"><code>{key}</code><button className="btn ghost" onClick={() => copy('key', key)}>{copied === 'key' ? 'Copied ✓' : 'Copy'}</button></div>
-        : <button className="btn gold" onClick={generate}>Generate demo API key</button>}
+        : <button className="btn" onClick={generate}>Generate demo API key</button>}
       <h3 className="ws-h3">Call the API</h3>
       <div className="codeblock">
         <button className="linkbtn copybtn" onClick={() => copy('curl', curl)}>{copied === 'curl' ? 'Copied ✓' : 'Copy'}</button>
@@ -181,16 +241,20 @@ function ApiTab() {
 
 export default function SettingsPage() {
   const [tab, setTab] = useState('Connected Systems');
-  const ICON = { 'Connected Systems': '🔌', 'Model Hub': '🧠', 'API & Webhooks': '🔑' };
   return (
     <div className="docwrap">
       <h1 className="doch1">Settings</h1>
-      <p className="docsub">Connected systems, model routing and API access.</p>
+      <p className="docsub">Connected systems, model routing, appearance and API access.</p>
       <div className="undertabs">
-        {TABS.map((t) => <button key={t} className={'undertab' + (tab === t ? ' on' : '')} onClick={() => setTab(t)}>{ICON[t]} {t}</button>)}
+        {TABS.map((t) => (
+          <button key={t.id} className={'undertab' + (tab === t.id ? ' on' : '')} onClick={() => setTab(t.id)}>
+            <I n={t.glyph} s={13} /> {t.id}
+          </button>
+        ))}
       </div>
       {tab === 'Connected Systems' && <SystemsTab />}
       {tab === 'Model Hub' && <ModelsTab />}
+      {tab === 'Appearance' && <AppearanceTab />}
       {tab === 'API & Webhooks' && <ApiTab />}
     </div>
   );

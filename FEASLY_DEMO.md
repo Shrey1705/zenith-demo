@@ -26,9 +26,9 @@ connected codebase, so nothing can hallucinate on stage.
 
 1. **Local (recommended — enables the live local-AI act):** double-click **Feasly.command** on the Desktop (or run `./start-feasly.command`). It boots Ollama + all three services and opens the browser. Otherwise open **zenith-health-demo.vercel.app/ai**.
 2. Login is prefilled → click **Login**.
-3. On Home, click **↺ Reset demo data** (bottom) if you've rehearsed in this browser.
-4. Confirm Home shows two projects: *High-Value Cover Expansion* (the mature fallback) and *Nominee & KYC Enhancements*. **No EMI project** — that's the point.
-5. Don't want to memorise the script? Click **🎬 Guided demo** (Home footer or the sidebar) — a step-by-step coach walks you through every act with one-click Copy buttons for all prompts. It survives navigation and reloads.
+3. Click **Reset demo data** (sidebar footer) if you've rehearsed in this browser.
+4. Confirm the sidebar shows two projects: *High-Value Cover Expansion* (the mature fallback) and *Nominee & KYC Enhancements*. **No EMI project** — that's the point.
+5. Don't want to memorise the script? Click **Guided demo** (sidebar footer) — a step-by-step coach walks you through every act with one-click Copy buttons for all prompts, a per-step "Do it for me" button, and a full Auto-play. It survives navigation and reloads.
 6. Fallback plan: if anything misbehaves, open **High-Value Cover Expansion** — it's the same workflow, fully built — and narrate it instead.
 
 ---

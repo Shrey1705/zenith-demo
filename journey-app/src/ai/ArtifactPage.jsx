@@ -11,6 +11,7 @@ import {
   updateDoc, addDoc, staleInfo, deriveEpics, deriveStories, deriveFrs, deriveTests,
   generateAc, edgeCasesFor, downloadText, shortDate
 } from './workspace';
+import { TypeIcon } from './icons';
 import TraceRail, { StaleBanner } from './TraceRail';
 
 const EMPTY_HINT = {
@@ -48,7 +49,7 @@ export default function ArtifactPage({ type }) {
                   <span className="krowtitle">{d.title}</span>
                   <span className="krowmeta">
                     {metaLine(type, d, parent)}
-                    {stale && <span className="staletag"> · ⟳ upstream changed</span>}
+                    {stale && <span className="staletag"> · upstream changed</span>}
                   </span>
                 </span>
                 <span className="krowside">{d.points ? `${d.points} pts` : ''}</span>
@@ -68,7 +69,7 @@ export default function ArtifactPage({ type }) {
   if (type === 'pdn') {
     const hasChain = project.epics.some((e) => e.pdnId === doc.id);
     actions.push({
-      label: hasChain ? 'Delivery chain generated' : '⚡ Generate delivery chain',
+      label: hasChain ? 'Delivery chain generated' : 'Generate delivery chain',
       done: hasChain, disabled: hasChain,
       hint: 'Epics → stories → functional requirements → test cases, all traced to this PDN',
       run: () => {
@@ -86,19 +87,19 @@ export default function ArtifactPage({ type }) {
         });
       }
     });
-    actions.push({ label: '⬇ Download markdown', run: () => downloadText('pdn.md', doc.content) });
+    actions.push({ label: 'Download markdown', run: () => downloadText('pdn.md', doc.content) });
   }
   if (type === 'story') {
     actions.push({
-      label: '✦ Generate acceptance criteria', hint: 'Adds structured ACs to this story',
+      label: 'Generate acceptance criteria', hint: 'Adds structured ACs to this story',
       run: () => mutate((w) => updateDoc(w, pid, 'story', doc.id, { ac: [...new Set([...(doc.ac || []), ...generateAc(doc)])] }))
     });
     actions.push({
-      label: '✦ Estimate effort', done: !!doc.points, disabled: !!doc.points,
+      label: 'Estimate effort', done: !!doc.points, disabled: !!doc.points,
       run: () => mutate((w) => updateDoc(w, pid, 'story', doc.id, { points: 3 + Math.min(5, (doc.ac || []).length * 2) }))
     });
     actions.push({
-      label: '✂ Split story', hint: 'Moves half the acceptance criteria into a sibling story',
+      label: 'Split story', hint: 'Moves half the acceptance criteria into a sibling story',
       disabled: (doc.ac || []).length < 2,
       run: () => {
         const half = Math.ceil(doc.ac.length / 2);
@@ -108,7 +109,7 @@ export default function ArtifactPage({ type }) {
     });
     const uncovered = (doc.ac || []).filter((ac) => !project.frs.some((f) => f.storyId === doc.id && f.description.includes(ac.slice(0, 40))));
     actions.push({
-      label: '⚡ Derive functional requirements', disabled: uncovered.length === 0,
+      label: 'Derive functional requirements', disabled: uncovered.length === 0,
       done: (doc.ac || []).length > 0 && uncovered.length === 0,
       hint: 'One FR per acceptance criterion not yet covered',
       run: () => mutate((w) => {
@@ -122,7 +123,7 @@ export default function ArtifactPage({ type }) {
   }
   if (type === 'fr') {
     actions.push({
-      label: '⚡ Generate test case', hint: 'A happy-path case for this requirement',
+      label: 'Generate test case', hint: 'A happy-path case for this requirement',
       run: () => mutate((w) => addDoc(w, pid, 'test', {
         id: uid(), frId: doc.id, title: `Verify — ${doc.title.replace(/^FR — /, '').slice(0, 50)}`,
         gherkin: `Given the system implements this requirement\nWhen the primary flow is exercised\nThen: ${doc.description.replace(/^The system shall /, 'the system does ')}`,
@@ -133,7 +134,7 @@ export default function ArtifactPage({ type }) {
   if (type === 'test') {
     const fr = parentOf(project, 'test', doc)?.doc;
     actions.push({
-      label: '✦ Generate edge cases', hint: 'Concurrency and boundary variants under the same requirement',
+      label: 'Generate edge cases', hint: 'Concurrency and boundary variants under the same requirement',
       disabled: !fr,
       run: () => mutate((w) => {
         let next = w;
@@ -191,7 +192,7 @@ export default function ArtifactPage({ type }) {
       <button className="linkbtn" onClick={() => nav(`/ai/p/${pid}/${ROUTE_OF[type]}`)}>← {t.label}</button>
       <div className="docpane">
         <article className="docbody">
-          <p className="doctype">{t.icon} {t.one}{doc.createdAt ? ` · ${shortDate(doc.createdAt)}` : ''}</p>
+          <p className="doctype"><TypeIcon type={type} s={13} /> {t.one}{doc.createdAt ? ` · ${shortDate(doc.createdAt)}` : ''}</p>
           <h1>{doc.title}</h1>
           <StaleBanner project={project} stale={stale} onRegenerate={regenerate} busy={regenBusy} />
           {regenErr && <p className="error">{regenErr}</p>}

@@ -4,6 +4,7 @@
 // never affected by where a document is filed.
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { I, TypeIcon } from './icons';
 import { useWS, mutate, uid, findProject, TYPES, ROUTE_OF, shortDate } from './workspace';
 
 const ALL_TYPES = Object.keys(TYPES);
@@ -71,7 +72,7 @@ export default function LibraryPage() {
 
       <div className="libpane">
         <aside className="librail">
-          <button className={'libfolder' + (folderF === 'all' ? ' on' : '')} onClick={() => setFolderF('all')}>🗄 All documents <em>{total}</em></button>
+          <button className={'libfolder' + (folderF === 'all' ? ' on' : '')} onClick={() => setFolderF('all')}><I n="archive" s={14} /> All documents <em>{total}</em></button>
           {folders.map((f) => (
             <div key={f.id} className={'libfolder' + (folderF === f.id ? ' on' : '')}>
               {renaming === f.id ? (
@@ -80,16 +81,16 @@ export default function LibraryPage() {
                   onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
               ) : (
                 <>
-                  <button className="libfoldername" onClick={() => setFolderF(f.id)}>📁 {f.name} <em>{countIn(f.id)}</em></button>
+                  <button className="libfoldername" onClick={() => setFolderF(f.id)}><I n="folder" s={14} /> {f.name} <em>{countIn(f.id)}</em></button>
                   <span className="libfolderops">
-                    <button title="Rename" onClick={() => setRenaming(f.id)}>✎</button>
-                    <button title="Delete folder (documents stay)" onClick={() => deleteFolder(f.id)}>🗑</button>
+                    <button title="Rename" onClick={() => setRenaming(f.id)}><I n="pen" s={11} /></button>
+                    <button title="Delete folder (documents stay)" onClick={() => deleteFolder(f.id)}><I n="trash" s={11} /></button>
                   </span>
                 </>
               )}
             </div>
           ))}
-          <button className={'libfolder' + (folderF === 'unfiled' ? ' on' : '')} onClick={() => setFolderF('unfiled')}>📂 Unfiled <em>{countIn('unfiled')}</em></button>
+          <button className={'libfolder' + (folderF === 'unfiled' ? ' on' : '')} onClick={() => setFolderF('unfiled')}><I n="folder" s={14} style={{ opacity: 0.55 }} /> Unfiled <em>{countIn('unfiled')}</em></button>
           <div className="libnewfolder">
             <input value={newName} placeholder="New folder…" onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addFolder()} />
             <button onClick={addFolder}>+</button>
@@ -109,11 +110,11 @@ export default function LibraryPage() {
             {docs.map(({ type, doc }) => (
               <div key={`${type}:${doc.id}`} className="krow librow">
                 <button className="krowmain" onClick={() => nav(`/ai/p/${pid}/${ROUTE_OF[type]}/${doc.id}`)}>
-                  <span className="krowtitle">{TYPES[type].icon} {doc.title}</span>
+                  <span className="krowtitle"><TypeIcon type={type} s={14} /> {doc.title}</span>
                   <span className="krowmeta">
                     {TYPES[type].one}
                     {doc.createdAt ? ` · ${shortDate(doc.createdAt)}` : ''}
-                    {doc.folderId ? ` · 📁 ${folders.find((f) => f.id === doc.folderId)?.name || ''}` : ''}
+                    {doc.folderId ? ` · ${folders.find((f) => f.id === doc.folderId)?.name || ''}` : ''}
                   </span>
                 </button>
                 <select className="libmove" value={doc.folderId || ''} title="Move to folder"
