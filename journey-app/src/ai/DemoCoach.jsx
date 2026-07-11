@@ -37,8 +37,8 @@ const STEPS = [
   {
     act: 'Step 1 · Ask',
     title: 'Create a project',
-    body: 'Every feature begins as a question. Make a project to hold everything about monthly payments.',
-    manual: 'In the sidebar, press + next to "Projects" and type the name.',
+    body: 'Every feature begins as a question. Make a project to hold everything about monthly payments — it lives under the Retail Health product.',
+    manual: 'In the sidebar, press + on "Retail Health Insurance" under Products and type the name.',
     copies: [{ label: 'Project name', text: 'EMI & Payment Flexibility' }],
     do: 'createProject', doLabel: 'Create it for me', core: true
   },

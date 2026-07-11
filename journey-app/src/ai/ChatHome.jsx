@@ -10,7 +10,7 @@ import { ollamaChat } from '../lib/ollama';
 import { I, TypeIcon } from './icons';
 import {
   useWS, mutate, uid, now, titleFrom, findSession, updateSession, findProject,
-  usingLocal, activeModelLabel, shortDate
+  defaultProductId, usingLocal, activeModelLabel, shortDate
 } from './workspace';
 
 const SUGGESTIONS = [
@@ -148,7 +148,7 @@ export default function ChatHome() {
     nav(`p/${pid}/research`);
   };
   const promote = () => {
-    const p = { id: uid(), name: session.title, about: `Started from the chat session "${session.title}".`, createdAt: now(), folders: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: [] };
+    const p = { id: uid(), name: session.title, about: `Started from the chat session "${session.title}".`, productId: defaultProductId(ws), createdAt: now(), folders: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: [] };
     mutate((w) => ({ ...w, projects: [p, ...w.projects] }));
     linkSession(p.id, p.name);
   };

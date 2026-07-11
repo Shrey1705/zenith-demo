@@ -1,13 +1,19 @@
 // Feasly — an AI product-management workspace, in a light "liquid glass"
 // design language. One persistent shell: a floating translucent sidebar
-// where everything nests (Chat, Projects → Knowledge/Delivery/Project,
-// Recent), and a chat-first landing. Theme colors are user tokens.
+// where everything nests (Chats, Products → Projects → the artifact chain,
+// Recent), a chat-first landing, and a computed lifecycle stage on every
+// project. Theme colors are user tokens.
 import React, { useState, createContext, useContext } from 'react';
 import { useLocation, Routes, Route, NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { ai } from '../lib/api';
-import { useWS, mutate, resetWS, uid, now, findProject, DEFAULT_THEME, TYPES, ROUTE_OF } from './workspace';
+import {
+  useWS, mutate, resetWS, uid, now, findProject, findProduct, projectsOf,
+  ALL_PRODUCT, DEFAULT_THEME, TYPES, ROUTE_OF
+} from './workspace';
 import { I, TypeIcon } from './icons';
 import ChatHome from './ChatHome';
+import ProductPage from './ProductPage';
+import StageStrip from './StageStrip';
 import ResearchPage from './ResearchPage';
 import ConversationsPage from './ConversationsPage';
 import LibraryPage from './LibraryPage';
@@ -42,6 +48,7 @@ export default function AiPortal() {
           <Route path="/" element={<Shell />}>
             <Route index element={<ChatHome />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="prod/:prodId" element={<ProductPage />} />
             <Route path="p/:pid/*" element={<ProjectRoutes />} />
             <Route path="*" element={<Navigate to="" replace />} />
           </Route>
@@ -89,6 +96,7 @@ function Shell() {
       {drawerOpen && <div className="ws-backdrop" onClick={() => setDrawerOpen(false)} />}
       <Sidebar project={project} open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <main className="ws-main">
+        {project && <StageStrip project={project} />}
         <Outlet />
       </main>
       {project && <AssistPanel project={project} />}
@@ -116,7 +124,7 @@ function ProjectRoutes() {
       <Route path="graph" element={<GraphPage />} />
       <Route path="map" element={<SemanticMapPage />} />
       <Route path="releases" element={<ReleasesPage />} />
-      <Route path="settings" element={<SettingsPage />} />
+      <Route path="settings" element={<Navigate to="/ai/settings" replace />} />
       <Route path="*" element={<Navigate to="research" replace />} />
     </Routes>
   );
@@ -124,12 +132,11 @@ function ProjectRoutes() {
 
 // ---- collapsible sidebar group ----
 const navState = () => { try { return JSON.parse(localStorage.getItem('fs-nav') || '{}'); } catch { return {}; } };
+const setNavState = (id, v) => { try { const m = navState(); m[id] = v; localStorage.setItem('fs-nav', JSON.stringify(m)); } catch { /* ignore */ } };
+
 function Group({ id, label, action, children, small }) {
   const [open, setOpen] = useState(() => navState()[id] ?? true);
-  const toggle = () => {
-    const v = !open; setOpen(v);
-    try { const m = navState(); m[id] = v; localStorage.setItem('fs-nav', JSON.stringify(m)); } catch { /* ignore */ }
-  };
+  const toggle = () => { const v = !open; setOpen(v); setNavState(id, v); };
   return (
     <div className={'fs-group' + (small ? ' small' : '')}>
       <div className="fs-grouphead">
@@ -165,19 +172,92 @@ const PROJECT_NAV = [
   ] }
 ];
 
+// One product in the sidebar: chevron collapses its projects, the name opens
+// its dashboard, + starts a project inside it.
+function ProductNode({ product, activeProject, onClose }) {
+  const ws = useWS();
+  const nav = useNavigate();
+  const location = useLocation();
+  const [open, setOpen] = useState(() => navState()['prod-' + product.id] ?? true);
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const projects = projectsOf(ws, product.id);
+  const onDash = location.pathname === `/ai/prod/${product.id}`;
+  const toggle = () => { const v = !open; setOpen(v); setNavState('prod-' + product.id, v); };
+
+  const createProject = () => {
+    if (!name.trim()) { setAdding(false); return; }
+    const p = { id: uid(), name: name.trim(), about: '', productId: product.id, createdAt: now(), folders: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: [] };
+    mutate((w) => ({ ...w, projects: [p, ...w.projects] }));
+    setName(''); setAdding(false);
+    nav(`/ai/p/${p.id}/research`);
+  };
+
+  return (
+    <div className="fs-prodnode">
+      <div className={'fs-prodrow' + (onDash ? ' on' : '')}>
+        <button className="fs-prodchev" onClick={toggle} aria-label="Toggle projects">
+          <I n="chevronDown" s={10} className={open ? '' : 'closed'} />
+        </button>
+        <button className="fs-prodname" onClick={() => { nav(`/ai/prod/${product.id}`); onClose(); }}>
+          <I n={product.id === 'all' ? 'layers' : 'target'} s={14} />
+          <span className="fs-linklabel">{product.name}</span>
+        </button>
+        <button className="fs-groupaction" title={`New project in ${product.name}`} onClick={() => { setOpen(true); setNavState('prod-' + product.id, true); setAdding(true); }}><I n="plus" s={12} /></button>
+      </div>
+      {open && (
+        <div className="fs-prodkids">
+          {adding && (
+            <div className="fs-newproj">
+              <input autoFocus value={name} placeholder="Project name…" onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') createProject(); if (e.key === 'Escape') setAdding(false); }}
+                onBlur={() => (name.trim() ? createProject() : setAdding(false))} />
+            </div>
+          )}
+          {projects.map((p) => (
+            <div key={p.id}>
+              <button className={'fs-link' + (activeProject?.id === p.id ? ' cur' : '')} onClick={() => { nav(`/ai/p/${p.id}/research`); }}>
+                <I n="folder" s={14} style={activeProject?.id === p.id ? { color: 'var(--p)' } : undefined} />
+                <span className="fs-linklabel">{p.name}</span>
+              </button>
+              {activeProject?.id === p.id && (
+                <div className="fs-tree">
+                  {PROJECT_NAV.map((g) => (
+                    <Group key={g.g} id={g.g} label={g.label} small>
+                      {g.items.map((item) => (
+                        <NavLink key={item.to} to={`/ai/p/${p.id}/${item.to}`} onClick={onClose}
+                          className={({ isActive }) => 'fs-link sub' + (isActive ? ' on' : '')}>
+                          <I n={item.glyph} s={14} />
+                          <span className="fs-linklabel">{item.label}</span>
+                          {item.count ? <span className="fs-count">{item.count(p)}</span> : null}
+                        </NavLink>
+                      ))}
+                    </Group>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          {!projects.length && !adding && <p className="fs-empty">No projects yet.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Sidebar({ project, open, onClose }) {
   const ws = useWS();
   const nav = useNavigate();
   const { logout } = useWorkspace();
-  const [adding, setAdding] = useState(false);
-  const [name, setName] = useState('');
+  const [addingProduct, setAddingProduct] = useState(false);
+  const [prodName, setProdName] = useState('');
 
-  const createProject = () => {
-    if (!name.trim()) { setAdding(false); return; }
-    const p = { id: uid(), name: name.trim(), about: '', createdAt: now(), folders: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: [] };
-    mutate((w) => ({ ...w, projects: [p, ...w.projects] }));
-    setName(''); setAdding(false);
-    nav(`/ai/p/${p.id}/research`);
+  const createProduct = () => {
+    if (!prodName.trim()) { setAddingProduct(false); return; }
+    const p = { id: uid(), name: prodName.trim(), about: '', createdAt: now() };
+    mutate((w) => ({ ...w, products: [...(w.products || []), p] }));
+    setProdName(''); setAddingProduct(false);
+    nav(`/ai/prod/${p.id}`);
   };
 
   // Recent documents across every project, newest first.
@@ -209,39 +289,19 @@ function Sidebar({ project, open, onClose }) {
           {!(ws.sessions || []).length && <p className="fs-empty">Your chats appear here, auto-named.</p>}
         </Group>
 
-        <Group id="projects" label="Projects"
-          action={<button className="fs-groupaction" title="New project" onClick={() => setAdding(true)}><I n="plus" s={13} /></button>}>
-          {adding && (
+        <Group id="products" label="Products"
+          action={<button className="fs-groupaction" title="New product" onClick={() => setAddingProduct(true)}><I n="plus" s={13} /></button>}>
+          {addingProduct && (
             <div className="fs-newproj">
-              <input autoFocus value={name} placeholder="Project name…" onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') createProject(); if (e.key === 'Escape') setAdding(false); }}
-                onBlur={() => (name.trim() ? createProject() : setAdding(false))} />
+              <input autoFocus value={prodName} placeholder="Product name…" onChange={(e) => setProdName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') createProduct(); if (e.key === 'Escape') setAddingProduct(false); }}
+                onBlur={() => (prodName.trim() ? createProduct() : setAddingProduct(false))} />
             </div>
           )}
-          {ws.projects.map((p) => (
-            <div key={p.id}>
-              <button className={'fs-link' + (project?.id === p.id ? ' cur' : '')} onClick={() => { nav(`/ai/p/${p.id}/research`); }}>
-                <I n="folder" s={14} style={project?.id === p.id ? { color: 'var(--p)' } : undefined} />
-                <span className="fs-linklabel">{p.name}</span>
-              </button>
-              {project?.id === p.id && (
-                <div className="fs-tree">
-                  {PROJECT_NAV.map((g) => (
-                    <Group key={g.g} id={g.g} label={g.label} small>
-                      {g.items.map((item) => (
-                        <NavLink key={item.to} to={`/ai/p/${p.id}/${item.to}`} onClick={onClose}
-                          className={({ isActive }) => 'fs-link sub' + (isActive ? ' on' : '')}>
-                          <I n={item.glyph} s={14} />
-                          <span className="fs-linklabel">{item.label}</span>
-                          {item.count ? <span className="fs-count">{item.count(p)}</span> : null}
-                        </NavLink>
-                      ))}
-                    </Group>
-                  ))}
-                </div>
-              )}
-            </div>
+          {(ws.products || []).map((prod) => (
+            <ProductNode key={prod.id} product={prod} activeProject={project} onClose={onClose} />
           ))}
+          <ProductNode product={ALL_PRODUCT} activeProject={project} onClose={onClose} />
         </Group>
 
         <Group id="recent" label="Recent">

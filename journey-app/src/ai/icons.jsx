@@ -42,6 +42,8 @@ const P = {
   send: <><path d="M12 19V5" /><path d="m5 12 7-7 7 7" /></>,
   trash: <><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M10 11v6M14 11v6" /></>,
   download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></>,
+  check: <><path d="m4.5 12.5 5 5 10-11" /></>,
+  target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" /></>,
   sparkle: <><path d="M12 2.8 14 9l6.2 2L14 13l-2 6.2L10 13l-6.2-2L10 9z" fill="currentColor" stroke="none" /></>,
   dot: <><circle cx="12" cy="12" r="5" fill="currentColor" stroke="none" /></>
 };

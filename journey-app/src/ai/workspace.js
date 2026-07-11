@@ -18,7 +18,8 @@ const read = () => {
   try {
     const raw = localStorage.getItem(KEY);
     cache = raw === null ? seedState() : migrateState(JSON.parse(raw));
-    if (raw === null) persist();
+    // Persist migrations immediately so a reload can't replay them halfway.
+    persist();
   } catch { cache = seedState(); }
   return cache;
 };
@@ -33,6 +34,14 @@ function migrateState(s) {
       : [];
     s.activeSessionId = s.sessions[0]?.id || null;
     delete s.homeChat;
+  }
+  // Products layer: pre-hierarchy states get the seed products; existing
+  // projects are homed sensibly (compliance work is cross-product).
+  if (!s.products) {
+    s.products = seedProducts();
+    for (const p of s.projects || []) {
+      if (!p.productId) p.productId = p.id === 'proj-kyc' ? 'all' : 'prod-retail';
+    }
   }
   return s;
 }
@@ -112,6 +121,52 @@ export const findDoc = (project, type, id) => (project?.[TYPES[type].key] || [])
 export const findSession = (ws, id) => (ws.sessions || []).find((s) => s.id === id) || null;
 export function updateSession(ws, id, patch) {
   return { ...ws, sessions: ws.sessions.map((s) => (s.id === id ? { ...s, ...patch } : s)) };
+}
+
+// ---- products (portfolio layer above projects) ----
+// 'all' is a pseudo-product: cross-product initiatives every product shares.
+export const ALL_PRODUCT = { id: 'all', name: 'All products', about: 'Cross-product initiatives — compliance, platform and shared capabilities that apply to every product.' };
+export const findProduct = (ws, id) => (id === 'all' ? ALL_PRODUCT : (ws.products || []).find((p) => p.id === id) || null);
+export const projectsOf = (ws, prodId) => (ws.projects || []).filter((p) => (p.productId || 'all') === prodId);
+export const defaultProductId = (ws) => (ws.products || [])[0]?.id || 'all';
+
+// ---- lifecycle stages — computed from artifacts, never stored ----
+// Same philosophy as staleness: the workspace derives where you are, so the
+// stage indicator can't drift from reality.
+export const STAGES = [
+  { id: 'discover', label: 'Discover' },
+  { id: 'define', label: 'Define' },
+  { id: 'build', label: 'Build' },
+  { id: 'launch', label: 'Launch' },
+  { id: 'measure', label: 'Measure' }
+];
+export const STAGE_HINT = {
+  discover: 'Add research or ask the AI — understanding comes before specifying.',
+  define: 'Write the BRD and save v1 to lock the definition.',
+  build: 'Generate the PDN, then the delivery chain, from the BRD.',
+  launch: 'Bundle the stories into a dated release.',
+  measure: 'Track the release, then review outcomes and adoption once it ships.'
+};
+export function stageInfo(project) {
+  const today = new Date().toISOString().slice(0, 10);
+  const done = {
+    discover: (project.research.length + project.conversations.length) > 0,
+    define: project.brds.some((b) => (b.versions || []).length > 0),
+    build: project.stories.length > 0,
+    launch: project.releases.length > 0,
+    measure: project.releases.some((r) => r.date && r.date <= today)
+  };
+  const idx = STAGES.findIndex((s) => !done[s.id]);
+  const currentIdx = idx === -1 ? STAGES.length - 1 : idx;
+  return { done, current: STAGES[currentIdx].id, currentIdx };
+}
+// How many downstream artifacts are flagged "upstream changed".
+export function staleCount(project) {
+  let n = 0;
+  for (const t of ['pdn', 'epic', 'story', 'fr', 'test']) {
+    for (const d of project[TYPES[t].key] || []) if (staleInfo(project, t, d)) n++;
+  }
+  return n;
 }
 
 export function updateDoc(ws, pid, type, id, patch) {
@@ -317,6 +372,13 @@ export function downloadText(filename, text) {
 // PDN → chain → v2 → staleness → regenerate). What ships pre-seeded is one
 // mature showcase project (₹2 Cr sum-insured expansion, full clean chain)
 // as the fallback/reference, plus a light KYC draft so Home feels lived-in.
+function seedProducts() {
+  return [
+    { id: 'prod-retail', name: 'Retail Health Insurance', about: 'D2C individual and family-floater covers sold on the Zenith journey — quote, underwriting, payment, issuance.', createdAt: now() },
+    { id: 'prod-group', name: 'Group Health Insurance', about: 'Employer-sponsored group covers — corporate onboarding, member management, renewals.', createdAt: now() }
+  ];
+}
+
 function seedState() {
   const R1 = 'r-hni', R2 = 'r-uwband';
   const B1 = 'b-si';
@@ -359,9 +421,10 @@ function seedState() {
     // attachments and can be promoted into (or linked to) a project.
     sessions: [],
     activeSessionId: null,
+    products: seedProducts(),
     projects: [
       {
-        id: 'proj-si', name: 'High-Value Cover Expansion',
+        id: 'proj-si', name: 'High-Value Cover Expansion', productId: 'prod-retail',
         about: 'Open a \u20b92 crore sum-insured band for HNI customers without breaking underwriting limits.',
         createdAt: now(),
         research: [
@@ -410,8 +473,8 @@ function seedState() {
         releases: [{ id: 'rel-si', name: 'R-2026.07 \u2014 \u20b92 Cr band', date: '2026-07-30', storyIds: [S1, S2, S3], createdAt: now() }]
       },
       {
-        id: 'proj-kyc', name: 'Nominee & KYC Enhancements',
-        about: 'Compliance-driven improvements to nominee capture and proposer identity checks.',
+        id: 'proj-kyc', name: 'Nominee & KYC Enhancements', productId: 'all',
+        about: 'Compliance-driven improvements to nominee capture and proposer identity checks — applies to every product.',
         createdAt: now(),
         research: [{ id: 'r-kyc', title: 'KYC circular — PAN capture thresholds', source: 'note', createdAt: now(), content: 'Regulator guidance requires PAN capture above a premium threshold. Current journey already collects PAN as mandatory; verify threshold logic is documented before drafting requirements.' }],
         conversations: [],

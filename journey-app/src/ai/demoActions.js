@@ -58,6 +58,7 @@ async function createProject({ nav }) {
     p = {
       id: uid(), name: PROJECT_NAME,
       about: 'Give customers a monthly EMI option instead of annual-only premiums.',
+      productId: (getWS().products || [])[0]?.id || 'all',
       createdAt: now(), folders: [],
       research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: []
     };
