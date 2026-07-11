@@ -17,11 +17,25 @@ const read = () => {
   if (cache) return cache;
   try {
     const raw = localStorage.getItem(KEY);
-    cache = raw === null ? seedState() : JSON.parse(raw);
+    cache = raw === null ? seedState() : migrateState(JSON.parse(raw));
     if (raw === null) persist();
   } catch { cache = seedState(); }
   return cache;
 };
+
+// Older states carried a single anonymous home chat; fold it into the new
+// named-sessions model so nothing a user typed is lost.
+function migrateState(s) {
+  if (!s.sessions) {
+    const msgs = s.homeChat?.messages || [];
+    s.sessions = msgs.length
+      ? [{ id: uid(), title: titleFrom(msgs.find((m) => m.role === 'user')?.content || 'Earlier chat'), createdAt: now(), updatedAt: now(), messages: msgs, attachments: [], projectId: null }]
+      : [];
+    s.activeSessionId = s.sessions[0]?.id || null;
+    delete s.homeChat;
+  }
+  return s;
+}
 const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(cache)); } catch { /* ignore */ } };
 
 export function useWS() {
@@ -93,6 +107,12 @@ export const ROUTE_OF = { research: 'research', brd: 'brds', pdn: 'pdns', epic: 
 
 export const findProject = (ws, pid) => (ws.projects || []).find((p) => p.id === pid) || null;
 export const findDoc = (project, type, id) => (project?.[TYPES[type].key] || []).find((d) => d.id === id) || null;
+
+// ---- chat sessions ----
+export const findSession = (ws, id) => (ws.sessions || []).find((s) => s.id === id) || null;
+export function updateSession(ws, id, patch) {
+  return { ...ws, sessions: ws.sessions.map((s) => (s.id === id ? { ...s, ...patch } : s)) };
+}
 
 export function updateDoc(ws, pid, type, id, patch) {
   return {
@@ -335,7 +355,10 @@ function seedState() {
     activeModelId: null,  // null = demo brain \u00b7 'local' = Ollama via ws.local
     local: { endpoint: 'http://localhost:11434', chatModel: '', embedModel: '', temperature: 0.1 },
     theme: { ...DEFAULT_THEME },
-    homeChat: { messages: [] },   // the workspace-level chat on the landing page
+    // Named chat sessions on the landing page. Each carries its own
+    // attachments and can be promoted into (or linked to) a project.
+    sessions: [],
+    activeSessionId: null,
     projects: [
       {
         id: 'proj-si', name: 'High-Value Cover Expansion',

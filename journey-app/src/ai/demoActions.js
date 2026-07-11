@@ -233,7 +233,7 @@ const goto = (route) => async ({ nav }) => { const p = project(); if (p) nav?.(`
 
 async function detectAndActivateLocal({ nav }) {
   const ws = getWS();
-  nav?.(project() ? `/ai/p/${project().id}/settings` : '/ai');
+  nav?.('/ai/settings');
   const models = await detectOllama(ws.local?.endpoint || 'http://localhost:11434');
   if (!models || !models.length) throw new Error('No local Ollama models detected. Start Ollama and pull llama3.2 + nomic-embed-text, then try again.');
   const chat = models.filter((m) => !/embed/i.test(m.name));
@@ -264,6 +264,6 @@ export const ACTIONS = {
   detectLocal: detectAndActivateLocal,
   gotoMap: goto('map'),
   gotoLibrary: goto('library'),
-  gotoSettings: goto('settings')
+  gotoSettings: async ({ nav }) => nav?.('/ai/settings')
 };
 

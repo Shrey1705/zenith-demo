@@ -138,7 +138,7 @@ const STEPS = [
   {
     act: 'Step 5 · Real AI (optional)',
     title: 'Switch to a real AI on this computer',
-    body: 'Everything so far used Feasly\'s built-in offline brain. If you have Ollama running on this machine, you can switch to a real language model. Open Settings → Model Hub, detect it, and set it active — the "temperature" is kept low so it stays factual.',
+    body: 'Everything so far used Feasly\'s built-in offline brain. If you have Ollama running on this machine, you can switch to a real language model. Open Settings (sidebar footer) → Model Hub, detect it, and set it active — the "temperature" is kept low so it stays factual.',
     watch: 'This step needs Ollama running locally. If you don\'t have it, just skip ahead — the demo above is complete on its own.',
     do: 'detectLocal', doLabel: 'Detect & switch for me'
   },
@@ -158,7 +158,7 @@ const STEPS = [
   {
     act: 'Done',
     title: 'That\'s the whole idea',
-    body: 'Feasly grounds every answer in real code, and turns each answer into a linked, versioned document — so when one thing changes, everything downstream knows. That\'s the difference from chatting into a document that forgets what you told it.'
+    body: 'Feasly grounds every answer in real code, and turns each answer into a linked, versioned document — so when one thing changes, everything downstream knows. (The connected repos live in Settings → Connected Systems, in the sidebar footer.) That\'s the difference from chatting into a document that forgets what you told it.'
   }
 ];
 

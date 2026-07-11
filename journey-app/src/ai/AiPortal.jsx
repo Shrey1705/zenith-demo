@@ -41,6 +41,7 @@ export default function AiPortal() {
         <Routes>
           <Route path="/" element={<Shell />}>
             <Route index element={<ChatHome />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="p/:pid/*" element={<ProjectRoutes />} />
             <Route path="*" element={<Navigate to="" replace />} />
           </Route>
@@ -160,8 +161,7 @@ const PROJECT_NAV = [
   { g: 'project', label: 'Project', items: [
     { to: 'graph', glyph: 'network', label: 'Knowledge Graph' },
     { to: 'map', glyph: 'scatter', label: 'Semantic Map' },
-    { to: 'releases', glyph: 'rocket', label: 'Releases', count: (p) => p.releases.length },
-    { to: 'settings', glyph: 'sliders', label: 'Settings' }
+    { to: 'releases', glyph: 'rocket', label: 'Releases', count: (p) => p.releases.length }
   ] }
 ];
 
@@ -193,9 +193,21 @@ function Sidebar({ project, open, onClose }) {
       </div>
 
       <div className="fs-nav">
-        <NavLink to="/ai" end className={({ isActive }) => 'fs-link home' + (isActive ? ' on' : '')} onClick={onClose}>
-          <I n="message" s={15} /> Chat
-        </NavLink>
+        <button className="fs-link home" onClick={() => { mutate((w) => ({ ...w, activeSessionId: null })); nav('/ai'); onClose(); }}>
+          <I n="pen" s={14} /> New chat
+        </button>
+
+        <Group id="chats" label="Chats">
+          {(ws.sessions || []).slice(0, 6).map((s) => (
+            <button key={s.id} className={'fs-link' + (ws.activeSessionId === s.id ? ' cur' : '')}
+              onClick={() => { mutate((w) => ({ ...w, activeSessionId: s.id })); nav('/ai'); onClose(); }}>
+              <I n="message" s={14} />
+              <span className="fs-linklabel">{s.title}</span>
+              {s.projectId && <I n="folder" s={11} style={{ color: 'var(--p)', opacity: 0.7 }} />}
+            </button>
+          ))}
+          {!(ws.sessions || []).length && <p className="fs-empty">Your chats appear here, auto-named.</p>}
+        </Group>
 
         <Group id="projects" label="Projects"
           action={<button className="fs-groupaction" title="New project" onClick={() => setAdding(true)}><I n="plus" s={13} /></button>}>
@@ -247,6 +259,7 @@ function Sidebar({ project, open, onClose }) {
         <div className="ws-user"><span className="ws-avatar">PM</span><span>pm@zenith · demo</span></div>
         <button className="fs-footbtn" onClick={startCoach}><I n="play" s={12} /> Guided demo</button>
         <button className="fs-footbtn" onClick={() => { if (window.confirm('Reset the workspace to its seeded demo state? Everything created in this browser is discarded.')) { resetWS(); nav('/ai'); } }}><I n="refresh" s={12} /> Reset demo data</button>
+        <NavLink to="/ai/settings" className={({ isActive }) => 'fs-footbtn' + (isActive ? ' on' : '')} onClick={onClose}><I n="sliders" s={12} /> Settings</NavLink>
         <button className="fs-footbtn" onClick={() => { logout(); nav('/ai'); }}><I n="logout" s={12} /> Log out</button>
       </div>
     </aside>
