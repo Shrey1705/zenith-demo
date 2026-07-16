@@ -22,6 +22,7 @@ import ArtifactPage from './ArtifactPage';
 import GraphPage from './GraphPage';
 import SemanticMapPage from './SemanticMapPage';
 import ReleasesPage from './ReleasesPage';
+import PlaybooksPage from './PlaybooksPage';
 import SettingsPage from './SettingsPage';
 import AssistPanel from './AssistPanel';
 import DemoCoach, { startCoach } from './DemoCoach';
@@ -121,6 +122,7 @@ function ProjectRoutes() {
       <Route path="stories/:docId?" element={<ArtifactPage type="story" />} />
       <Route path="frs/:docId?" element={<ArtifactPage type="fr" />} />
       <Route path="tests/:docId?" element={<ArtifactPage type="test" />} />
+      <Route path="playbooks" element={<PlaybooksPage />} />
       <Route path="graph" element={<GraphPage />} />
       <Route path="map" element={<SemanticMapPage />} />
       <Route path="releases" element={<ReleasesPage />} />
@@ -166,6 +168,7 @@ const PROJECT_NAV = [
     { to: 'tests', glyph: 'flask', label: 'Test Cases', count: (p) => p.tests.length }
   ] },
   { g: 'project', label: 'Project', items: [
+    { to: 'playbooks', glyph: 'play', label: 'Playbooks' },
     { to: 'graph', glyph: 'network', label: 'Knowledge Graph' },
     { to: 'map', glyph: 'scatter', label: 'Semantic Map' },
     { to: 'releases', glyph: 'rocket', label: 'Releases', count: (p) => p.releases.length }
