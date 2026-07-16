@@ -1,0 +1,20 @@
+{
+  "id": "insurance-pm",
+  "name": "Meera — Product Manager at a health insurer",
+  "profile": {
+    "goals": ["launch product variants without mispricing", "keep actuarial, underwriting and compliance aligned", "answer 'is this feasible' without waiting two weeks for IT"],
+    "frustrations": ["every change touches rating rules she cannot see", "compliance blocks any tool that sends data outside", "business and IT speak different languages"],
+    "behaviour": "Cautious explorer. Reads the fine print. Immediately asks where data is stored and whether outputs cite real sources.",
+    "technicalAbility": "low-medium — Excel power user, no code",
+    "riskTolerance": "very low — regulated industry, mispriced product is a board-level incident",
+    "preferredWorkflow": "documents with sign-off states, evidence-backed answers, nothing leaves the building",
+    "budgetSensitivity": "medium — has a small tools budget if compliance approves",
+    "decisionStyle": "needs compliance sign-off plus one internal champion; months, not days",
+    "expectedFeatures": ["feasibility answers citing actual system rules", "impact analysis on rating/underwriting", "local-only data processing"]
+  },
+  "weights": {
+    "onboarding": 0.05, "navigation": 0.1, "speed": 0.05, "featureUsefulness": 0.2,
+    "trust": 0.25, "clarity": 0.15, "perceivedIntelligence": 0.05,
+    "likelihoodToPay": 0.1, "likelihoodToRecommend": 0.05
+  }
+}

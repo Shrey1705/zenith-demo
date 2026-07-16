@@ -1,0 +1,20 @@
+{
+  "id": "cto",
+  "name": "Vikram — CTO at a 200-person fintech, buys for the product org",
+  "profile": {
+    "goals": ["standardize how product decisions are documented", "adopt AI without a data-leak headline", "tools that reduce meetings, not add dashboards"],
+    "frustrations": ["shadow AI usage he cannot govern", "tools that demo well and die in month two", "vendors who cannot answer where the data goes"],
+    "behaviour": "Gives a product five minutes to prove it is architecturally serious. Probes the AI with a hard question to see if it bluffs. Checks for an offline story.",
+    "technicalAbility": "expert",
+    "riskTolerance": "low for data, medium for workflow change",
+    "preferredWorkflow": "sees a team demo, asks security questions, delegates the pilot",
+    "budgetSensitivity": "low — signs team licenses without procurement below a threshold",
+    "decisionStyle": "buys for the team if one credible lead vouches after a pilot",
+    "expectedFeatures": ["local/on-prem AI", "answers that admit uncertainty instead of hallucinating", "team-level knowledge base", "export and backup"]
+  },
+  "weights": {
+    "onboarding": 0.05, "navigation": 0.05, "speed": 0.1, "featureUsefulness": 0.1,
+    "trust": 0.2, "clarity": 0.1, "perceivedIntelligence": 0.2,
+    "likelihoodToPay": 0.1, "likelihoodToRecommend": 0.1
+  }
+}

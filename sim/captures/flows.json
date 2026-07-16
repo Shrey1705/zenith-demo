@@ -1,0 +1,49 @@
+{
+  "capturedAt": "2026-07-16",
+  "method": "manual v1 — real copy transcribed from the running app during Phase 3 verification; replace with automated capture (Playwright) in v2",
+  "flows": [
+    {
+      "id": "first-contact",
+      "name": "Landing → Feasly login (first-time visitor)",
+      "steps": [
+        { "screen": "Any page, top banner", "text": "Portfolio demo by Shrey Sagar — simulated payments, data resets periodically. View source on GitHub ↗", "actions": ["dismiss banner"] },
+        { "screen": "Feasly login", "text": "feasly — PM workspace. Research, BRDs, PDNs, stories and tests — interconnected, versioned, and traceable back to the business question. Connected to the Zenith showcase tenant. Username / Password prefilled. Demo credentials prefilled: pm / zenith@123", "actions": ["Log in (one click, credentials prefilled)"] }
+      ]
+    },
+    {
+      "id": "chat-home",
+      "name": "Chat-first home, ask the AI about the product",
+      "steps": [
+        { "screen": "Chat home", "text": "Good afternoon. What are we building? I'm connected to the Zenith tenant — its code, contracts and every document in this workspace. Chats are saved as sessions; any session can become a project. Suggested: 'Can we support monthly EMI payments today?' · 'What are the underwriting limits for a ₹2 crore cover?' · 'Which systems does the premium calculation touch?'", "actions": ["type a question", "click a suggestion"] },
+        { "screen": "Chat answer (deterministic engine)", "text": "Feasible but core-gated: sum_insured_bands in underwriting.rules.yaml and a matching sum_insured_multiplier rate are both required — the rate needs actuarial input. The API side is additive (band list is enum-referenced). I've saved the full constraint breakdown to Research.", "actions": ["save answer as research note", "promote chat to project"] },
+        { "screen": "Sidebar", "text": "New chat · Chats (auto-named sessions) · Products: Retail Health Insurance → High-Value Cover Expansion; Group Health Insurance; All products → Nominee & KYC Enhancements · Recent documents · Guided demo · Reset demo data · Settings · Log out", "actions": ["navigate tree"] }
+      ]
+    },
+    {
+      "id": "knowledge-chain",
+      "name": "Project knowledge: research → versioned BRD → generated delivery chain",
+      "steps": [
+        { "screen": "Project header", "text": "Lifecycle strip: Discover ✓ Define ✓ Build ✓ Launch ✓ Measure (current). Hint: 'Track the release, then review outcomes and adoption once it ships.'", "actions": [] },
+        { "screen": "Research list", "text": "HNI demand — lost-quote analysis (Uploaded file · lost-quotes-q1.pdf) · Underwriting & rating constraints for a new SI band (Saved AI answer). Each note opens with source label, date, content, and a trace rail: UPSTREAM / DOWNSTREAM documents.", "actions": ["Ask AI", "upload file", "new note"] },
+        { "screen": "BRD detail", "text": "Add a ₹2 crore sum-insured band · v1 · Approved · 2 research linked · 1 PDN. Sections: Background, Requirements, Stakeholders, Success criteria. Versions rail on the right; editing then saving creates v2 and flags every downstream PDN/epic/story/test as 'upstream changed' (stale) automatically.", "actions": ["edit sections", "save new version", "generate PDN"] },
+        { "screen": "Story detail", "text": "Extend sum-insured bands with UW grid and actuarial rate · 8 pts · AC: 'Given the new band is selected, rating uses the certified actuarial multiplier' · trace: BRD → PDN → Epic → this story → FRs → test cases in Gherkin.", "actions": ["view trace rail", "generate AC"] }
+      ]
+    },
+    {
+      "id": "playbooks",
+      "name": "Run a playbook (stage-aware AI workflows)",
+      "steps": [
+        { "screen": "Playbooks page", "text": "Playbooks — Curated PM workflows that turn this project's knowledge into finished documents. Engine: llama3.2 @ Ollama · temp 0.1 · RAG (or 'Feasly demo brain (offline)' when no local model is connected). Six cards: Metrics review [RECOMMENDED NOW — matches current Measure stage], Write a spec, Synthesize research, Competitive brief, Stakeholder update, Sprint planning. Each shows its lifecycle stage and output type; blocked cards explain what is missing, e.g. 'Ship a release first — measurement needs something live.'", "actions": ["Run"] },
+        { "screen": "Playbook output (metrics review)", "text": "Lands as a document: 'Metrics review — 16 Jul 2026 · PLAYBOOK OUTPUT'. Content: Success criteria on record (pulled verbatim from the BRD: ≥5% of new policies pick the ₹2 crore band within two quarters; zero mispriced issuances) · Shipped (nothing live yet; releases planned but not past their date) · Review (is the criterion instrumented on a dashboard?). Footer credits the engine used.", "actions": ["open in research", "trace upstream"] }
+      ]
+    },
+    {
+      "id": "buying",
+      "name": "Trying to adopt or pay (the honest gaps)",
+      "steps": [
+        { "screen": "Settings → Model Hub", "text": "Connect a local model: endpoint http://localhost:11434, chat model, embedding model, temperature. BYO cloud keys also supported. No guided installer — assumes Ollama is already installed and models pulled.", "actions": ["configure local AI"] },
+        { "screen": "Anywhere", "text": "There is no pricing page, no sign-up, and no way to pay. The only account is the shared demo login (pm / zenith@123). All workspace data lives in this browser's localStorage — 'Reset demo data' wipes it; another device shows nothing.", "actions": [] }
+      ]
+    }
+  ]
+}

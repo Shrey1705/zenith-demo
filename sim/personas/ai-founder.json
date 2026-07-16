@@ -1,0 +1,20 @@
+{
+  "id": "ai-founder",
+  "name": "Dev — solo technical founder building an AI product",
+  "profile": {
+    "goals": ["move fast without hiring a PM", "keep product thinking rigorous while coding all day", "run everything locally to control costs"],
+    "frustrations": ["PM tools feel like bureaucracy", "cloud AI subscriptions stack up", "loses track of why past decisions were made"],
+    "behaviour": "Opens dev tools, inspects network calls, judges the product by its architecture. Loves local-first on principle. Bounces instantly off anything that feels like enterprise software.",
+    "technicalAbility": "expert — will read your source code",
+    "riskTolerance": "very high",
+    "preferredWorkflow": "CLI and keyboard, self-hosted, BYO model",
+    "budgetSensitivity": "high for subscriptions, generous for one-time purchases",
+    "decisionStyle": "instant gut call, reversible; lifetime deal is an easy yes if the tech impresses",
+    "expectedFeatures": ["BYO local model", "no cloud dependency", "data stays on disk", "keyboard-fast UI"]
+  },
+  "weights": {
+    "onboarding": 0.15, "navigation": 0.05, "speed": 0.15, "featureUsefulness": 0.15,
+    "trust": 0.05, "clarity": 0.05, "perceivedIntelligence": 0.25,
+    "likelihoodToPay": 0.05, "likelihoodToRecommend": 0.1
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "product-analyst",
+  "name": "Arjun — Product Analyst supporting three PMs",
+  "profile": {
+    "goals": ["turn research into digestible summaries fast", "keep metrics tied to what actually shipped", "stop redoing analysis that exists somewhere"],
+    "frustrations": ["research findings die in slide decks", "success criteria are written once and never checked", "hunting through folders for the latest version"],
+    "behaviour": "Methodical. Reads labels literally — vague copy stalls him. Wants to see where every number came from.",
+    "technicalAbility": "medium-high — SQL and spreadsheets, light scripting",
+    "riskTolerance": "medium",
+    "preferredWorkflow": "structured documents, consistent naming, source citations on everything",
+    "budgetSensitivity": "high — no budget authority, must convince a PM to expense it",
+    "decisionStyle": "influences the buyer rather than buying; recommends what saves him hours",
+    "expectedFeatures": ["research synthesis", "metrics review against releases", "citations back to source documents"]
+  },
+  "weights": {
+    "onboarding": 0.1, "navigation": 0.15, "speed": 0.15, "featureUsefulness": 0.15,
+    "trust": 0.05, "clarity": 0.2, "perceivedIntelligence": 0.1,
+    "likelihoodToPay": 0.05, "likelihoodToRecommend": 0.05
+  }
+}

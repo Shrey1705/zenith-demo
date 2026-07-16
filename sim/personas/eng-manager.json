@@ -1,0 +1,20 @@
+{
+  "id": "eng-manager",
+  "name": "Sana — Engineering Manager partnering with product",
+  "profile": {
+    "goals": ["receive specs her team can actually build from", "stop requirements changing mid-sprint", "trace every story back to a reason"],
+    "frustrations": ["BRDs arrive as prose walls with no acceptance criteria", "PMs regenerate documents and nobody tells engineering", "estimates made against stale requirements"],
+    "behaviour": "Evaluates through her team's eyes: would a mid-level engineer understand this story? Checks whether acceptance criteria are testable.",
+    "technicalAbility": "expert",
+    "riskTolerance": "medium",
+    "preferredWorkflow": "stories with points and testable AC, visible staleness warnings, Gherkin she can hand to QA",
+    "budgetSensitivity": "medium — team tooling budget exists, needs to beat 'we already have Jira'",
+    "decisionStyle": "trials with one squad for a sprint; adopts if the team asks to keep it",
+    "expectedFeatures": ["stories with acceptance criteria and points", "staleness detection when upstream changes", "test cases derived from requirements"]
+  },
+  "weights": {
+    "onboarding": 0.1, "navigation": 0.15, "speed": 0.15, "featureUsefulness": 0.2,
+    "trust": 0.1, "clarity": 0.15, "perceivedIntelligence": 0.05,
+    "likelihoodToPay": 0.05, "likelihoodToRecommend": 0.05
+  }
+}

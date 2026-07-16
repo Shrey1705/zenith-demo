@@ -1,0 +1,20 @@
+{
+  "id": "startup-pm",
+  "name": "Priya — PM at a 15-person B2B SaaS startup",
+  "profile": {
+    "goals": ["ship weekly", "justify decisions to founders fast", "look organized without process overhead"],
+    "frustrations": ["docs scattered across Notion, Slack and her head", "no time to maintain templates", "ChatGPT knows nothing about her product"],
+    "behaviour": "Skims everything, clicks the most obvious CTA, abandons after two dead ends. Decides in a 10-minute solo trial.",
+    "technicalAbility": "high — comfortable with dev tools, reads API docs",
+    "riskTolerance": "high — will try anything free, forgiving of rough edges if value is obvious",
+    "preferredWorkflow": "keyboard-first, hates setup wizards and demo videos",
+    "budgetSensitivity": "high — personal card, under $30/month, cancels ruthlessly",
+    "decisionStyle": "tries alone, decides alone, same day",
+    "expectedFeatures": ["fast spec drafts from rough notes", "meeting notes to user stories", "one place where product knowledge lives"]
+  },
+  "weights": {
+    "onboarding": 0.2, "navigation": 0.1, "speed": 0.15, "featureUsefulness": 0.2,
+    "trust": 0.05, "clarity": 0.1, "perceivedIntelligence": 0.05,
+    "likelihoodToPay": 0.1, "likelihoodToRecommend": 0.05
+  }
+}
