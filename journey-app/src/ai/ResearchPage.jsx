@@ -9,7 +9,7 @@ import { I, TypeIcon } from './icons';
 import { useWS, mutate, uid, now, titleFrom, findProject, findDoc, addDoc, updateDoc, removeDoc, shortDate, usingLocal, activeModelLabel } from './workspace';
 import TraceRail from './TraceRail';
 
-const SOURCE_LABEL = { note: 'Manual note', ai: 'Saved AI answer', upload: 'Uploaded file', confluence: 'Confluence import', api: 'API docs import', playbook: 'Playbook output' };
+const SOURCE_LABEL = { note: 'Manual note', ai: 'Saved AI answer', upload: 'Uploaded file', confluence: 'Confluence import', api: 'API docs import', playbook: 'Playbook output', inbox: 'Sent via integration' };
 
 export default function ResearchPage() {
   const { pid, docId } = useParams();

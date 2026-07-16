@@ -1,0 +1,40 @@
+{
+  "name": "Feasly — Slack 📌 to Inbox",
+  "nodes": [
+    {
+      "parameters": {
+        "trigger": ["reaction_added"],
+        "channelId": { "__rl": true, "mode": "list", "value": "" }
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "name": "On 📌 reaction",
+      "notes": "Connect your Slack account; fires when someone reacts to a message. Filter to the 📌 emoji in the node options."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zenith-health-demo.vercel.app/api/ai/inbox",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer YOUR_FEASLY_INTEGRATION_TOKEN" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: 'Slack — ' + ($json.message?.text || '').slice(0, 80), content: $json.message?.text || '', source: 'slack' }) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [260, 0],
+      "name": "Send to Feasly Inbox"
+    }
+  ],
+  "connections": {
+    "On 📌 reaction": { "main": [[{ "node": "Send to Feasly Inbox", "type": "main", "index": 0 }]] }
+  },
+  "settings": {}
+}

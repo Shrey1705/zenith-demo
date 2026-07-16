@@ -2,6 +2,7 @@
 // one tabbed screen. Connectors are the ground truth behind every verdict.
 import React, { useState, useEffect } from 'react';
 import { ai } from '../lib/api';
+import { useWorkspace } from './AiPortal';
 import { detectOllama } from '../lib/ollama';
 import { clearIndex } from './rag';
 import { I } from './icons';
@@ -10,9 +11,75 @@ import { useWS, mutate, uid, usingLocal, DEFAULT_THEME } from './workspace';
 const TABS = [
   { id: 'Connected Systems', glyph: 'plug' },
   { id: 'Model Hub', glyph: 'cpu' },
+  { id: 'Integrations', glyph: 'network' },
   { id: 'Appearance', glyph: 'sliders' },
   { id: 'API & Webhooks', glyph: 'code' }
 ];
+
+// Integrations — the n8n story: one inbound webhook + one scheduled playbook
+// endpoint, and n8n's connectors do the rest, self-hosted so nothing leaves
+// the user's machines. Real accounts mint a long-lived token here.
+function IntegrationsTab() {
+  const { session } = useWorkspace();
+  const isUser = session?.mode === 'user';
+  const [tok, setTok] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState('');
+  const base = `${window.location.origin}/api/ai`;
+
+  const mint = async () => {
+    setBusy(true);
+    try { const r = await ai.apiToken(session.token); setTok(r.token); }
+    catch (e) { setTok(''); alert(e.message); }
+    finally { setBusy(false); }
+  };
+  const copy = (label, text) => {
+    navigator.clipboard?.writeText(text).then(() => { setCopied(label); setTimeout(() => setCopied(''), 1600); });
+  };
+
+  if (!isUser) {
+    return (
+      <div>
+        <h3 className="ws-h3">Send anything into your workspace</h3>
+        <p className="hint">Connect Slack, email, Jira — anything n8n speaks — to a private Feasly workspace: saved messages and forwarded mails land as research notes, and a scheduled workflow can post your stakeholder update every Friday. Self-hosted n8n keeps the whole chain on your own machines.</p>
+        <p className="hint"><b>Sign in with your email</b> (log out and use the email option) to mint an integration token — the demo workspace lives only in this browser, so there is nothing for a webhook to write to.</p>
+      </div>
+    );
+  }
+
+  const curlExample = `curl -X POST ${base}/inbox \\
+  -H "Authorization: Bearer ${tok || '<your-token>'}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"title":"From Slack","content":"…","source":"slack"}'`;
+
+  return (
+    <div>
+      <h3 className="ws-h3">Integration token</h3>
+      <p className="hint">A long-lived token (365 days) for n8n, curl or any webhook tool. Treat it like a password — anyone holding it can write into your Inbox and read your status updates.</p>
+      {tok
+        ? <div className="tokenbox"><code>{tok}</code><button className="fs-linkbtn" onClick={() => copy('token', tok)}>{copied === 'token' ? 'Copied ✓' : 'Copy'}</button></div>
+        : <button className="btn" disabled={busy} onClick={mint}>{busy ? 'Generating…' : 'Generate integration token'}</button>}
+
+      <h3 className="ws-h3" style={{ marginTop: 26 }}>Endpoints</h3>
+      <table className="dashtable">
+        <thead><tr><th>What</th><th>Call</th></tr></thead>
+        <tbody>
+          <tr><td>Send anything into your Inbox project</td><td><code>POST {base}/inbox</code> · body <code>{'{ title, content, source? }'}</code></td></tr>
+          <tr><td>Fetch a finished stakeholder update</td><td><code>GET {base}/playbooks/stakeholder-update?project=first</code></td></tr>
+        </tbody>
+      </table>
+      <p className="hint" style={{ marginTop: 8 }}>Try it: <button className="fs-linkbtn" onClick={() => copy('curl', curlExample)}>{copied === 'curl' ? 'Copied ✓' : 'copy a working curl'}</button> — the item appears in your <b>Inbox</b> project on next load.</p>
+
+      <h3 className="ws-h3" style={{ marginTop: 26 }}>Ready-made n8n workflows</h3>
+      <p className="hint">Run n8n locally with <code>npx n8n</code>, import a template from the repo's <code>integrations/n8n/</code> folder, paste your token, activate:</p>
+      <ul className="hint" style={{ lineHeight: 2, paddingLeft: 18 }}>
+        <li><b>slack-saved-to-inbox</b> — react with 📌 in Slack → the message lands as a research note</li>
+        <li><b>email-forward-to-inbox</b> — forward any email → research note</li>
+        <li><b>friday-stakeholder-update</b> — every Friday 4pm, your status update posts itself to Slack</li>
+      </ul>
+    </div>
+  );
+}
 
 const CONNECTORS = [
   { name: 'zenith-core-service', kind: 'Core policy system', lang: 'Node · Express', files: ['rules/premium.rules.yaml', 'rules/underwriting.rules.yaml', 'db/schema.sql', 'api/contracts/proposal-v2.contract.json', 'services/*.js'] },
@@ -254,6 +321,7 @@ export default function SettingsPage() {
       </div>
       {tab === 'Connected Systems' && <SystemsTab />}
       {tab === 'Model Hub' && <ModelsTab />}
+      {tab === 'Integrations' && <IntegrationsTab />}
       {tab === 'Appearance' && <AppearanceTab />}
       {tab === 'API & Webhooks' && <ApiTab />}
     </div>

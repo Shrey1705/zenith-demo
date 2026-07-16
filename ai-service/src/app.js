@@ -119,6 +119,44 @@ app.get('/auth/verify', async (req, res) => {
   res.json({ token: signToken(email, 30), email });
 });
 
+// Long-lived token for n8n/webhook use — same HMAC scheme as sessions,
+// stateless (rotation = change AI_AUTH_SECRET).
+app.post('/auth/api-token', authUser, (req, res) => {
+  res.json({ token: signToken(req.subject, 365), expiresInDays: 365 });
+});
+
+// ---- integration inbox: anything → your workspace ----
+// n8n (or curl) queues items; the signed-in client drains them into the
+// workspace as research notes. Server never touches the workspace doc.
+app.post('/inbox', authUser, async (req, res) => {
+  const title = String(req.body?.title || '').trim().slice(0, 200);
+  const content = String(req.body?.content || '').trim();
+  const source = String(req.body?.source || 'n8n').trim().slice(0, 60);
+  if (!title || !content) return res.status(400).json({ error: 'title and content required' });
+  if (content.length > 32000) return res.status(413).json({ error: 'content too large (32KB cap)' });
+  await accounts.pushInbox(req.subject, { title, content, source, receivedAt: new Date().toISOString() });
+  res.json({ ok: true, queued: title });
+});
+
+app.post('/inbox/drain', authUser, async (req, res) => {
+  res.json({ items: await accounts.drainInbox(req.subject) });
+});
+
+// ---- scheduled playbooks: finished documents over the API ----
+// n8n cron → this endpoint → post the markdown anywhere. Builds from the
+// user's synced workspace (ws:{email}) with the deterministic engine.
+const { stakeholderUpdate } = require('./playbookServer');
+app.get('/playbooks/stakeholder-update', authUser, async (req, res) => {
+  const ws = await accounts.getWs(req.subject);
+  const projects = ws?.projects || [];
+  if (!projects.length) return res.status(404).json({ error: 'no synced projects — sign in to the app and create one first' });
+  const pick = req.query.project;
+  const project = pick && pick !== 'first' ? projects.find((p) => p.id === pick || p.name === pick) : projects[0];
+  if (!project) return res.status(404).json({ error: `project "${pick}" not found` });
+  const r = stakeholderUpdate(project);
+  res.json({ ...r, project: { id: project.id, name: project.name } });
+});
+
 // ---- per-user workspace sync (whole-document, client is source of truth) ----
 app.get('/ws', authUser, async (req, res) => {
   res.json({ data: await accounts.getWs(req.subject) });

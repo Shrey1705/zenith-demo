@@ -58,7 +58,7 @@ export default function AiPortal() {
   useEffect(() => {
     let live = true;
     (async () => {
-      if (session?.mode === 'user') await enableUserSync(session.token);
+      if (session?.mode === 'user') await enableUserSync(session.token, session.user);
       else disableUserSync();
       if (live) setReady(true);
     })();

@@ -10,7 +10,9 @@ import { useSyncExternalStore } from 'react';
 import { ai } from '../lib/api';
 
 const DEMO_KEY = 'feasly-workspace-v3';
-const USER_KEY = 'feasly-workspace-user-v1';
+// Per-account cache key — two accounts on one browser must never see each
+// other's local cache (the server doc is already per-email).
+const userKey = (email) => `feasly-workspace-user-v1:${email}`;
 let KEY = DEMO_KEY;
 
 // ---- shared store (all components see the same snapshot) ----
@@ -72,9 +74,9 @@ function emptyState() {
   return { ...seedState(), products: [], projects: [], sessions: [], activeSessionId: null };
 }
 
-export async function enableUserSync(token) {
+export async function enableUserSync(token, email) {
   sync = { token, timer: null };
-  KEY = USER_KEY;
+  KEY = userKey(email || 'unknown');
   cache = null;
   try {
     const r = await ai.getWs(token);
@@ -85,7 +87,36 @@ export async function enableUserSync(token) {
       read(); // local cache if present, else a clean empty workspace
     }
   } catch { read(); /* server unreachable — offline-first on the local cache */ }
+  await mergeInbox(token);
   notify();
+}
+
+// Integration inbox: items queued via POST /inbox (n8n, curl, anything) land
+// as research notes in an auto-created "Inbox" project. Draining here — after
+// the workspace load, before the first render — means the merged doc is what
+// gets pushed back to /ws, so the queue and the document can't fight.
+async function mergeInbox(token) {
+  let items = [];
+  try { items = (await ai.drainInbox(token)).items || []; } catch { return; /* offline — items stay queued */ }
+  if (!items.length) return;
+  let inbox = (cache.projects || []).find((p) => p.name === 'Inbox');
+  if (!inbox) {
+    inbox = {
+      id: uid(), name: 'Inbox', about: 'Documents sent in from your integrations — file them into real projects as they earn a home.',
+      productId: 'all', createdAt: now(),
+      folders: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: []
+    };
+    cache = { ...cache, projects: [inbox, ...cache.projects] };
+  }
+  const notes = items.map((it) => ({
+    id: uid(), title: it.title, source: 'inbox', sourceDetail: it.source || 'n8n',
+    createdAt: it.receivedAt || now(), content: it.content
+  }));
+  cache = {
+    ...cache,
+    projects: cache.projects.map((p) => (p.id === inbox.id ? { ...p, research: [...notes, ...p.research] } : p))
+  };
+  persist();
 }
 
 export function disableUserSync() {

@@ -30,6 +30,8 @@ export const ai = {
   verify: (code) => req('/api/ai', `/auth/verify?code=${encodeURIComponent(code)}`),
   getWs: (token) => req('/api/ai', '/ws', { headers: { Authorization: `Bearer ${token}` } }),
   putWs: (token, data) => req('/api/ai', '/ws', { method: 'PUT', body: { data }, headers: { Authorization: `Bearer ${token}` } }),
+  apiToken: (token) => req('/api/ai', '/auth/api-token', { method: 'POST', headers: { Authorization: `Bearer ${token}` } }),
+  drainInbox: (token) => req('/api/ai', '/inbox/drain', { method: 'POST', headers: { Authorization: `Bearer ${token}` } }),
   analyze: (token, text) => req('/api/ai', '/analyze', { method: 'POST', body: { text }, headers: { Authorization: `Bearer ${token}` } }),
   chat: (token, messages) => req('/api/ai', '/chat', { method: 'POST', body: { messages }, headers: { Authorization: `Bearer ${token}` } }),
   sources: (token) => req('/api/ai', '/sources', { headers: { Authorization: `Bearer ${token}` } })

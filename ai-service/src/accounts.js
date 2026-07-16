@@ -14,7 +14,7 @@ if (url && token) {
 
 // In-memory fallback — fine for single-process local dev, useless across
 // serverless invocations (which is exactly when the Redis env vars exist).
-const mem = { magic: new Map(), users: new Map(), ws: new Map() };
+const mem = { magic: new Map(), users: new Map(), ws: new Map(), inbox: new Map() };
 
 const MAGIC_TTL_S = 15 * 60;
 
@@ -55,6 +55,34 @@ async function putWs(email, data) {
   mem.ws.set(email, data);
 }
 
+// ---- integration inbox ----
+// n8n (or any webhook source) queues items here; the signed-in client drains
+// the queue and merges items into the workspace as research notes. The server
+// never mutates the workspace document itself, so sync stays conflict-free.
+const INBOX_MAX = 200;
+
+async function pushInbox(email, item) {
+  if (redis) {
+    await redis.lpush(`inbox:${email}`, item);
+    await redis.ltrim(`inbox:${email}`, 0, INBOX_MAX - 1);
+    return;
+  }
+  const list = mem.inbox.get(email) || [];
+  list.unshift(item);
+  mem.inbox.set(email, list.slice(0, INBOX_MAX));
+}
+
+async function drainInbox(email) {
+  if (redis) {
+    const items = (await redis.lrange(`inbox:${email}`, 0, -1)) || [];
+    if (items.length) await redis.del(`inbox:${email}`);
+    return items;
+  }
+  const items = mem.inbox.get(email) || [];
+  mem.inbox.delete(email);
+  return items;
+}
+
 // Magic-link delivery via Resend. No RESEND_API_KEY ⇒ { delivered: false }
 // and the caller decides (dev hands the link back; production refuses).
 async function sendMagicEmail({ to, link }) {
@@ -73,4 +101,4 @@ async function sendMagicEmail({ to, link }) {
   return { delivered: true };
 }
 
-module.exports = { putMagic, takeMagic, ensureUser, getWs, putWs, sendMagicEmail };
+module.exports = { putMagic, takeMagic, ensureUser, getWs, putWs, pushInbox, drainInbox, sendMagicEmail };

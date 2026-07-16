@@ -1,0 +1,40 @@
+{
+  "name": "Feasly — Email forward to Inbox",
+  "nodes": [
+    {
+      "parameters": {
+        "mailbox": "INBOX",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "name": "Watch mailbox",
+      "notes": "Connect an IMAP account (e.g. a dedicated notes@ address). Every new email becomes a Feasly research note."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zenith-health-demo.vercel.app/api/ai/inbox",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer YOUR_FEASLY_INTEGRATION_TOKEN" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: $json.subject || 'Forwarded email', content: ($json.textPlain || $json.textHtml || '').slice(0, 30000), source: 'email' }) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [260, 0],
+      "name": "Send to Feasly Inbox"
+    }
+  ],
+  "connections": {
+    "Watch mailbox": { "main": [[{ "node": "Send to Feasly Inbox", "type": "main", "index": 0 }]] }
+  },
+  "settings": {}
+}

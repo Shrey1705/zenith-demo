@@ -949,3 +949,7 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .pricecard ul { flex: 1; margin: 8px 0 20px; padding-left: 18px; font-size: 13px; color: rgba(13, 36, 64, 0.8); line-height: 1.9; }
 .pricecard .btn { text-align: center; }
 @media (max-width: 720px) { .pricegrid { margin-top: 10px; } }
+
+/* integrations tab */
+.tokenbox { display: flex; align-items: center; gap: 12px; background: var(--glass2); border: 1px solid var(--glassline); border-radius: 12px; padding: 10px 14px; margin-top: 8px; max-width: 640px; }
+.tokenbox code { flex: 1; font-size: 12px; word-break: break-all; color: var(--ink); }

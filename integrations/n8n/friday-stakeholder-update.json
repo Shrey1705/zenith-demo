@@ -1,0 +1,48 @@
+{
+  "name": "Feasly — Friday stakeholder update to Slack",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "weeks", "triggerAtDay": [5], "triggerAtHour": 16 }] }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "name": "Every Friday 4pm"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://zenith-health-demo.vercel.app/api/ai/playbooks/stakeholder-update?project=first",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer YOUR_FEASLY_INTEGRATION_TOKEN" }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [240, 0],
+      "name": "Build the update",
+      "notes": "Change ?project=first to a project id or exact name to target a specific project."
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": { "__rl": true, "mode": "list", "value": "" },
+        "text": "={{ '*' + $json.title + ' — ' + $json.project.name + '*\\n\\n' + $json.markdown }}"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [480, 0],
+      "name": "Post to Slack",
+      "notes": "Connect Slack and pick the channel. Swap this node for Email/Teams/anything — the markdown is ready to paste."
+    }
+  ],
+  "connections": {
+    "Every Friday 4pm": { "main": [[{ "node": "Build the update", "type": "main", "index": 0 }]] },
+    "Build the update": { "main": [[{ "node": "Post to Slack", "type": "main", "index": 0 }]] }
+  },
+  "settings": {}
+}
