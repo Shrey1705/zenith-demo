@@ -28,6 +28,7 @@ export const ai = {
   login: (username, password) => req('/api/ai', '/login', { method: 'POST', body: { username, password } }),
   requestLink: (email) => req('/api/ai', '/auth/request-link', { method: 'POST', body: { email } }),
   verify: (code) => req('/api/ai', `/auth/verify?code=${encodeURIComponent(code)}`),
+  whoami: (token) => req('/api/ai', '/auth/whoami', { headers: { Authorization: `Bearer ${token}` } }),
   getWs: (token) => req('/api/ai', '/ws', { headers: { Authorization: `Bearer ${token}` } }),
   putWs: (token, data) => req('/api/ai', '/ws', { method: 'PUT', body: { data }, headers: { Authorization: `Bearer ${token}` } }),
   apiToken: (token) => req('/api/ai', '/auth/api-token', { method: 'POST', headers: { Authorization: `Bearer ${token}` } }),

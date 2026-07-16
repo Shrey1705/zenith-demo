@@ -1,0 +1,49 @@
+{
+  "name": "Feasly — Friday stakeholder update via Gmail",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "weeks", "triggerAtDay": [5], "triggerAtHour": 16 }] }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "name": "Every Friday 4pm"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://zenith-health-demo.vercel.app/api/ai/playbooks/stakeholder-update?project=first",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer YOUR_FEASLY_INTEGRATION_TOKEN" }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [240, 0],
+      "name": "Build the update",
+      "notes": "Change ?project=first to a project id or exact name to target a specific project."
+    },
+    {
+      "parameters": {
+        "sendTo": "stakeholders@yourcompany.com",
+        "subject": "={{ $json.title + ' — ' + $json.project.name }}",
+        "emailType": "text",
+        "message": "={{ $json.markdown }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [480, 0],
+      "name": "Send via Gmail",
+      "notes": "Connect your Google account and set the recipient list. The markdown reads fine as plain text; switch emailType to html and wrap if you prefer."
+    }
+  ],
+  "connections": {
+    "Every Friday 4pm": { "main": [[{ "node": "Build the update", "type": "main", "index": 0 }]] },
+    "Build the update": { "main": [[{ "node": "Send via Gmail", "type": "main", "index": 0 }]] }
+  },
+  "settings": {}
+}

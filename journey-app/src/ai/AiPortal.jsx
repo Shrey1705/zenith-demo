@@ -8,7 +8,7 @@ import { useLocation, Routes, Route, NavLink, Navigate, Outlet, useNavigate } fr
 import { ai } from '../lib/api';
 import {
   useWS, mutate, resetWS, uid, now, findProject, findProduct, projectsOf,
-  ALL_PRODUCT, DEFAULT_THEME, TYPES, ROUTE_OF, enableUserSync, disableUserSync
+  ALL_PRODUCT, DEFAULT_THEME, TYPES, ROUTE_OF, enableUserSync, disableUserSync, can
 } from './workspace';
 import { I, TypeIcon } from './icons';
 import ChatHome from './ChatHome';
@@ -23,6 +23,7 @@ import GraphPage from './GraphPage';
 import SemanticMapPage from './SemanticMapPage';
 import ReleasesPage from './ReleasesPage';
 import PlaybooksPage from './PlaybooksPage';
+import BoardPage from './BoardPage';
 import SettingsPage from './SettingsPage';
 import AssistPanel from './AssistPanel';
 import DemoCoach, { startCoach } from './DemoCoach';
@@ -134,17 +135,28 @@ function Login({ onAuth, autoLogin }) {
   );
 }
 
-// Magic-link landing: /ai/verify?code=… — exchanges the one-time code for a
-// 30-day session and drops the user into their private workspace.
+// Magic-link landing: /ai/verify?code=… exchanges a one-time code for a
+// 30-day session; /ai/verify?token=… is a founder-minted invite link that
+// already carries the session token (validated via whoami).
 function VerifyScreen({ onAuth }) {
   const nav = useNavigate();
   const [err, setErr] = useState('');
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get('code');
-    if (!code) { setErr('Missing sign-in code.'); return; }
-    ai.verify(code)
-      .then((r) => { onAuth({ token: r.token, user: r.email, mode: 'user' }); nav('/ai', { replace: true }); })
-      .catch((e) => setErr(e.message));
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const token = params.get('token');
+    const finish = (tok, email) => { onAuth({ token: tok, user: email, mode: 'user' }); nav('/ai', { replace: true }); };
+    if (token) {
+      ai.whoami(token)
+        .then((r) => finish(token, r.subject))
+        .catch(() => setErr('This invite link is invalid or expired — ask for a fresh one.'));
+    } else if (code) {
+      ai.verify(code)
+        .then((r) => finish(r.token, r.email))
+        .catch((e) => setErr(e.message));
+    } else {
+      setErr('Missing sign-in code.');
+    }
   }, []); // eslint-disable-line
   return (
     <div className="fs-loginwrap">
@@ -196,6 +208,7 @@ function ProjectRoutes() {
       <Route path="frs/:docId?" element={<ArtifactPage type="fr" />} />
       <Route path="tests/:docId?" element={<ArtifactPage type="test" />} />
       <Route path="playbooks" element={<PlaybooksPage />} />
+      <Route path="board" element={<BoardPage />} />
       <Route path="graph" element={<GraphPage />} />
       <Route path="map" element={<SemanticMapPage />} />
       <Route path="releases" element={<ReleasesPage />} />
@@ -237,6 +250,7 @@ const PROJECT_NAV = [
     { to: 'pdns', glyph: 'file', label: 'PDNs', count: (p) => p.pdns.length },
     { to: 'epics', glyph: 'layers', label: 'Epics', count: (p) => p.epics.length },
     { to: 'stories', glyph: 'card', label: 'User Stories', count: (p) => p.stories.length },
+    { to: 'board', glyph: 'checks', label: 'Sprint Board' },
     { to: 'frs', glyph: 'checks', label: 'Functional Reqs', count: (p) => p.frs.length },
     { to: 'tests', glyph: 'flask', label: 'Test Cases', count: (p) => p.tests.length }
   ] },
@@ -279,7 +293,7 @@ function ProductNode({ product, activeProject, onClose }) {
           <I n={product.id === 'all' ? 'layers' : 'target'} s={14} />
           <span className="fs-linklabel">{product.name}</span>
         </button>
-        <button className="fs-groupaction" title={`New project in ${product.name}`} onClick={() => { setOpen(true); setNavState('prod-' + product.id, true); setAdding(true); }}><I n="plus" s={12} /></button>
+        {can(ws, 'create') && <button className="fs-groupaction" title={`New project in ${product.name}`} onClick={() => { setOpen(true); setNavState('prod-' + product.id, true); setAdding(true); }}><I n="plus" s={12} /></button>}
       </div>
       {open && (
         <div className="fs-prodkids">
@@ -367,7 +381,7 @@ function Sidebar({ project, open, onClose }) {
         </Group>
 
         <Group id="products" label="Products"
-          action={<button className="fs-groupaction" title="New product" onClick={() => setAddingProduct(true)}><I n="plus" s={13} /></button>}>
+          action={can(ws, 'create') ? <button className="fs-groupaction" title="New product" onClick={() => setAddingProduct(true)}><I n="plus" s={13} /></button> : null}>
           {addingProduct && (
             <div className="fs-newproj">
               <input autoFocus value={prodName} placeholder="Product name…" onChange={(e) => setProdName(e.target.value)}

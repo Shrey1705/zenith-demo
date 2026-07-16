@@ -6,15 +6,93 @@ import { useWorkspace } from './AiPortal';
 import { detectOllama } from '../lib/ollama';
 import { clearIndex } from './rag';
 import { I } from './icons';
-import { useWS, mutate, uid, usingLocal, DEFAULT_THEME } from './workspace';
+import { useWS, mutate, uid, usingLocal, DEFAULT_THEME, ROLES, myRole, can } from './workspace';
 
 const TABS = [
-  { id: 'Connected Systems', glyph: 'plug' },
-  { id: 'Model Hub', glyph: 'cpu' },
-  { id: 'Integrations', glyph: 'network' },
+  { id: 'Connected Systems', glyph: 'plug', admin: true },
+  { id: 'Model Hub', glyph: 'cpu', admin: true },
+  { id: 'Integrations', glyph: 'network', admin: true },
+  { id: 'Team & Roles', glyph: 'user' },
   { id: 'Appearance', glyph: 'sliders' },
-  { id: 'API & Webhooks', glyph: 'code' }
+  { id: 'API & Webhooks', glyph: 'code', admin: true }
 ];
+
+// Shown in place of an admin-only tab when previewing a lower role — the
+// lock itself is the demo: this is what an editor or viewer actually gets.
+function LockedTab({ role }) {
+  return (
+    <div>
+      <h3 className="ws-h3">Admin access required</h3>
+      <p className="hint">You're viewing the workspace as <b>{role}</b>. Connected systems, models, integrations and API access are managed by workspace admins — {ROLES[role].toLowerCase()}</p>
+      <p className="hint">Switch back to admin in <b>Team & Roles</b>.</p>
+    </div>
+  );
+}
+
+function TeamTab() {
+  const ws = useWS();
+  const team = ws.team || { members: [], viewAs: null };
+  const role = myRole(ws);
+  const isAdmin = role === 'admin';
+  const [email, setEmail] = useState('');
+  const [newRole, setNewRole] = useState('editor');
+
+  const patchTeam = (p) => mutate((w) => ({ ...w, team: { ...(w.team || team), ...p } }));
+  const addMember = () => {
+    const e = email.trim().toLowerCase();
+    if (!e.includes('@')) return;
+    patchTeam({ members: [...team.members, { id: uid(), email: e, role: newRole }] });
+    setEmail('');
+  };
+  const setMemberRole = (id, r) => patchTeam({ members: team.members.map((m) => (m.id === id ? { ...m, role: r } : m)) });
+  const remove = (id) => patchTeam({ members: team.members.filter((m) => m.id !== id) });
+
+  return (
+    <div>
+      <h3 className="ws-h3">Preview access levels</h3>
+      <p className="hint">See exactly what each role gets — settings lock, playbooks and edits disable, documents stay readable. This is the access contract members receive when team workspaces ship.</p>
+      <div className="roleswitch">
+        {Object.keys(ROLES).map((r) => (
+          <button key={r} className={'undertab' + (role === r ? ' on' : '')}
+            onClick={() => patchTeam({ viewAs: r === 'admin' ? null : r })}>
+            {r.charAt(0).toUpperCase() + r.slice(1)}
+          </button>
+        ))}
+      </div>
+      <p className="hint">{ROLES[role]}</p>
+
+      <h3 className="ws-h3" style={{ marginTop: 26 }}>Members</h3>
+      <table className="dashtable">
+        <thead><tr><th>Member</th><th>Role</th><th /></tr></thead>
+        <tbody>
+          {team.members.map((m) => (
+            <tr key={m.id}>
+              <td>{m.email}{m.owner ? ' · owner' : ''}</td>
+              <td>
+                {m.owner ? <b>admin</b> : (
+                  <select value={m.role} disabled={!isAdmin} onChange={(e) => setMemberRole(m.id, e.target.value)}>
+                    {Object.keys(ROLES).map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                )}
+              </td>
+              <td>{!m.owner && isAdmin && <button className="fs-linkbtn" onClick={() => remove(m.id)}>Remove</button>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {isAdmin ? (
+        <div className="fs-onboardrow" style={{ maxWidth: 480, marginTop: 12 }}>
+          <input value={email} placeholder="teammate@company.com" onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addMember()} />
+          <select value={newRole} onChange={(e) => setNewRole(e.target.value)}>
+            {Object.keys(ROLES).map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <button onClick={addMember}>Add</button>
+        </div>
+      ) : <p className="hint">Only admins manage the member list.</p>}
+      <p className="hint" style={{ marginTop: 10 }}>Members sign in with founder invites today (<code>node tools/invite.js their@email.com</code>); shared team workspaces with server-enforced roles are on the Team plan roadmap.</p>
+    </div>
+  );
+}
 
 // Integrations — the n8n story: one inbound webhook + one scheduled playbook
 // endpoint, and n8n's connectors do the rest, self-hosted so nothing leaves
@@ -73,9 +151,10 @@ function IntegrationsTab() {
       <h3 className="ws-h3" style={{ marginTop: 26 }}>Ready-made n8n workflows</h3>
       <p className="hint">Run n8n locally with <code>npx n8n</code>, import a template from the repo's <code>integrations/n8n/</code> folder, paste your token, activate:</p>
       <ul className="hint" style={{ lineHeight: 2, paddingLeft: 18 }}>
-        <li><b>slack-saved-to-inbox</b> — react with 📌 in Slack → the message lands as a research note</li>
-        <li><b>email-forward-to-inbox</b> — forward any email → research note</li>
-        <li><b>friday-stakeholder-update</b> — every Friday 4pm, your status update posts itself to Slack</li>
+        <li><b>gmail-to-inbox</b> — tag a Gmail with your <code>Feasly</code> label → it lands as a research note</li>
+        <li><b>email-forward-to-inbox</b> — forward any email to a watched mailbox → research note</li>
+        <li><b>friday-update-to-gmail</b> — every Friday 4pm, your status update emails itself to stakeholders</li>
+        <li><b>whatsapp-update</b> — the same update, delivered on WhatsApp</li>
       </ul>
     </div>
   );
@@ -234,7 +313,7 @@ const PRESETS = [
   { name: 'Sunset', primary: '#e8590c', secondary: '#e64980', tertiary: '#f2a30f' },
   { name: 'Orchid', primary: '#7048e8', secondary: '#bf5af2', tertiary: '#f26eb1' }
 ];
-const ROLES = [
+const COLOR_ROLES = [
   { k: 'primary', label: 'Primary', hint: 'Buttons, active navigation, links, focus rings' },
   { k: 'secondary', label: 'Secondary', hint: 'Gradients, secondary accents and highlights' },
   { k: 'tertiary', label: 'Tertiary', hint: 'Badges, tags and tertiary highlights' }
@@ -251,7 +330,7 @@ function AppearanceTab() {
     <div className="appearance">
       <h3 className="ws-h3" style={{ marginTop: 0 }}>Theme colours</h3>
       <p className="hint" style={{ marginBottom: 14 }}>Changes apply live across the whole workspace and survive demo resets.</p>
-      {ROLES.map((r) => (
+      {COLOR_ROLES.map((r) => (
         <div className="colorrow" key={r.k}>
           <label className="colorwell" style={{ background: theme[r.k] }}>
             <input type="color" value={theme[r.k]} onChange={(e) => set(r.k, e.target.value)} />
@@ -308,6 +387,9 @@ function ApiTab() {
 
 export default function SettingsPage() {
   const [tab, setTab] = useState('Connected Systems');
+  const ws = useWS();
+  const role = myRole(ws);
+  const locked = TABS.find((t) => t.id === tab)?.admin && !can(ws, 'admin');
   return (
     <div className="docwrap">
       <h1 className="doch1">Settings</h1>
@@ -319,11 +401,16 @@ export default function SettingsPage() {
           </button>
         ))}
       </div>
-      {tab === 'Connected Systems' && <SystemsTab />}
-      {tab === 'Model Hub' && <ModelsTab />}
-      {tab === 'Integrations' && <IntegrationsTab />}
-      {tab === 'Appearance' && <AppearanceTab />}
-      {tab === 'API & Webhooks' && <ApiTab />}
+      {locked ? <LockedTab role={role} /> : (
+        <>
+          {tab === 'Connected Systems' && <SystemsTab />}
+          {tab === 'Model Hub' && <ModelsTab />}
+          {tab === 'Integrations' && <IntegrationsTab />}
+          {tab === 'Team & Roles' && <TeamTab />}
+          {tab === 'Appearance' && <AppearanceTab />}
+          {tab === 'API & Webhooks' && <ApiTab />}
+        </>
+      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { I } from './icons';
-import { useWS, mutate, findProject, stageInfo, STAGES, usingLocal, activeModelLabel } from './workspace';
+import { useWS, mutate, findProject, stageInfo, STAGES, usingLocal, activeModelLabel, can } from './workspace';
 import { PLAYBOOKS, runPlaybook, landOutput } from './playbooks';
 
 export default function PlaybooksPage() {
@@ -56,11 +56,13 @@ export default function PlaybooksPage() {
                 <span className="pbmeta">
                   <I n="dot" s={8} /> {STAGES.find((s) => s.id === pb.stage).label} · outputs {pb.out}
                 </span>
-                {blocked
-                  ? <span className="pbblocked" title={blocked}>{blocked}</span>
-                  : <button className="pbrun" disabled={!!busy} onClick={() => run(pb)}>
-                      {busy === pb.id ? 'Running…' : <><I n="play" s={11} /> Run</>}
-                    </button>}
+                {!can(ws, 'run')
+                  ? <span className="pbblocked">Read-only role — playbooks need editor access</span>
+                  : blocked
+                    ? <span className="pbblocked" title={blocked}>{blocked}</span>
+                    : <button className="pbrun" disabled={!!busy} onClick={() => run(pb)}>
+                        {busy === pb.id ? 'Running…' : <><I n="play" s={11} /> Run</>}
+                      </button>}
               </div>
             </div>
           );

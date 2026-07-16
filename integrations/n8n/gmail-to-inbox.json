@@ -1,0 +1,41 @@
+{
+  "name": "Feasly — Gmail label to Inbox",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": { "item": [{ "mode": "everyMinute" }] },
+        "simple": false,
+        "filters": { "labelIds": ["Label_Feasly"] }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "name": "On labelled Gmail",
+      "notes": "Connect your Google account (one OAuth click in n8n). Create a Gmail label called 'Feasly' and pick it here — any mail you tag with it lands in your workspace."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zenith-health-demo.vercel.app/api/ai/inbox",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer YOUR_FEASLY_INTEGRATION_TOKEN" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: $json.subject || 'Gmail note', content: ($json.text || $json.snippet || '').slice(0, 30000), source: 'gmail' }) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [260, 0],
+      "name": "Send to Feasly Inbox"
+    }
+  ],
+  "connections": {
+    "On labelled Gmail": { "main": [[{ "node": "Send to Feasly Inbox", "type": "main", "index": 0 }]] }
+  },
+  "settings": {}
+}

@@ -119,6 +119,13 @@ app.get('/auth/verify', async (req, res) => {
   res.json({ token: signToken(email, 30), email });
 });
 
+// Who does this token belong to? Used by invite links (?token=), which
+// carry a ready session token instead of a one-time code.
+app.get('/auth/whoami', auth, async (req, res) => {
+  if (req.subject.includes('@')) await accounts.ensureUser(req.subject);
+  res.json({ subject: req.subject });
+});
+
 // Long-lived token for n8n/webhook use — same HMAC scheme as sessions,
 // stateless (rotation = change AI_AUTH_SECRET).
 app.post('/auth/api-token', authUser, (req, res) => {

@@ -1,5 +1,5 @@
 {
-  "name": "Feasly — Friday stakeholder update to Slack",
+  "name": "Feasly — Stakeholder update to WhatsApp",
   "nodes": [
     {
       "parameters": {
@@ -24,25 +24,25 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [240, 0],
-      "name": "Build the update",
-      "notes": "Change ?project=first to a project id or exact name to target a specific project."
+      "name": "Build the update"
     },
     {
       "parameters": {
-        "select": "channel",
-        "channelId": { "__rl": true, "mode": "list", "value": "" },
-        "text": "={{ '*' + $json.title + ' — ' + $json.project.name + '*\\n\\n' + $json.markdown }}"
+        "operation": "send",
+        "phoneNumberId": "YOUR_WHATSAPP_BUSINESS_PHONE_ID",
+        "recipientPhoneNumber": "+91XXXXXXXXXX",
+        "textBody": "={{ '*' + $json.title + ' — ' + $json.project.name + '*\\n\\n' + $json.markdown.replace(/^## /gm, '— ').slice(0, 3800) }}"
       },
-      "type": "n8n-nodes-base.slack",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
       "position": [480, 0],
-      "name": "Post to Slack",
-      "notes": "Connect Slack and pick the channel. Swap this node for Email/Teams/anything — the markdown is ready to paste."
+      "name": "Send on WhatsApp",
+      "notes": "Uses the WhatsApp Business Cloud API (free tier at developers.facebook.com — create an app, add the WhatsApp product, copy the phone number ID and access token into the n8n credential). Message capped to WhatsApp's limit."
     }
   ],
   "connections": {
     "Every Friday 4pm": { "main": [[{ "node": "Build the update", "type": "main", "index": 0 }]] },
-    "Build the update": { "main": [[{ "node": "Post to Slack", "type": "main", "index": 0 }]] }
+    "Build the update": { "main": [[{ "node": "Send on WhatsApp", "type": "main", "index": 0 }]] }
   },
   "settings": {}
 }

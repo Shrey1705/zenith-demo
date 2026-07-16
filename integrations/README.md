@@ -30,9 +30,10 @@ npx n8n          # runs n8n locally at http://localhost:5678
 
 ## Templates
 
-- **slack-saved-to-inbox.json** — react with 📌 to any Slack message → it lands as a research note.
-- **email-forward-to-inbox.json** — watch a mailbox (e.g. a dedicated `notes@` address) → every mail becomes a research note.
-- **friday-stakeholder-update.json** — every Friday 4pm, fetch the deterministic stakeholder-update playbook for your first project and post it to Slack. Swap the Slack node for email/Teams — the markdown is ready to send.
+- **gmail-to-inbox.json** — tag any Gmail with a `Feasly` label → it lands as a research note (one-click Google OAuth in n8n).
+- **email-forward-to-inbox.json** — watch any IMAP mailbox (e.g. a dedicated `notes@` address) → every mail becomes a research note.
+- **friday-update-to-gmail.json** — every Friday 4pm, fetch the stakeholder-update playbook and email it to your stakeholder list from your own Gmail.
+- **whatsapp-update.json** — same update delivered on WhatsApp via the WhatsApp Business Cloud API (free tier at developers.facebook.com).
 
 ## Trying it without n8n
 

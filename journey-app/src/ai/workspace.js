@@ -50,7 +50,30 @@ function migrateState(s) {
       if (!p.productId) p.productId = p.id === 'proj-kyc' ? 'all' : 'prod-retail';
     }
   }
+  if (!s.team) s.team = seedTeam();
   return s;
+}
+
+// ---- roles & access ----
+// Workspace-level RBAC: the owner is always admin; added members carry a
+// role. `viewAs` lets the owner preview the workspace through a lower role —
+// the same gates real members would hit (org-wide server enforcement lands
+// with team workspaces; the gating contract is defined here).
+export const ROLES = {
+  admin: 'Full control — settings, model hub, integrations, team, all documents.',
+  editor: 'Creates and edits documents, runs playbooks. No settings, connectors or team management.',
+  viewer: 'Read-only — sees every document and trace, changes nothing.'
+};
+const seedTeam = () => ({ members: [{ id: 'owner', email: 'you (owner)', role: 'admin', owner: true }], viewAs: null });
+
+export const myRole = (ws) => ws.team?.viewAs || 'admin';
+// Gate actions: 'edit' (documents, board, releases), 'run' (playbooks),
+// 'create' (products/projects), 'admin' (settings, connectors, team, models).
+export function can(ws, action) {
+  const role = myRole(ws);
+  if (role === 'admin') return true;
+  if (role === 'editor') return action !== 'admin';
+  return false; // viewer
 }
 const persist = () => {
   try { localStorage.setItem(KEY, JSON.stringify(cache)); } catch { /* ignore */ }
@@ -499,6 +522,7 @@ function seedState() {
     activeModelId: null,  // null = demo brain \u00b7 'local' = Ollama via ws.local
     local: { endpoint: 'http://localhost:11434', chatModel: '', embedModel: '', temperature: 0.1 },
     theme: { ...DEFAULT_THEME },
+    team: seedTeam(),
     // Named chat sessions on the landing page. Each carries its own
     // attachments and can be promoted into (or linked to) a project.
     sessions: [],
