@@ -32,7 +32,7 @@ The local-first architecture is the moat for *both*: B2C gets free inference (no
 | M2 | Local RAG over user's own documents (Ollama) + Library | ✅ shipped |
 | M3 | Products→Projects hierarchy + computed lifecycle stages | ✅ shipped |
 | M4 | Playbooks — 6 guided PM workflows producing chain documents | 🔨 pending (#93–95) |
-| M5 | **Real accounts**: magic-link auth, per-user persistence (Redis) — without this nobody can *use* it, only demo it | ❌ not started |
+| M5 | **Real accounts**: magic-link auth, per-user persistence (Redis) — without this nobody can *use* it, only demo it | ✅ shipped 2026-07-16 (email delivery pends RESEND_API_KEY — founder action) |
 | M6 | Onboarding: first-run flow from empty workspace → first artifact in <10 min (current app assumes seeded demo data) | ❌ not started |
 | M7 | Pricing page + Stripe Payment Link + license check | ❌ not started |
 | M8 | Setup installer: one script that checks/installs Ollama + models (a paying customer can't debug `brew reinstall ollama`) | ❌ not started |
