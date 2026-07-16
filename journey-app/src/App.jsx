@@ -3,6 +3,7 @@ import { Routes, Route, Link } from 'react-router-dom';
 import JourneyWizard from './journey/JourneyWizard';
 import PayLink from './pay/PayLink';
 import AiPortal from './ai/AiPortal';
+import PricingPage from './PricingPage';
 import DemoBanner from './components/DemoBanner';
 
 const LINKEDIN_URL = 'https://www.linkedin.com/in/shrey-sagar-productmanager/';
@@ -89,11 +90,13 @@ export default function App() {
         <span>
           <Link to="/buy">Buy</Link>
           <Link to="/ai">Feasly</Link>
+          <Link to="/pricing">Pricing</Link>
         </span>
       </nav>
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/buy" element={<div className="page page-wide"><JourneyWizard /></div>} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route path="/pay/:token" element={<PayLink />} />
         <Route path="/ai/*" element={<AiPortal />} />
       </Routes>

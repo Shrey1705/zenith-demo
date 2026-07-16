@@ -926,3 +926,26 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .fs-logindivide { display: flex; align-items: center; gap: 10px; margin: 16px 0 12px; color: var(--ink3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
 .fs-logindivide::before, .fs-logindivide::after { content: ''; flex: 1; height: 1px; background: var(--hair2); }
 .fs-linkbtn { background: none; border: none; padding: 6px 0 0; font: inherit; font-size: 12.5px; color: var(--p); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+/* first-run onboarding (private workspaces) */
+.fs-onboard { margin-top: 18px; text-align: left; background: var(--glass2); backdrop-filter: blur(18px) saturate(1.5); border: 1px solid var(--glassline); border-radius: 18px; box-shadow: var(--card-shadow); padding: 18px 20px; max-width: 560px; width: 100%; }
+.fs-onboard > b { font-size: 14px; color: var(--ink); }
+.fs-onboard ol { margin: 10px 0 14px; padding-left: 20px; font-size: 13px; color: var(--ink2); line-height: 1.9; }
+.fs-onboardrow { display: flex; gap: 8px; }
+.fs-onboardrow input { flex: 1; font: inherit; font-size: 13.5px; padding: 9px 13px; border: 1px solid var(--hair); border-radius: 12px; background: rgba(255, 255, 255, 0.7); color: var(--ink); }
+.fs-onboardrow button { font: inherit; font-size: 13px; font-weight: 650; color: #fff; background: var(--p); border: none; border-radius: 12px; padding: 9px 16px; cursor: pointer; white-space: nowrap; }
+.fs-onboardrow button:hover { opacity: 0.9; }
+.fs-onboardhint { font-size: 12px; color: var(--ink3); margin: 12px 0 0; }
+
+/* pricing */
+.pricegrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 18px; max-width: 1020px; margin: -30px auto 40px; padding: 0 22px; position: relative; }
+.pricecard { position: relative; display: flex; flex-direction: column; background: #fff; border: 1px solid rgba(13, 36, 64, 0.12); border-radius: 18px; box-shadow: 0 14px 44px rgba(13, 36, 64, 0.12); padding: 26px 24px; }
+.pricecard.featured { border: 2px solid var(--gold, #c9a227); }
+.pricebadge { position: absolute; top: -11px; left: 24px; font-size: 10.5px; font-weight: 750; letter-spacing: 0.07em; text-transform: uppercase; color: #fff; background: var(--gold, #c9a227); border-radius: 999px; padding: 4px 11px; }
+.pricecard h3 { margin: 0 0 6px; font-size: 17px; color: var(--navy, #0d2440); }
+.priceamount b { font-size: 34px; letter-spacing: -0.03em; color: var(--navy, #0d2440); }
+.priceamount span { font-size: 13px; color: rgba(13, 36, 64, 0.55); }
+.pricetag { font-size: 13px; color: rgba(13, 36, 64, 0.75); line-height: 1.55; min-height: 40px; }
+.pricecard ul { flex: 1; margin: 8px 0 20px; padding-left: 18px; font-size: 13px; color: rgba(13, 36, 64, 0.8); line-height: 1.9; }
+.pricecard .btn { text-align: center; }
+@media (max-width: 720px) { .pricegrid { margin-top: 10px; } }

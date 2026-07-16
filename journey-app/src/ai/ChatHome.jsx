@@ -10,7 +10,7 @@ import { ollamaChat } from '../lib/ollama';
 import { I, TypeIcon } from './icons';
 import {
   useWS, mutate, uid, now, titleFrom, findSession, updateSession, findProject,
-  defaultProductId, usingLocal, activeModelLabel, shortDate
+  defaultProductId, usingLocal, activeModelLabel, shortDate, isUserMode
 } from './workspace';
 
 const SUGGESTIONS = [
@@ -20,6 +20,44 @@ const SUGGESTIONS = [
 ];
 
 const railState = () => { try { return localStorage.getItem('fs-rail') !== 'closed'; } catch { return true; } };
+
+// First-run setup for a fresh private workspace: one input, one click, and
+// the user lands on their own project's research page with the chain ready
+// to grow. Shown only while the workspace is completely empty.
+function GettingStarted({ nav }) {
+  const [name, setName] = useState('');
+  const create = () => {
+    const prodId = uid();
+    const proj = {
+      id: uid(), name: 'First initiative', about: '', productId: prodId, createdAt: now(),
+      folders: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: []
+    };
+    mutate((w) => ({
+      ...w,
+      products: [{ id: prodId, name: name.trim() || 'My product', about: '', createdAt: now() }],
+      projects: [proj, ...w.projects]
+    }));
+    nav(`p/${proj.id}/research`);
+  };
+  return (
+    <div className="fs-onboard">
+      <b>Set up your workspace — two minutes</b>
+      <ol>
+        <li><b>Name your product</b> — the thing you manage day to day.</li>
+        <li><b>Add research</b> — paste notes, upload documents, or just ask the chat.</li>
+        <li><b>Run a playbook</b> — turn what you added into a spec, brief or status update.</li>
+      </ol>
+      <div className="fs-onboardrow">
+        <input value={name} placeholder="Your product's name…" autoFocus
+          onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} />
+        <button onClick={create}>Create product</button>
+      </div>
+      <p className="fs-onboardhint">
+        Want the AI fully on your machine? <button className="fs-linkbtn" onClick={() => nav('settings')}>Connect a local model in Settings</button> — documents never leave your laptop.
+      </p>
+    </div>
+  );
+}
 
 export default function ChatHome() {
   const nav = useNavigate();
@@ -38,6 +76,8 @@ export default function ChatHome() {
   const proj = linked || ws.projects[0] || null;
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+  // A signed-in account with nothing in it yet gets the guided first run.
+  const firstRun = isUserMode() && !ws.products.length && !ws.projects.length;
 
   useEffect(() => { if (msgs.length) endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs.length, busy]);
 
@@ -169,11 +209,17 @@ export default function ChatHome() {
           <div className="fs-hero">
             <div className="fs-heromark"><I n="sparkle" s={30} /></div>
             <h1>Good {greet}. What are we building?</h1>
-            <p>I'm connected to the Zenith tenant — its code, contracts and every document in this workspace. Chats are saved as sessions; any session can become a project.</p>
+            {firstRun ? (
+              <p>Welcome — this is your private workspace. Everything you add stays yours, synced to your account, and the AI can run entirely on your own machine.</p>
+            ) : (
+              <p>I'm connected to the Zenith tenant — its code, contracts and every document in this workspace. Chats are saved as sessions; any session can become a project.</p>
+            )}
             {composer}
-            <div className="fs-chips">
-              {SUGGESTIONS.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}
-            </div>
+            {firstRun ? <GettingStarted nav={nav} /> : (
+              <div className="fs-chips">
+                {SUGGESTIONS.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}
+              </div>
+            )}
           </div>
         ) : (
           <>
