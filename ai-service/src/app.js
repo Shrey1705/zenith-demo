@@ -7,9 +7,14 @@ const { analyze, LAYERS, readSource } = require('./analyzer');
 const { ENTITIES } = require('./knowledge');
 const gen = require('./generators');
 
+const accounts = require('./accounts');
+
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '100kb' }));
+// Workspace sync payloads are whole documents and outgrow the API-wide cap.
+const json100 = express.json({ limit: '100kb' });
+const json1m = express.json({ limit: '1mb' });
+app.use((req, res, next) => (req.path === '/ws' ? json1m : json100)(req, res, next));
 
 // Public-demo rate limiting: reuses the same Upstash Redis env vars as
 // core-service's store. No env vars ⇒ no Redis ⇒ skip limiting entirely.
@@ -40,17 +45,24 @@ app.use(async (req, res, next) => {
 const USERS = { pm: 'zenith@123' };
 const AUTH_SECRET = process.env.AI_AUTH_SECRET || 'zenith-demo-secret';
 
-function signToken(username) {
-  const sig = crypto.createHmac('sha256', AUTH_SECRET).update(username).digest('hex').slice(0, 24);
-  return `tok_${Buffer.from(username).toString('base64url')}.${sig}`;
+// Token payload is `subject|expiryMs` (expiry 0 = never, used by the demo
+// account); magic-link sessions get 30 days. Legacy tokens without the
+// expiry part still verify.
+function signToken(subject, days = 0) {
+  const payload = `${subject}|${days ? Date.now() + days * 86400e3 : 0}`;
+  const sig = crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('hex').slice(0, 24);
+  return `tok_${Buffer.from(payload).toString('base64url')}.${sig}`;
 }
 function verifyToken(token) {
   if (!String(token || '').startsWith('tok_')) return null;
   const [b64, sig] = String(token).slice(4).split('.');
   if (!b64 || !sig) return null;
-  const username = Buffer.from(b64, 'base64url').toString('utf8');
-  const expected = crypto.createHmac('sha256', AUTH_SECRET).update(username).digest('hex').slice(0, 24);
-  return sig === expected ? username : null;
+  const payload = Buffer.from(b64, 'base64url').toString('utf8');
+  const expected = crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('hex').slice(0, 24);
+  if (sig !== expected) return null;
+  const [subject, exp] = payload.split('|');
+  if (exp && Number(exp) > 0 && Date.now() > Number(exp)) return null;
+  return subject;
 }
 
 app.post('/login', (req, res) => {
@@ -63,9 +75,62 @@ app.post('/login', (req, res) => {
 
 const auth = (req, res, next) => {
   const t = (req.headers.authorization || '').replace('Bearer ', '');
-  if (!verifyToken(t)) return res.status(401).json({ error: 'login required' });
+  const subject = verifyToken(t);
+  if (!subject) return res.status(401).json({ error: 'login required' });
+  req.subject = subject;
   next();
 };
+// Workspace sync is for real (email) accounts only — the demo account's
+// data deliberately stays in the browser.
+const authUser = (req, res, next) => auth(req, res, () => {
+  if (!req.subject.includes('@')) return res.status(403).json({ error: 'workspace sync requires an email account' });
+  next();
+});
+
+// ---- magic-link accounts ----
+app.post('/auth/request-link', async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (email.length > 120 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return res.status(400).json({ error: 'valid email required' });
+  }
+  const code = crypto.randomBytes(24).toString('base64url');
+  await accounts.putMagic(code, email);
+  // Origin survives the Vite dev proxy (host does not) and equals the site
+  // origin on Vercel, where /api/ai is same-origin.
+  const proto = req.headers['x-forwarded-proto'] || 'http';
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const origin = req.headers.origin || `${proto}://${host}`;
+  const link = `${origin}/ai/verify?code=${code}`;
+  try {
+    const { delivered } = await accounts.sendMagicEmail({ to: email, link });
+    if (delivered) return res.json({ sent: true });
+  } catch { /* provider hiccup — fall through to the no-delivery paths */ }
+  if (process.env.VERCEL_ENV === 'production') {
+    return res.status(503).json({ error: 'email delivery is not configured yet — use the demo login for now' });
+  }
+  // Local/preview without an email provider: hand the link back directly.
+  res.json({ sent: false, devLink: link });
+});
+
+app.get('/auth/verify', async (req, res) => {
+  const email = await accounts.takeMagic(String(req.query.code || ''));
+  if (!email) return res.status(400).json({ error: 'link expired or already used — request a new one' });
+  await accounts.ensureUser(email);
+  res.json({ token: signToken(email, 30), email });
+});
+
+// ---- per-user workspace sync (whole-document, client is source of truth) ----
+app.get('/ws', authUser, async (req, res) => {
+  res.json({ data: await accounts.getWs(req.subject) });
+});
+app.put('/ws', authUser, async (req, res) => {
+  const data = req.body?.data;
+  if (!data || typeof data !== 'object') return res.status(400).json({ error: 'data object required' });
+  const bytes = JSON.stringify(data).length;
+  if (bytes > 900000) return res.status(413).json({ error: 'workspace too large to sync (900KB cap) — remove large uploads' });
+  await accounts.putWs(req.subject, data);
+  res.json({ ok: true, savedAt: new Date().toISOString(), bytes });
+});
 
 app.get('/health', (_req, res) => res.json({ service: 'ai-feasibility-service', status: 'up' }));
 

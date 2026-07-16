@@ -26,6 +26,10 @@ export const core = {
 
 export const ai = {
   login: (username, password) => req('/api/ai', '/login', { method: 'POST', body: { username, password } }),
+  requestLink: (email) => req('/api/ai', '/auth/request-link', { method: 'POST', body: { email } }),
+  verify: (code) => req('/api/ai', `/auth/verify?code=${encodeURIComponent(code)}`),
+  getWs: (token) => req('/api/ai', '/ws', { headers: { Authorization: `Bearer ${token}` } }),
+  putWs: (token, data) => req('/api/ai', '/ws', { method: 'PUT', body: { data }, headers: { Authorization: `Bearer ${token}` } }),
   analyze: (token, text) => req('/api/ai', '/analyze', { method: 'POST', body: { text }, headers: { Authorization: `Bearer ${token}` } }),
   chat: (token, messages) => req('/api/ai', '/chat', { method: 'POST', body: { messages }, headers: { Authorization: `Bearer ${token}` } }),
   sources: (token) => req('/api/ai', '/sources', { headers: { Authorization: `Bearer ${token}` } })

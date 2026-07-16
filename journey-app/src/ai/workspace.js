@@ -7,20 +7,25 @@
 // the BRD version it was generated from, so when the BRD gains a version the
 // entire downstream chain reports "upstream changed" with zero bookkeeping.
 import { useSyncExternalStore } from 'react';
+import { ai } from '../lib/api';
 
-const KEY = 'feasly-workspace-v3';
+const DEMO_KEY = 'feasly-workspace-v3';
+const USER_KEY = 'feasly-workspace-user-v1';
+let KEY = DEMO_KEY;
 
 // ---- shared store (all components see the same snapshot) ----
 let cache = null;
 const subs = new Set();
+// Demo mode boots the seeded showcase; a real signed-in account starts clean.
+const freshState = () => (sync ? emptyState() : seedState());
 const read = () => {
   if (cache) return cache;
   try {
     const raw = localStorage.getItem(KEY);
-    cache = raw === null ? seedState() : migrateState(JSON.parse(raw));
+    cache = raw === null ? freshState() : migrateState(JSON.parse(raw));
     // Persist migrations immediately so a reload can't replay them halfway.
     persist();
-  } catch { cache = seedState(); }
+  } catch { cache = freshState(); }
   return cache;
 };
 
@@ -45,7 +50,53 @@ function migrateState(s) {
   }
   return s;
 }
-const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(cache)); } catch { /* ignore */ } };
+const persist = () => {
+  try { localStorage.setItem(KEY, JSON.stringify(cache)); } catch { /* ignore */ }
+  schedulePush();
+};
+
+// ---- per-user cloud sync (magic-link accounts) ----
+// The browser stays the source of truth and works offline; every mutation
+// debounce-pushes the whole document to /ws. Demo mode never syncs.
+let sync = null; // { token, timer }
+const notify = () => subs.forEach((cb) => cb());
+
+function schedulePush() {
+  if (!sync) return;
+  clearTimeout(sync.timer);
+  sync.timer = setTimeout(() => { ai.putWs(sync.token, cache).catch(() => { /* offline — next mutation retries */ }); }, 1500);
+}
+
+// A real account starts with an empty portfolio, not the Zenith demo seed.
+function emptyState() {
+  return { ...seedState(), products: [], projects: [], sessions: [], activeSessionId: null };
+}
+
+export async function enableUserSync(token) {
+  sync = { token, timer: null };
+  KEY = USER_KEY;
+  cache = null;
+  try {
+    const r = await ai.getWs(token);
+    if (r.data) {
+      cache = migrateState(r.data);
+      try { localStorage.setItem(KEY, JSON.stringify(cache)); } catch { /* ignore */ }
+    } else {
+      read(); // local cache if present, else a clean empty workspace
+    }
+  } catch { read(); /* server unreachable — offline-first on the local cache */ }
+  notify();
+}
+
+export function disableUserSync() {
+  if (sync) clearTimeout(sync.timer);
+  sync = null;
+  KEY = DEMO_KEY;
+  cache = null;
+  notify();
+}
+
+export const isUserMode = () => !!sync;
 
 export function useWS() {
   return useSyncExternalStore((cb) => { subs.add(cb); return () => subs.delete(cb); }, read);

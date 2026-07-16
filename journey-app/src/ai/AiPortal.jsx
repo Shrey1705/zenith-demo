@@ -3,12 +3,12 @@
 // where everything nests (Chats, Products → Projects → the artifact chain,
 // Recent), a chat-first landing, and a computed lifecycle stage on every
 // project. Theme colors are user tokens.
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import { useLocation, Routes, Route, NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { ai } from '../lib/api';
 import {
   useWS, mutate, resetWS, uid, now, findProject, findProduct, projectsOf,
-  ALL_PRODUCT, DEFAULT_THEME, TYPES, ROUTE_OF
+  ALL_PRODUCT, DEFAULT_THEME, TYPES, ROUTE_OF, enableUserSync, disableUserSync
 } from './workspace';
 import { I, TypeIcon } from './icons';
 import ChatHome from './ChatHome';
@@ -36,14 +36,43 @@ function themeVars(ws) {
   return { '--p': t.primary, '--s': t.secondary, '--t': t.tertiary };
 }
 
+// Sessions persist across refreshes: { token, user, mode: 'demo' | 'user' }.
+const AUTH_KEY = 'feasly-auth-v1';
+const readAuth = () => { try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; } };
+
 export default function AiPortal() {
-  const [token, setToken] = useState(null);
+  const [session, setSession] = useState(readAuth);
+  const [ready, setReady] = useState(false);
+  const location = useLocation();
   const ws = useWS();
-  const fromJourney = useLocation().search.includes('from=journey');
-  if (!token) return <div className="fs-root" style={themeVars(ws)}><Login onToken={setToken} autoLogin={fromJourney} /></div>;
+  const fromJourney = location.search.includes('from=journey');
+
+  const setAuth = (s) => {
+    try { s ? localStorage.setItem(AUTH_KEY, JSON.stringify(s)) : localStorage.removeItem(AUTH_KEY); } catch { /* ignore */ }
+    setReady(false);
+    setSession(s);
+  };
+
+  // Point the store at the right workspace before anything renders: cloud
+  // sync for email accounts, browser-local seeded demo otherwise.
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      if (session?.mode === 'user') await enableUserSync(session.token);
+      else disableUserSync();
+      if (live) setReady(true);
+    })();
+    return () => { live = false; };
+  }, [session]);
+
+  if (location.pathname.includes('/verify')) {
+    return <div className="fs-root" style={themeVars(ws)}><VerifyScreen onAuth={setAuth} /></div>;
+  }
+  if (!session) return <div className="fs-root" style={themeVars(ws)}><Login onAuth={setAuth} autoLogin={fromJourney} /></div>;
+  if (!ready) return <div className="fs-root" style={themeVars(ws)}><div className="fs-loginwrap"><p className="hint">Opening your workspace…</p></div></div>;
   return (
     <div className="fs-root" style={themeVars(ws)}>
-      <WorkspaceContext.Provider value={{ token, logout: () => setToken(null) }}>
+      <WorkspaceContext.Provider value={{ token: session.token, session, logout: () => setAuth(null) }}>
         <DemoCoach />
         <Routes>
           <Route path="/" element={<Shell />}>
@@ -59,25 +88,69 @@ export default function AiPortal() {
   );
 }
 
-function Login({ onToken, autoLogin }) {
-  // Demo-grade credentials are public, so prefill them — one click to enter.
-  const [u, setU] = useState('pm'); const [p, setP] = useState('zenith@123'); const [err, setErr] = useState('');
-  const go = async (user = u, pass = p) => {
-    try { const r = await ai.login(user, pass); onToken(r.token); }
-    catch { setErr('Invalid credentials. Demo login: pm / zenith@123'); }
+function Login({ onAuth, autoLogin }) {
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(null); // { email, devLink? }
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  const demoLogin = async () => {
+    try { const r = await ai.login('pm', 'zenith@123'); onAuth({ token: r.token, user: 'pm', mode: 'demo' }); }
+    catch { setErr('Demo login failed — is the backend up?'); }
   };
-  React.useEffect(() => { if (autoLogin) go('pm', 'zenith@123'); /* eslint-disable-line */ }, [autoLogin]);
+  const sendLink = async () => {
+    setErr(''); setBusy(true);
+    try { const r = await ai.requestLink(email.trim()); setSent({ email: email.trim(), devLink: r.devLink }); }
+    catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  };
+  React.useEffect(() => { if (autoLogin) demoLogin(); /* eslint-disable-line */ }, [autoLogin]);
+
   return (
     <div className="fs-loginwrap">
       <div className="fs-login">
         <div className="fs-loginbrand"><I n="sparkle" s={22} style={{ color: 'var(--p)' }} /> <b>feasly</b></div>
         <h2>PM workspace</h2>
-        <p className="hint">Research, BRDs, PDNs, stories and tests — interconnected, versioned, and traceable back to the business question. Connected to the Zenith showcase tenant.</p>
-        <label>Username</label><input value={u} onChange={e => setU(e.target.value)} />
-        <label>Password</label><input type="password" value={p} onChange={e => setP(e.target.value)} onKeyDown={e => e.key === 'Enter' && go()} />
-        {err && <p className="error">{err}</p>}
-        <button className="btn" onClick={() => go()}>Log in</button>
-        <p className="hint">Demo credentials prefilled: <code>pm / zenith@123</code></p>
+        <p className="hint">Your documents never leave your machine — the AI runs locally. Research, BRDs, stories and tests, traceable back to the business question.</p>
+        {sent ? (
+          <>
+            <p className="hint"><b>Check your inbox.</b> A one-time sign-in link is on its way to <code>{sent.email}</code>. It expires in 15 minutes.</p>
+            {sent.devLink && <button className="btn" onClick={() => { window.location.href = sent.devLink; }}>Open sign-in link (local dev)</button>}
+            <button className="fs-linkbtn" onClick={() => setSent(null)}>Use a different email</button>
+          </>
+        ) : (
+          <>
+            <label>Work email</label>
+            <input type="email" value={email} placeholder="you@company.com" onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendLink()} />
+            {err && <p className="error">{err}</p>}
+            <button className="btn" disabled={busy || !email.includes('@')} onClick={sendLink}>{busy ? 'Sending…' : 'Email me a sign-in link'}</button>
+          </>
+        )}
+        <div className="fs-logindivide"><span>or</span></div>
+        <button className="btn ghost" onClick={demoLogin}>Explore the Zenith showcase demo</button>
+        <p className="hint">The demo is a shared, pre-seeded workspace that resets periodically. Your own account is private and synced.</p>
+      </div>
+    </div>
+  );
+}
+
+// Magic-link landing: /ai/verify?code=… — exchanges the one-time code for a
+// 30-day session and drops the user into their private workspace.
+function VerifyScreen({ onAuth }) {
+  const nav = useNavigate();
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('code');
+    if (!code) { setErr('Missing sign-in code.'); return; }
+    ai.verify(code)
+      .then((r) => { onAuth({ token: r.token, user: r.email, mode: 'user' }); nav('/ai', { replace: true }); })
+      .catch((e) => setErr(e.message));
+  }, []); // eslint-disable-line
+  return (
+    <div className="fs-loginwrap">
+      <div className="fs-login">
+        <div className="fs-loginbrand"><I n="sparkle" s={22} style={{ color: 'var(--p)' }} /> <b>feasly</b></div>
+        {err ? (<><p className="error">{err}</p><button className="btn" onClick={() => nav('/ai', { replace: true })}>Back to sign-in</button></>) : <p className="hint">Signing you in…</p>}
       </div>
     </div>
   );
@@ -251,7 +324,8 @@ function ProductNode({ product, activeProject, onClose }) {
 function Sidebar({ project, open, onClose }) {
   const ws = useWS();
   const nav = useNavigate();
-  const { logout } = useWorkspace();
+  const { logout, session } = useWorkspace();
+  const isDemo = session?.mode !== 'user';
   const [addingProduct, setAddingProduct] = useState(false);
   const [prodName, setProdName] = useState('');
 
@@ -319,9 +393,12 @@ function Sidebar({ project, open, onClose }) {
       </div>
 
       <div className="ws-foot">
-        <div className="ws-user"><span className="ws-avatar">PM</span><span>pm@zenith · demo</span></div>
-        <button className="fs-footbtn" onClick={startCoach}><I n="play" s={12} /> Guided demo</button>
-        <button className="fs-footbtn" onClick={() => { if (window.confirm('Reset the workspace to its seeded demo state? Everything created in this browser is discarded.')) { resetWS(); nav('/ai'); } }}><I n="refresh" s={12} /> Reset demo data</button>
+        <div className="ws-user">
+          <span className="ws-avatar">{isDemo ? 'PM' : session.user.slice(0, 2).toUpperCase()}</span>
+          <span>{isDemo ? 'pm@zenith · demo' : session.user}</span>
+        </div>
+        {isDemo && <button className="fs-footbtn" onClick={startCoach}><I n="play" s={12} /> Guided demo</button>}
+        {isDemo && <button className="fs-footbtn" onClick={() => { if (window.confirm('Reset the workspace to its seeded demo state? Everything created in this browser is discarded.')) { resetWS(); nav('/ai'); } }}><I n="refresh" s={12} /> Reset demo data</button>}
         <NavLink to="/ai/settings" className={({ isActive }) => 'fs-footbtn' + (isActive ? ' on' : '')} onClick={onClose}><I n="sliders" s={12} /> Settings</NavLink>
         <button className="fs-footbtn" onClick={() => { logout(); nav('/ai'); }}><I n="logout" s={12} /> Log out</button>
       </div>
