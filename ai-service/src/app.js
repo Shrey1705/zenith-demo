@@ -152,7 +152,18 @@ app.post('/inbox/drain', authUser, async (req, res) => {
 // ---- scheduled playbooks: finished documents over the API ----
 // n8n cron → this endpoint → post the markdown anywhere. Builds from the
 // user's synced workspace (ws:{email}) with the deterministic engine.
-const { stakeholderUpdate } = require('./playbookServer');
+const { stakeholderUpdate, decisionsDue } = require('./playbookServer');
+
+// The Payback Law endpoint: n8n cron → this → WhatsApp/Gmail "you decided X
+// in July at 60% confidence — revisit?". Returns decisions past their review
+// date with no outcome yet, across all the user's projects.
+app.get('/playbooks/decision-review', authUser, async (req, res) => {
+  const ws = await accounts.getWs(req.subject);
+  const windowDays = Math.max(0, Math.min(90, parseInt(req.query.window, 10) || 0));
+  const due = decisionsDue(ws, windowDays);
+  res.json({ count: due.length, decisions: due });
+});
+
 app.get('/playbooks/stakeholder-update', authUser, async (req, res) => {
   const ws = await accounts.getWs(req.subject);
   const projects = ws?.projects || [];

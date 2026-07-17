@@ -4,7 +4,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { I, TypeIcon } from './icons';
-import { TYPES, ROUTE_OF, upstreamOf, downstreamOf } from './workspace';
+import { TYPES, ROUTE_OF, DECISION_TYPE_META, upstreamOf, downstreamOf } from './workspace';
+
+// Decision has its own page, not a TYPES registry entry — fall back to its meta.
+const typeOne = (t) => (TYPES[t]?.one) || (t === 'decision' ? DECISION_TYPE_META.one : t);
 
 export default function TraceRail({ project, type, doc, actions, extra }) {
   const nav = useNavigate();
@@ -32,7 +35,7 @@ export default function TraceRail({ project, type, doc, actions, extra }) {
           <button key={t + d.id} className="raillink" onClick={() => open(t, d)}>
             <span className="railicon"><TypeIcon type={t} s={13} /></span>
             <span className="railtitle">{d.title}</span>
-            <span className="railtype">{TYPES[t].one}{t === 'brd' ? ` · v${d.versions.length}` : ''}</span>
+            <span className="railtype">{typeOne(t)}{t === 'brd' ? ` · v${d.versions.length}` : ''}</span>
           </button>
         ))}
       </section>
@@ -44,7 +47,7 @@ export default function TraceRail({ project, type, doc, actions, extra }) {
           <button key={t + d.id} className="raillink" onClick={() => open(t, d)}>
             <span className="railicon"><TypeIcon type={t} s={13} /></span>
             <span className="railtitle">{d.title}</span>
-            <span className="railtype">{TYPES[t].one}</span>
+            <span className="railtype">{typeOne(t)}</span>
           </button>
         ))}
         {down.length > 12 && <p className="railempty">…and {down.length - 12} more — see the Knowledge Graph.</p>}

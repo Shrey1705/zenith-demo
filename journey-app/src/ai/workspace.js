@@ -51,6 +51,12 @@ function migrateState(s) {
     }
   }
   if (!s.team) s.team = seedTeam();
+  // Decisions layer: back-fill the array on every project and the link field
+  // on every BRD so pre-Decision workspaces keep working.
+  for (const p of s.projects || []) {
+    if (!p.decisions) p.decisions = [];
+    for (const b of p.brds || []) if (b.decisionId === undefined) b.decisionId = null;
+  }
   return s;
 }
 
@@ -127,7 +133,7 @@ async function mergeInbox(token) {
     inbox = {
       id: uid(), name: 'Inbox', about: 'Documents sent in from your integrations — file them into real projects as they earn a home.',
       productId: 'all', createdAt: now(),
-      folders: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: []
+      folders: [], decisions: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: []
     };
     cache = { ...cache, projects: [inbox, ...cache.projects] };
   }
@@ -217,7 +223,10 @@ export const TYPES = {
 };
 export const CHAIN = ['research', 'brd', 'pdn', 'epic', 'story', 'fr', 'test'];
 export const CHILD_OF = { brd: 'pdn', pdn: 'epic', epic: 'story', story: 'fr', fr: 'test' };
-export const ROUTE_OF = { research: 'research', brd: 'brds', pdn: 'pdns', epic: 'epics', story: 'stories', fr: 'frs', test: 'tests' };
+export const ROUTE_OF = { decision: 'decisions', research: 'research', brd: 'brds', pdn: 'pdns', epic: 'epics', story: 'stories', fr: 'frs', test: 'tests' };
+// Decision isn't part of the generic chain machinery (it has its own page and
+// shape), but the trace rail needs a label for it when it appears upstream.
+export const DECISION_TYPE_META = { one: 'Decision', label: 'Decisions' };
 
 export const findProject = (ws, pid) => (ws.projects || []).find((p) => p.id === pid) || null;
 export const findDoc = (project, type, id) => (project?.[TYPES[type].key] || []).find((d) => d.id === id) || null;
@@ -295,14 +304,75 @@ export function removeDoc(ws, pid, type, id) {
   };
 }
 
+// ================  DECISIONS — the record of *why*  ================
+// A decision sits above the BRD it produces. It is the first-class object
+// that turns Zenith from a spec tool into organizational memory: it carries
+// the alternatives, evidence, assumptions and confidence at the time, then
+// closes the loop on its review date with a measured outcome and lessons.
+export const DECISION_STATUS = ['waiting', 'review', 'approved', 'implemented', 'validated', 'archived'];
+export const DECISION_STATUS_LABEL = {
+  waiting: 'Waiting', review: 'Under review', approved: 'Approved',
+  implemented: 'Implemented', validated: 'Validated', archived: 'Archived'
+};
+export const CONFIDENCE_LEVELS = ['low', 'medium', 'high'];
+export const confidencePct = (n) => Math.round((n ?? 0.5) * 100);
+
+export const findDecision = (project, id) => (project?.decisions || []).find((d) => d.id === id) || null;
+
+export function newDecision(patch = {}) {
+  return {
+    id: uid(), title: patch.title || 'Untitled decision', status: 'waiting',
+    context: '', chosen: '', alternatives: [], evidenceIds: [], assumptions: [],
+    confidence: 0.5, impact: { business: '', technical: '', customer: '' },
+    ownerId: 'owner', approverId: null, brdId: null,
+    reviewDate: '', outcome: '', lessons: '',
+    createdAt: now(), versions: [], ...patch
+  };
+}
+export function addDecision(ws, pid, decision) {
+  return { ...ws, projects: ws.projects.map((p) => p.id !== pid ? p : { ...p, decisions: [decision, ...(p.decisions || [])] }) };
+}
+// Material edits bump an append-only version; the outcome/status close-out is
+// not itself a new "version" of the decision, just its resolution.
+export function updateDecision(ws, pid, id, patch) {
+  return {
+    ...ws,
+    projects: ws.projects.map((p) => p.id !== pid ? p : {
+      ...p, decisions: (p.decisions || []).map((d) => (d.id === id ? { ...d, ...patch } : d))
+    })
+  };
+}
+export function removeDecision(ws, pid, id) {
+  return { ...ws, projects: ws.projects.map((p) => p.id !== pid ? p : { ...p, decisions: (p.decisions || []).filter((d) => d.id !== id) }) };
+}
+
+// The review loop. A decision is "due" once its review date has arrived and
+// no outcome has been recorded yet — that is the moment Zenith pays the PM
+// back for having written it down.
+const todayISO = () => new Date().toISOString().slice(0, 10);
+export const isDecisionDue = (d, windowDays = 0) => {
+  if (!d.reviewDate || d.outcome) return false;
+  const cutoff = new Date(Date.now() + windowDays * 86400e3).toISOString().slice(0, 10);
+  return d.reviewDate <= cutoff;
+};
+export const decisionsDueForReview = (project, windowDays = 0) => (project.decisions || []).filter((d) => isDecisionDue(d, windowDays));
+export const dueDecisionCount = (ws) => (ws.projects || []).reduce((n, p) => n + decisionsDueForReview(p).length, 0);
+export const projectDueCount = (project) => decisionsDueForReview(project).length;
+export { todayISO };
+
 // ---- traceability ----
 export function parentOf(project, type, doc) {
   const t = TYPES[type];
-  if (!t.parent) return null;
+  // Decision has no TYPES entry and no parent — it's the top of the chain.
+  if (!t || !t.parent) return null;
   const parent = findDoc(project, t.parent, doc[t.parentKey]);
   return parent ? { type: t.parent, doc: parent } : null;
 }
 export function childrenOf(project, type, doc) {
+  // A decision produces one or more BRDs (the specs written from it).
+  if (type === 'decision') {
+    return (project.brds || []).filter((b) => b.decisionId === doc.id).map((d) => ({ type: 'brd', doc: d }));
+  }
   // Research fans out to whatever references it (BRDs and PDNs).
   if (type === 'research') {
     return [
@@ -324,14 +394,16 @@ export function upstreamOf(project, type, doc) {
     if (p) chain.unshift(p);
     cur = p;
   }
-  // BRDs additionally trace back to their linked research.
+  // BRDs additionally trace back to their linked research and the decision
+  // that produced them — the decision is the true top of the chain.
   const top = chain[0] || { type, doc };
   if (top.type === 'brd') {
     const research = (top.doc.researchIds || [])
       .map((rid) => findDoc(project, 'research', rid))
       .filter(Boolean)
       .map((d) => ({ type: 'research', doc: d }));
-    return [...research, ...chain];
+    const decision = top.doc.decisionId ? findDecision(project, top.doc.decisionId) : null;
+    return [...(decision ? [{ type: 'decision', doc: decision }] : []), ...research, ...chain];
   }
   return chain;
 }
@@ -486,8 +558,38 @@ function seedProducts() {
 
 function seedState() {
   const R1 = 'r-hni', R2 = 'r-uwband';
+  const D1 = 'd-si';
   const B1 = 'b-si';
   const P1 = 'p-si';
+  // Review date deliberately in the recent past with no outcome recorded, so
+  // the showcase opens with a decision *due for review* — the loop is visible
+  // before the user clicks anything.
+  const siReview = new Date(Date.now() - 3 * 86400e3).toISOString().slice(0, 10);
+  const siDecision = {
+    id: D1, title: 'Open a ₹2 crore sum-insured band for HNI customers',
+    status: 'implemented', brdId: B1,
+    context: 'HNI prospects abandon at the sum-insured step because the retail catalogue caps at ₹1 crore. Distribution loses high-premium quotes weekly to competitors offering ₹2 crore retail bands.',
+    chosen: 'Add a ₹2 crore band to the retail catalogue, gated on actuarial rates and a UW medical grid, shipped once rates are certified.',
+    alternatives: [
+      { option: 'Do nothing — keep the ₹1 crore cap', whyNot: 'Continues to leak the highest-premium segment to competitors.' },
+      { option: 'Offer ₹2 crore only via manual/offline underwriting', whyNot: 'Doesn’t fix the D2C abandonment where the drop-off happens.' }
+    ],
+    evidenceIds: [R1, R2],
+    assumptions: [
+      { text: 'Actuarial can certify a rate for the new band within one quarter', confidence: 'medium' },
+      { text: 'Demand seen in lost quotes converts once the band exists', confidence: 'medium' },
+      { text: 'The API contract change is additive (band list is enum-referenced)', confidence: 'high' }
+    ],
+    confidence: 0.62,
+    impact: {
+      business: 'Recovers high-premium HNI quotes lost at the SI step.',
+      technical: 'Core rules + UW grid change; API additive; journey verification only.',
+      customer: 'HNI buyers can complete a ₹2 crore cover self-serve.'
+    },
+    ownerId: 'owner', approverId: null,
+    reviewDate: siReview, outcome: '', lessons: '',
+    createdAt: now(), versions: []
+  };
   const E1 = 'e-si-core', E2 = 'e-si-journey';
   const S1 = 's-si-band', S2 = 's-si-contract', S3 = 's-si-format';
   const F1 = 'f-si-band', F2 = 'f-si-rates', F3 = 'f-si-compat', F4 = 'f-si-format';
@@ -533,6 +635,7 @@ function seedState() {
         id: 'proj-si', name: 'High-Value Cover Expansion', productId: 'prod-retail',
         about: 'Open a \u20b92 crore sum-insured band for HNI customers without breaking underwriting limits.',
         createdAt: now(),
+        decisions: [siDecision],
         research: [
           { id: R1, title: 'HNI demand \u2014 lost-quote analysis', source: 'upload', sourceDetail: 'lost-quotes-q1.pdf', createdAt: now(), content: 'Quarterly review of abandoned high-premium quotes.\n\n38 quotes above \u20b91.5L annual premium abandoned at the sum-insured step this quarter; 31 of those users tried to select a higher band before dropping. Distribution confirms competitors quote \u20b92 crore retail bands to the same profiles.' },
           { id: R2, title: 'Underwriting & rating constraints for a new SI band', source: 'ai', createdAt: now(), content: 'Saved from a Feasly conversation.\n\nThe band list lives in underwriting.rules.yaml (sum_insured_bands) and every band needs a matching rate in premium.rules.yaml (sum_insured_multiplier) \u2014 a new band without an actuarial rate fails rating. The proposal-v2 contract references the band list by enum_ref, so the API change is additive. High-SI bands typically trigger pre-policy medicals \u2014 a hidden journey branch to scope with UW.' }
@@ -550,7 +653,7 @@ function seedState() {
         brds: [
           {
             id: B1, title: 'Add a \u20b92 crore sum-insured band', owner: 'PM', status: 'Approved',
-            researchIds: [R1, R2], sections: siSections, createdAt: now(),
+            decisionId: D1, researchIds: [R1, R2], sections: siSections, createdAt: now(),
             versions: [{ v: 1, ts: now(), note: 'Initial draft from lost-quote research', sections: siSections }]
           }
         ],
@@ -582,10 +685,11 @@ function seedState() {
         id: 'proj-kyc', name: 'Nominee & KYC Enhancements', productId: 'all',
         about: 'Compliance-driven improvements to nominee capture and proposer identity checks — applies to every product.',
         createdAt: now(),
+        decisions: [],
         research: [{ id: 'r-kyc', title: 'KYC circular — PAN capture thresholds', source: 'note', createdAt: now(), content: 'Regulator guidance requires PAN capture above a premium threshold. Current journey already collects PAN as mandatory; verify threshold logic is documented before drafting requirements.' }],
         conversations: [],
         brds: [{
-          id: 'b-kyc', title: 'Threshold-based PAN verification', owner: 'PM', status: 'Draft', researchIds: ['r-kyc'], createdAt: now(),
+          id: 'b-kyc', title: 'Threshold-based PAN verification', owner: 'PM', status: 'Draft', decisionId: null, researchIds: ['r-kyc'], createdAt: now(),
           sections: { background: 'PAN is captured for all proposers today, but verification (against the issuer) only matters above the regulatory premium threshold.', requirements: ['Verify PAN with the issuer when annual premium exceeds the threshold'], stakeholders: 'Compliance', success: '' },
           versions: [{ v: 1, ts: now(), note: 'Initial draft', sections: { background: 'PAN is captured for all proposers today, but verification (against the issuer) only matters above the regulatory premium threshold.', requirements: ['Verify PAN with the issuer when annual premium exceeds the threshold'], stakeholders: 'Compliance', success: '' } }]
         }],

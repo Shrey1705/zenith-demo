@@ -995,3 +995,43 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .relbtn.ghost { color: var(--ink2); background: transparent; border: 1px solid var(--hair); }
 .relshipped { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 650; color: color-mix(in srgb, #2a7 75%, var(--ink)); }
 .convchip.ghost.done { border-color: color-mix(in srgb, #2a7 45%, transparent); color: color-mix(in srgb, #2a7 70%, var(--ink)); }
+
+/* decisions */
+.krow.duerow { border-left: 3px solid #c9a227; padding-left: 10px; }
+.duepill { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #8a6d1a; background: rgba(201, 162, 39, 0.14); border-radius: 999px; padding: 4px 10px; }
+.duebar { display: flex; align-items: center; gap: 8px; background: rgba(201, 162, 39, 0.12); border: 1px solid rgba(201, 162, 39, 0.4); border-radius: 12px; padding: 11px 14px; margin-bottom: 16px; font-size: 12.5px; color: #7a5f16; line-height: 1.5; }
+.dectitle { width: 100%; font-family: inherit; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); border: none; background: none; padding: 2px 0; margin: 2px 0 4px; }
+.dectitle:focus { outline: none; border-bottom: 2px solid var(--p); }
+.decmetarow { display: flex; flex-wrap: wrap; gap: 12px 18px; margin: 14px 0; }
+.decmetarow label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--ink3); }
+.decmetarow select, .decmetarow input { font: inherit; font-size: 13px; padding: 6px 9px; border: 1px solid var(--hair); border-radius: 9px; background: #fff; color: var(--ink); }
+.fieldlabel { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink3); margin-bottom: 5px; }
+.fieldinput { width: 100%; font: inherit; font-size: 13.5px; padding: 8px 11px; border: 1px solid var(--hair); border-radius: 10px; background: #fff; color: var(--ink); }
+.fieldarea { width: 100%; min-height: 66px; resize: vertical; font: inherit; font-size: 13.5px; line-height: 1.6; padding: 9px 12px; border: 1px solid var(--hair); border-radius: 10px; background: #fff; color: var(--ink); }
+.confrow { display: flex; align-items: center; gap: 12px; }
+.confrow input[type="range"] { flex: 1; max-width: 360px; accent-color: var(--p); }
+.confrow b { font-variant-numeric: tabular-nums; color: var(--ink); }
+.altrow { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.altrow input { flex: 1; font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--hair); border-radius: 9px; background: #fff; color: var(--ink); }
+.altrow select { font: inherit; font-size: 12.5px; padding: 7px 9px; border: 1px solid var(--hair); border-radius: 9px; background: #fff; }
+.confchip { font-size: 10.5px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.04em; border-radius: 999px; padding: 2px 8px; }
+.confchip.high { color: #1a7a4a; background: rgba(52, 199, 89, 0.16); }
+.confchip.medium { color: #8a6d1a; background: rgba(201, 162, 39, 0.16); }
+.confchip.low { color: #a33; background: rgba(255, 69, 58, 0.12); }
+.evidencelist { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.evidencerow { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink2); padding: 7px 10px; border: 1px solid var(--hair2); border-radius: 10px; cursor: pointer; }
+.evidencerow.on { border-color: color-mix(in srgb, var(--p) 45%, transparent); background: color-mix(in srgb, var(--p) 6%, transparent); color: var(--ink); }
+.outcomebox { display: flex; flex-direction: column; gap: 8px; background: var(--glass2); border: 1px solid var(--glassline); border-radius: 12px; padding: 13px 14px; margin-top: 6px; }
+.outcomebox.due { border-color: rgba(201, 162, 39, 0.5); background: rgba(201, 162, 39, 0.08); }
+.outcomebox.done { background: rgba(52, 199, 89, 0.07); border-color: rgba(52, 199, 89, 0.3); }
+.outcomebox input { font: inherit; font-size: 13.5px; padding: 8px 11px; border: 1px solid var(--hair); border-radius: 9px; background: #fff; color: var(--ink); }
+.outcomebox .btn { align-self: flex-start; }
+.railmeta { font-size: 12px; color: var(--ink3); margin: 3px 0; }
+
+/* review banner (project-wide) */
+.reviewbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(201, 162, 39, 0.12); border: 1px solid rgba(201, 162, 39, 0.4); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; font-size: 12.5px; color: #7a5f16; }
+.reviewbaracts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.reviewbtn { font: inherit; font-size: 12.5px; font-weight: 650; color: #fff; background: #c9a227; border: none; border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.reviewbtn:hover { opacity: 0.9; }
+.reviewx { background: none; border: none; cursor: pointer; color: #7a5f16; opacity: 0.6; display: inline-flex; }
+.reviewx:hover { opacity: 1; }

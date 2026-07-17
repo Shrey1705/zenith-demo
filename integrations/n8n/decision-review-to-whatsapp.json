@@ -1,0 +1,59 @@
+{
+  "name": "Feasly — Decision review reminders on WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "days", "triggerAtHour": 9 }] }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "name": "Every morning 9am"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://zenith-health-demo.vercel.app/api/ai/playbooks/decision-review?window=0",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer YOUR_FEASLY_INTEGRATION_TOKEN" }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [240, 0],
+      "name": "Fetch decisions due",
+      "notes": "Returns decisions past their review date with no outcome. Set window=7 to look a week ahead."
+    },
+    {
+      "parameters": {
+        "conditions": { "number": [{ "value1": "={{ $json.count }}", "operation": "larger", "value2": 0 }] }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [470, 0],
+      "name": "Any due?"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_WHATSAPP_BUSINESS_PHONE_ID",
+        "recipientPhoneNumber": "+91XXXXXXXXXX",
+        "textBody": "={{ '*Decisions to revisit (' + $json.count + ')*\\n\\n' + $json.decisions.map(d => '• ' + d.title + ' — ' + d.confidence + '% confidence, decided ' + d.reviewDate + '. What happened?').join('\\n') }}"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [700, 0],
+      "name": "Send reminder",
+      "notes": "Swap for the Gmail node to receive these by email instead. Uses WhatsApp Business Cloud API."
+    }
+  ],
+  "connections": {
+    "Every morning 9am": { "main": [[{ "node": "Fetch decisions due", "type": "main", "index": 0 }]] },
+    "Fetch decisions due": { "main": [[{ "node": "Any due?", "type": "main", "index": 0 }]] },
+    "Any due?": { "main": [[{ "node": "Send reminder", "type": "main", "index": 0 }], []] }
+  },
+  "settings": {}
+}

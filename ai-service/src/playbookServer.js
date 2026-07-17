@@ -90,4 +90,23 @@ _Stakeholder update playbook · via API · ${today()}_`;
   return { title: `Stakeholder update — ${today()}`, markdown };
 }
 
-module.exports = { stakeholderUpdate };
+// Decisions past their review date with no outcome — the server mirror of the
+// client's isDecisionDue selector (keep in step with workspace.js).
+function decisionsDue(ws, windowDays = 0) {
+  const cutoff = new Date(Date.now() + windowDays * 86400e3).toISOString().slice(0, 10);
+  const out = [];
+  for (const p of ws?.projects || []) {
+    for (const d of p.decisions || []) {
+      if (d.reviewDate && !d.outcome && d.reviewDate <= cutoff) {
+        out.push({
+          project: p.name, title: d.title, status: d.status,
+          confidence: Math.round((d.confidence ?? 0.5) * 100),
+          reviewDate: d.reviewDate, chosen: d.chosen || ''
+        });
+      }
+    }
+  }
+  return out;
+}
+
+module.exports = { stakeholderUpdate, decisionsDue };

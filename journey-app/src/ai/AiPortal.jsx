@@ -8,7 +8,7 @@ import { useLocation, Routes, Route, NavLink, Navigate, Outlet, useNavigate } fr
 import { ai } from '../lib/api';
 import {
   useWS, mutate, resetWS, uid, now, findProject, findProduct, projectsOf,
-  ALL_PRODUCT, DEFAULT_THEME, TYPES, ROUTE_OF, enableUserSync, disableUserSync, can
+  ALL_PRODUCT, DEFAULT_THEME, TYPES, ROUTE_OF, enableUserSync, disableUserSync, can, projectDueCount
 } from './workspace';
 import { I, TypeIcon } from './icons';
 import ChatHome from './ChatHome';
@@ -24,6 +24,7 @@ import SemanticMapPage from './SemanticMapPage';
 import ReleasesPage from './ReleasesPage';
 import PlaybooksPage from './PlaybooksPage';
 import BoardPage from './BoardPage';
+import DecisionsPage from './DecisionsPage';
 import SettingsPage from './SettingsPage';
 import AssistPanel from './AssistPanel';
 import DemoCoach, { startCoach } from './DemoCoach';
@@ -183,9 +184,31 @@ function Shell() {
       <Sidebar project={project} open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <main className="ws-main">
         {project && <StageStrip project={project} />}
+        {project && <ReviewBanner project={project} />}
         <Outlet />
       </main>
       {project && <AssistPanel project={project} />}
+    </div>
+  );
+}
+
+// Surfaces decisions past their review date on every project page — the loop
+// coming back to pay the PM for having recorded the decision. Dismissible per
+// browser so it nudges without nagging.
+function ReviewBanner({ project }) {
+  const nav = useNavigate();
+  const location = useLocation();
+  const due = projectDueCount(project);
+  const dismissed = (() => { try { return sessionStorage.getItem('fs-reviewdismiss-' + project.id) === '1'; } catch { return false; } })();
+  const [hidden, setHidden] = useState(dismissed);
+  if (!due || hidden || location.pathname.includes('/decisions')) return null;
+  return (
+    <div className="reviewbar">
+      <span><I n="refresh" s={13} /> {due} decision{due > 1 ? 's are' : ' is'} past {due > 1 ? 'their' : 'its'} review date — close the loop on what actually happened.</span>
+      <span className="reviewbaracts">
+        <button className="reviewbtn" onClick={() => nav(`/ai/p/${project.id}/decisions`)}>Review now →</button>
+        <button className="reviewx" onClick={() => { try { sessionStorage.setItem('fs-reviewdismiss-' + project.id, '1'); } catch { /* ignore */ } setHidden(true); }} aria-label="Dismiss"><I n="x" s={13} /></button>
+      </span>
     </div>
   );
 }
@@ -207,6 +230,7 @@ function ProjectRoutes() {
       <Route path="stories/:docId?" element={<ArtifactPage type="story" />} />
       <Route path="frs/:docId?" element={<ArtifactPage type="fr" />} />
       <Route path="tests/:docId?" element={<ArtifactPage type="test" />} />
+      <Route path="decisions/:docId?" element={<DecisionsPage />} />
       <Route path="playbooks" element={<PlaybooksPage />} />
       <Route path="board" element={<BoardPage />} />
       <Route path="graph" element={<GraphPage />} />
@@ -240,6 +264,9 @@ function Group({ id, label, action, children, small }) {
 
 // The project's own tree — nested under the active project row.
 const PROJECT_NAV = [
+  { g: 'decide', label: 'Decide', items: [
+    { to: 'decisions', glyph: 'target', label: 'Decisions', count: (p) => (p.decisions || []).length }
+  ] },
   { g: 'knowledge', label: 'Knowledge', items: [
     { to: 'research', glyph: 'book', label: 'Research', count: (p) => p.research.length },
     { to: 'conversations', glyph: 'message', label: 'Conversations', count: (p) => p.conversations.length },
@@ -277,7 +304,7 @@ function ProductNode({ product, activeProject, onClose }) {
 
   const createProject = () => {
     if (!name.trim()) { setAdding(false); return; }
-    const p = { id: uid(), name: name.trim(), about: '', productId: product.id, createdAt: now(), folders: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: [] };
+    const p = { id: uid(), name: name.trim(), about: '', productId: product.id, createdAt: now(), folders: [], decisions: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: [] };
     mutate((w) => ({ ...w, projects: [p, ...w.projects] }));
     setName(''); setAdding(false);
     nav(`/ai/p/${p.id}/research`);

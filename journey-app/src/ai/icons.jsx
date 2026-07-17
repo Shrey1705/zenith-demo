@@ -59,11 +59,11 @@ export function I({ n, s = 16, sw = 1.7, className = '', style }) {
 
 // ---- artifact-type visual language (fixed semantic palette, Apple system hues) ----
 export const TYPE_GLYPH = {
-  research: 'book', conversation: 'message', brd: 'clipboard', pdn: 'file',
+  decision: 'target', research: 'book', conversation: 'message', brd: 'clipboard', pdn: 'file',
   epic: 'layers', story: 'card', fr: 'checks', test: 'flask', code: 'code'
 };
 export const TYPE_TINT = {
-  research: '#ff9f0a', brd: '#0a84ff', pdn: '#5e5ce6', epic: '#bf5af2',
+  decision: '#c9a227', research: '#ff9f0a', brd: '#0a84ff', pdn: '#5e5ce6', epic: '#bf5af2',
   story: '#30b0c7', fr: '#f26eb1', test: '#34c759', code: '#8e8e93', conversation: '#64d2ff'
 };
 

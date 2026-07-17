@@ -30,7 +30,7 @@ function GettingStarted({ nav }) {
     const prodId = uid();
     const proj = {
       id: uid(), name: 'First initiative', about: '', productId: prodId, createdAt: now(),
-      folders: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: []
+      folders: [], decisions: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: []
     };
     mutate((w) => ({
       ...w,
@@ -188,7 +188,7 @@ export default function ChatHome() {
     nav(`p/${pid}/research`);
   };
   const promote = () => {
-    const p = { id: uid(), name: session.title, about: `Started from the chat session "${session.title}".`, productId: defaultProductId(ws), createdAt: now(), folders: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: [] };
+    const p = { id: uid(), name: session.title, about: `Started from the chat session "${session.title}".`, productId: defaultProductId(ws), createdAt: now(), folders: [], decisions: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: [] };
     mutate((w) => ({ ...w, projects: [p, ...w.projects] }));
     linkSession(p.id, p.name);
   };
