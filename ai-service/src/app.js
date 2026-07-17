@@ -160,7 +160,7 @@ app.post('/analytics/event', async (req, res) => {
 });
 
 const FUNNEL_ORDER = ['Get a quote', 'Your details', 'Review & pay', 'Payment', 'Policy issued'];
-app.get('/analytics/funnel', authUser, async (_req, res) => {
+app.get('/analytics/funnel', auth, async (_req, res) => {
   const events = await accounts.readEvents();
   const stepSids = Object.fromEntries(FUNNEL_ORDER.map((s) => [s, new Set()]));
   const allSids = new Set();
@@ -194,7 +194,7 @@ app.get('/analytics/funnel', authUser, async (_req, res) => {
 // Aggregates the proposals core-service persisted and turns them into the
 // kind of insight bullets a PM would otherwise assemble by hand — ready to
 // save as evidence on a decision.
-app.get('/insights/bookings', authUser, async (_req, res) => {
+app.get('/insights/bookings', auth, async (_req, res) => {
   const props = await accounts.listProposals();
   if (!props.length) {
     return res.json({ sampleSize: 0, insights: ['No bookings recorded yet — run the Buy journey end-to-end (or connect Redis locally) and real proposal data will aggregate here.'], byStatus: {}, planMix: [], siBands: [], topAddons: [] });
