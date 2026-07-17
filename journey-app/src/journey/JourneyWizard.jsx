@@ -5,6 +5,7 @@ import { core, inr } from '../lib/api';
 import { validateProposer, validateNominee, validatePincode, dobToIso } from '../lib/validation';
 import { QuoteStep, DetailsStep, ReviewStep } from './steps';
 import { downloadProposalPdf } from '../lib/pdf';
+import { track } from '../lib/track';
 
 const STEPS = ['Get a quote', 'Your details', 'Review & pay'];
 
@@ -28,6 +29,10 @@ export default function JourneyWizard() {
   const [premium, setPremium] = useState(null);
   const [form, setForm] = useState(null);
   const [err, setErr] = useState('');
+
+  // Funnel instrumentation: one step-view per wizard step per session, plus
+  // the payment handoff. Clicks are captured on the wizard root below.
+  useEffect(() => { track('step', STEPS[step]); }, [step]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { core.catalog().then(setCatalog).catch((e) => setErr(e.message)); }, []);
@@ -162,6 +167,7 @@ export default function JourneyWizard() {
       try {
         await core.submitProposal(proposalId);           // DRAFT -> SUBMITTED
         const link = await core.paymentLink(proposalId); // core issues payment link/token
+        track('step', 'Payment');
         nav(`/pay/${link.token}`);
         return;
       } catch (e) { setBusy(false); return setErr(e.message); }
@@ -170,7 +176,8 @@ export default function JourneyWizard() {
   };
 
   return (
-    <div className="wizard" style={planColor ? { '--accent2': planColor } : undefined}>
+    <div className="wizard" style={planColor ? { '--accent2': planColor } : undefined}
+      onClickCapture={(e) => { const b = e.target.closest?.('button'); if (b?.textContent?.trim()) track('click', b.textContent.trim().slice(0, 60)); }}>
       <div className="stepper">
         {STEPS.map((s, i) => (
           <React.Fragment key={s}>

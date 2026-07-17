@@ -6,6 +6,7 @@ import { useParams } from 'react-router-dom';
 import { core, inr } from '../lib/api';
 import { siLabel } from '../lib/validation';
 import { SuccessScreen } from '../journey/steps';
+import { track } from '../lib/track';
 
 const METHODS = [
   { id: 'card', icon: '💳', label: 'Credit / Debit Card', enabled: true },
@@ -27,6 +28,7 @@ export default function PayLink() {
     setBusy(true); setErr('');
     try {
       const r = await core.confirmPayment(token);  // simulated PG success callback into core
+      track('step', 'Policy issued');              // funnel terminal event
       setResult(r);                                // core confirms: proposal ISSUED + policy number
     } catch (e) { setErr(e.message); }
     setBusy(false);

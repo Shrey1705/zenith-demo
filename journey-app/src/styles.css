@@ -1035,3 +1035,27 @@ input.f-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(196, 56, 
 .reviewbtn:hover { opacity: 0.9; }
 .reviewx { background: none; border: none; cursor: pointer; color: #7a5f16; opacity: 0.6; display: inline-flex; }
 .reviewx:hover { opacity: 1; }
+
+/* signals (workspace analytics) */
+.sighead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.sigacts { display: inline-flex; gap: 16px; flex-wrap: wrap; }
+.funnel { margin-top: 14px; background: var(--glass2); backdrop-filter: blur(18px) saturate(1.5); border: 1px solid var(--glassline); border-radius: 16px; padding: 16px 18px; max-width: 760px; }
+.funrow { display: grid; grid-template-columns: 130px 1fr 52px; align-items: center; gap: 10px; margin-bottom: 8px; }
+.funlabel { font-size: 12px; color: var(--ink2); text-align: right; }
+.funbarwrap { background: rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }
+.funbar { display: block; min-width: 26px; background: linear-gradient(90deg, var(--p), var(--s)); color: #fff; font-size: 11.5px; font-weight: 650; padding: 5px 8px; border-radius: 8px; white-space: nowrap; }
+.fundrop { font-size: 11px; color: #b45309; font-weight: 600; }
+.sigsub { font-size: 12px; font-weight: 650; color: var(--ink3); margin: 14px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+.clickheat { display: flex; flex-wrap: wrap; gap: 6px; }
+.insightlist { max-width: 760px; }
+.insightrow { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; color: var(--ink); line-height: 1.6; background: var(--glass2); border: 1px solid var(--glassline); border-radius: 12px; padding: 10px 13px; margin: 6px 0; }
+.insightrow svg { margin-top: 3px; flex-shrink: 0; }
+.sigsave { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 22px; border-top: 1px solid var(--hair2); padding-top: 16px; }
+.sigsave select { font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--hair); border-radius: 10px; background: #fff; }
+.kbmeta .kbproj { color: var(--p); font-weight: 600; }
+
+/* landing pillars */
+.pillargrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; max-width: 1020px; margin: 6px auto 34px; padding: 0 22px; }
+.pillarcard { background: #fff; border: 1px solid rgba(13, 36, 64, 0.1); border-radius: 14px; box-shadow: 0 8px 26px rgba(13, 36, 64, 0.07); padding: 18px 17px; }
+.pillarcard h3 { margin: 0 0 7px; font-size: 14.5px; color: var(--navy, #0d2440); }
+.pillarcard p { margin: 0; font-size: 12.5px; line-height: 1.6; color: rgba(13, 36, 64, 0.75); }

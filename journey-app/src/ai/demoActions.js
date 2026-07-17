@@ -10,7 +10,7 @@ import { detectOllama } from '../lib/ollama';
 import {
   getWS, mutate, resetWS, uid, now, titleFrom, addDoc, updateDoc,
   pdnFromAnalysis, deriveEpics, deriveStories, deriveFrs, deriveTests,
-  staleInfo
+  staleInfo, newDecision, addDecision, updateDecision
 } from './workspace';
 
 const PROJECT_NAME = 'EMI & Payment Flexibility';
@@ -247,7 +247,92 @@ async function detectAndActivateLocal({ nav }) {
 }
 
 // Registry keyed by the `auto` string on each coach step.
+// ---- Sprint-6 acts: decide, deliver, evidence ----
+
+// Record the EMI call as a first-class Decision: alternatives, the research
+// as evidence, assumptions with confidence, review date already passed —
+// so the audience immediately sees the loop asking to be closed. Idempotent.
+async function recordDecision({ nav }) {
+  const ws = getWS();
+  const p = project();
+  if (!p) throw new Error('Run the earlier steps first — the EMI project does not exist yet.');
+  let d = (p.decisions || []).find((x) => x.title.includes('EMI'));
+  if (!d) {
+    const brd = p.brds.find((b) => b.title === BRD_TITLE);
+    d = newDecision({
+      title: 'Offer monthly EMI premium payments',
+      status: 'implemented',
+      context: 'Annual-only premium is a checkout blocker for younger buyers; competitors offer monthly instalments. Gateway supports mandates up to ₹15,000/instalment.',
+      chosen: 'Interest-free monthly EMI alongside annual, with default handling that pauses (not cancels) cover after two missed instalments.',
+      alternatives: [
+        { option: 'Keep annual-only', whyNot: 'Leaves the affordability objection unanswered at checkout.' },
+        { option: 'Third-party financing partner', whyNot: 'Adds a credit check to the journey and shares customer data externally.' }
+      ],
+      evidenceIds: (p.research || []).map((r) => r.id),
+      assumptions: [
+        { text: 'EMI lifts conversion without raising the default rate materially', confidence: 'medium' },
+        { text: 'The gateway mandate cap covers the vast majority of premiums', confidence: 'high' }
+      ],
+      confidence: 0.58,
+      impact: { business: 'Unlocks the monthly-budget buyer segment.', technical: 'Rating rules + payment lifecycle + PDF.', customer: 'Pay monthly, keep the same cover.' },
+      brdId: brd?.id || null,
+      reviewDate: new Date(Date.now() - 2 * 86400e3).toISOString().slice(0, 10)
+    });
+    mutate((w) => {
+      let next = addDecision(w, p.id, d);
+      if (brd) next = updateDoc(next, p.id, 'brd', brd.id, { decisionId: d.id });
+      return next;
+    });
+  }
+  nav?.(`/ai/p/${p.id}/decisions/${d.id}`);
+}
+
+// Close the loop on that decision with a measured outcome — the moment the
+// workspace becomes memory instead of paperwork.
+async function closeDecisionLoop({ nav }) {
+  const p = project();
+  const d = p && (p.decisions || []).find((x) => x.title.includes('EMI'));
+  if (!d) throw new Error('Record the decision first.');
+  if (!d.outcome) {
+    mutate((w) => updateDecision(w, p.id, d.id, {
+      outcome: 'EMI shipped; 24% of new policies chose monthly in the first month — above the 20% target. Default rate unchanged.',
+      lessons: 'The mandate cap never bound in practice; the pause-not-cancel rule prevented three cancellations in week one.',
+      status: 'validated'
+    }));
+  }
+  nav?.(`/ai/p/${p.id}/decisions/${d.id}`);
+}
+
+// Mark the delivery real: every story Done on the board, then a release
+// bundling them, ready for the pipeline promote on Releases.
+async function prepareDelivery({ nav }) {
+  const p = project();
+  if (!p || !p.stories.length) throw new Error('Generate the delivery chain first.');
+  mutate((w) => {
+    let next = w;
+    for (const s of p.stories) next = updateDoc(next, p.id, 'story', s.id, { status: 'done' });
+    const proj = next.projects.find((x) => x.id === p.id);
+    if (!proj.releases.length) {
+      next = {
+        ...next,
+        projects: next.projects.map((x) => x.id !== p.id ? x : {
+          ...x, releases: [{ id: uid(), name: 'R-2026.08 — EMI', date: new Date().toISOString().slice(0, 10), env: 'build', storyIds: p.stories.map((s) => s.id), createdAt: now() }]
+        })
+      };
+    }
+    return next;
+  });
+  nav?.(`/ai/p/${p.id}/releases`);
+}
+
 export const ACTIONS = {
+  recordDecision,
+  closeDecisionLoop,
+  prepareDelivery,
+  gotoDecisions: goto('decisions'),
+  gotoBoardAll: async ({ nav }) => nav?.('/ai/board'),
+  gotoSignals: async ({ nav }) => nav?.('/ai/signals'),
+  gotoGraphAll: async ({ nav }) => nav?.('/ai/graph'),
   reset: resetAndStart,
   createProject,
   askResearch1,

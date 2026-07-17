@@ -136,21 +136,54 @@ const STEPS = [
     do: 'regeneratePdn', doLabel: 'Regenerate for me', core: true
   },
   {
-    act: 'Step 5 · Real AI (optional)',
+    act: 'Step 5 · Decide',
+    title: 'Record the decision — with the why',
+    body: 'This is what most teams never write down. Record the EMI call as a Decision: the alternatives you rejected, the research as linked evidence, your honest confidence, and a review date. It sits above the plan — the whole chain now traces back to a reason.',
+    watch: 'Notice the gold banner: the review date has already passed. Feasly is asking the question every team forgets: "what actually happened?"',
+    do: 'recordDecision', doLabel: 'Record it for me', core: true
+  },
+  {
+    act: 'Step 5 · Decide',
+    title: 'Close the loop — this is the memory',
+    body: 'Record the measured outcome and the lesson. From now on, anyone who asks "why do we have EMI, and did it work?" gets the answer in one click — with the evidence and the confidence you had at the time.',
+    do: 'closeDecisionLoop', doLabel: 'Close the loop for me', core: true
+  },
+  {
+    act: 'Step 6 · Deliver',
+    title: 'Run the delivery like engineering does',
+    body: 'Every story moves across the Sprint Board and bundles into a release. The release then promotes Build → Test → Staging → Production — and Production is gated by a Definition of Done computed from the chain: stories done, tests present, no drift.',
+    manual: 'On Releases, click "Promote" through the pipeline — try promoting to Production before everything is done and watch the gate hold.',
+    do: 'prepareDelivery', doLabel: 'Prepare the release for me', core: true
+  },
+  {
+    act: 'Step 6 · Deliver',
+    title: 'One board across every product',
+    body: 'The Sprint Board in the sidebar\'s Workspace section shows every story from every product on one board, Linear-style — each card tagged with its project and still traceable to its requirement.',
+    do: 'gotoBoardAll', doLabel: 'Show me the board'
+  },
+  {
+    act: 'Step 7 · Evidence',
+    title: 'Watch real customers become evidence',
+    body: 'Open Signals. The buy journey below this workspace is instrumented like Amplitude — every step and click streams in as a live funnel, and real bookings aggregate into insights. Click "Simulate 25 sessions" if the funnel is empty, then save the snapshot as research.',
+    watch: 'The saved snapshot lands in Research labelled "Signals evidence" — link it on your next decision and the loop is complete: behaviour → evidence → decision → delivery → outcome.',
+    do: 'gotoSignals', doLabel: 'Open Signals'
+  },
+  {
+    act: 'Step 8 · Real AI (optional)',
     title: 'Switch to a real AI on this computer',
     body: 'Everything so far used Feasly\'s built-in offline brain. If you have Ollama running on this machine, you can switch to a real language model. Open Settings (sidebar footer) → Model Hub, detect it, and set it active — the "temperature" is kept low so it stays factual.',
     watch: 'This step needs Ollama running locally. If you don\'t have it, just skip ahead — the demo above is complete on its own.',
     do: 'detectLocal', doLabel: 'Detect & switch for me'
   },
   {
-    act: 'Step 5 · Real AI (optional)',
+    act: 'Step 8 · Real AI (optional)',
     title: 'Ask the real model a question',
     body: 'Go to Research and ask this. The first question quietly turns every document and code file into numbers it can search, then the local model answers — showing chips for exactly which sources it used.',
     copies: [{ label: 'Question to ask', text: LOCAL_Q }],
     do: 'gotoResearch', doLabel: 'Take me to Research'
   },
   {
-    act: 'Step 5 · Real AI (optional)',
+    act: 'Step 8 · Real AI (optional)',
     title: 'See the AI\'s memory as a map',
     body: 'Open the Semantic Map. Every dot is a document or piece of code turned into numbers. Dots that mean similar things sit close together. Click the plan\'s dot to see its nearest neighbours.',
     do: 'gotoMap', doLabel: 'Show me the map'

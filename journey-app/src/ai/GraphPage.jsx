@@ -4,7 +4,7 @@
 // with the pane (viewBox), so it fills any desktop width without cropping.
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useWS, findProject, TYPES, CHAIN, ROUTE_OF, upstreamOf, downstreamOf, staleInfo } from './workspace';
+import { useWS, findProject, mergedProject, homePid, TYPES, CHAIN, ROUTE_OF, upstreamOf, downstreamOf, staleInfo } from './workspace';
 import { TypeIcon, TYPE_TINT } from './icons';
 
 const COL_W = 188, NODE_W = 160, NODE_H = 44, ROW_H = 62, PAD = 28;
@@ -13,7 +13,7 @@ export default function GraphPage() {
   const { pid } = useParams();
   const nav = useNavigate();
   const ws = useWS();
-  const project = findProject(ws, pid);
+  const project = pid ? findProject(ws, pid) : mergedProject(ws);
   const [sel, setSel] = useState(null);
 
   const { nodes, edges, height } = useMemo(() => buildGraph(project), [project]);
@@ -91,7 +91,7 @@ export default function GraphPage() {
                   <TypeIcon type={selNode.type} s={12} />{selDown.length ? <span className="gsep"> → {selDown.length} artifacts</span> : null}
                 </p>
               )}
-              <button className="btn" style={{ marginTop: 12 }} onClick={() => nav(`/ai/p/${pid}/${ROUTE_OF[selNode.type]}/${selNode.doc.id}`)}>Open document →</button>
+              <button className="btn" style={{ marginTop: 12 }} onClick={() => nav(`/ai/p/${homePid(selNode.doc, pid)}/${ROUTE_OF[selNode.type]}/${selNode.doc.id}`)}>Open document →</button>
             </>
           ) : (
             <>

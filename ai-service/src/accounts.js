@@ -83,6 +83,41 @@ async function drainInbox(email) {
   return items;
 }
 
+// ---- journey analytics (the demo tenant's Amplitude) ----
+// The public buy journey fires anonymous step/click events here; the
+// workspace reads them back as a funnel. A capped Redis list acts as a
+// rolling window — enough for real drop-off analysis, bounded on cost.
+const EVENTS_KEY = 'events:journey';
+const EVENTS_MAX = 4000;
+
+async function pushEvent(evt) {
+  if (redis) {
+    await redis.lpush(EVENTS_KEY, evt);
+    await redis.ltrim(EVENTS_KEY, 0, EVENTS_MAX - 1);
+    return;
+  }
+  const list = mem.events || (mem.events = []);
+  list.unshift(evt);
+  if (list.length > EVENTS_MAX) list.length = EVENTS_MAX;
+}
+
+async function readEvents() {
+  if (redis) return (await redis.lrange(EVENTS_KEY, 0, EVENTS_MAX - 1)) || [];
+  return mem.events || [];
+}
+
+// ---- booking insights ----
+// core-service persists proposals in the same Redis (proposal:{id} +
+// proposals:index) — reading them here turns real booking behaviour into
+// research evidence for decisions. No Redis (bare local dev) ⇒ empty.
+async function listProposals() {
+  if (!redis) return [];
+  const ids = (await redis.smembers('proposals:index')) || [];
+  if (!ids.length) return [];
+  const rows = await redis.mget(...ids.map((id) => `proposal:${id}`));
+  return rows.filter(Boolean);
+}
+
 // Magic-link delivery via Resend. No RESEND_API_KEY ⇒ { delivered: false }
 // and the caller decides (dev hands the link back; production refuses).
 async function sendMagicEmail({ to, link }) {
@@ -101,4 +136,4 @@ async function sendMagicEmail({ to, link }) {
   return { delivered: true };
 }
 
-module.exports = { putMagic, takeMagic, ensureUser, getWs, putWs, pushInbox, drainInbox, sendMagicEmail };
+module.exports = { putMagic, takeMagic, ensureUser, getWs, putWs, pushInbox, drainInbox, pushEvent, readEvents, listProposals, sendMagicEmail };

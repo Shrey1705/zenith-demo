@@ -1,0 +1,464 @@
+{
+  "sha": "fe3c680",
+  "model": "mlx-community/Qwen2.5-Coder-14B-Instruct-4bit",
+  "runs": 2,
+  "date": "2026-07-17T01:51:32.668Z",
+  "aggregate": {
+    "overall": 3.53,
+    "blockers": [
+      {
+        "category": "likelihoodToPay",
+        "flaggedBy": [
+          "cto",
+          "enterprise-pm",
+          "insurance-pm",
+          "product-analyst"
+        ]
+      },
+      {
+        "category": "likelihoodToRecommend",
+        "flaggedBy": [
+          "ai-founder",
+          "cto",
+          "enterprise-pm",
+          "insurance-pm",
+          "product-analyst",
+          "startup-pm"
+        ]
+      }
+    ],
+    "bugs": [
+      "The 'Reset demo data' option doesn't clearly indicate that it will erase all local data, which could be risky for users. (ai-founder)",
+      "The 'Reset demo data' option is not clearly labeled, and its implications are not explained. (cto)",
+      "The 'Reset demo data' option is available in the settings, which could lead to accidental data loss. (eng-manager)",
+      "The 'Reset demo data' option does not clear the local storage, leaving the workspace unchanged. (eng-manager)",
+      "The 'Reset demo data' option does not clear the localStorage on another device, leading to confusion. (enterprise-pm)",
+      "The demo data reset option is not clearly labeled or accessible, causing confusion. (enterprise-pm)",
+      "The 'Reset demo data' option is not clearly labeled or explained. (insurance-pm)",
+      "The 'Configure local AI' section assumes prior knowledge of Ollama and model setup. (insurance-pm)",
+      "The 'Reset demo data' option is available, but it's unclear what happens to the data on another device. (product-analyst)",
+      "The 'Reset demo data' option does not clearly indicate what data will be lost, which could lead to accidental data loss. (product-analyst)",
+      "The 'Reset demo data' option is not clearly labeled; it's easy to accidentally reset your work. (startup-pm)"
+    ],
+    "payers": [],
+    "noisy": [],
+    "recommendation": "NOT-READY",
+    "confidence": "high"
+  },
+  "results": [
+    {
+      "id": "ai-founder",
+      "name": "Dev — solo technical founder building an AI product",
+      "weightedScore": 3.65,
+      "scores": {
+        "onboarding": 4,
+        "navigation": 3,
+        "speed": 4,
+        "featureUsefulness": 4,
+        "trust": 3,
+        "clarity": 4,
+        "perceivedIntelligence": 4,
+        "likelihoodToPay": 3,
+        "likelihoodToRecommend": 2
+      },
+      "variance": {
+        "onboarding": 0,
+        "navigation": 0,
+        "speed": 0,
+        "featureUsefulness": 0,
+        "trust": 0,
+        "clarity": 0,
+        "perceivedIntelligence": 0,
+        "likelihoodToPay": 0,
+        "likelihoodToRecommend": 0
+      },
+      "maxVariance": 0,
+      "painPoints": [
+        "No pricing page or way to pay, which is a deal-breaker for a tool I might want to use long-term.",
+        "The demo account feels like a shared resource, which could lead to data conflicts or loss.",
+        "The lack of a guided installer for the local AI model setup is a bit frustrating.",
+        "The lack of a pricing page and the inability to pay for a personal workspace is a significant barrier.",
+        "The demo data resets periodically, which is inconvenient for trying out features.",
+        "The navigation could be more intuitive, especially for finding specific documents."
+      ],
+      "bugs": [
+        "The 'Reset demo data' option doesn't clearly indicate that it will erase all local data, which could be risky for users."
+      ],
+      "featureRequests": [
+        "Add pricing information and a way to pay for a personal account.",
+        "Implement a more robust local AI model setup guide or installer.",
+        "Offer more control over data storage and management, especially for sensitive information.",
+        "Add a pricing page and the ability to pay for a personal workspace.",
+        "Allow for persistent storage of demo data.",
+        "Improve the navigation to make it easier to find specific documents."
+      ],
+      "quotes": [
+        "This tool is promising, but the lack of a clear pricing model and payment option is a significant barrier.",
+        "I like the local-first approach and the versioned document management, but the demo account setup could be smoother.",
+        "This tool is promising, but the lack of a personal workspace and the demo data resets are deal-breakers.",
+        "The AI is quite smart, but the demo environment is too restrictive for serious work."
+      ],
+      "wouldPay": false,
+      "wouldRecommend": false,
+      "verdicts": [
+        "The tool shows potential, but its current pricing model and shared demo account make it hard to consider for serious use.",
+        "The product has potential, but the demo environment and lack of personal workspace options make it impractical for serious use."
+      ]
+    },
+    {
+      "id": "cto",
+      "name": "Vikram — CTO at a 200-person fintech, buys for the product org",
+      "weightedScore": 3.4,
+      "scores": {
+        "onboarding": 4,
+        "navigation": 4,
+        "speed": 4,
+        "featureUsefulness": 4,
+        "trust": 3,
+        "clarity": 4,
+        "perceivedIntelligence": 4,
+        "likelihoodToPay": 2,
+        "likelihoodToRecommend": 2
+      },
+      "variance": {
+        "onboarding": 0,
+        "navigation": 0,
+        "speed": 0,
+        "featureUsefulness": 0,
+        "trust": 0,
+        "clarity": 0,
+        "perceivedIntelligence": 0,
+        "likelihoodToPay": 0,
+        "likelihoodToRecommend": 0
+      },
+      "maxVariance": 0,
+      "painPoints": [
+        "No pricing page or payment option, which is a significant barrier for adoption.",
+        "The AI's responses are deterministic and do not admit uncertainty, which is a concern for complex financial products.",
+        "No clear data handling or privacy story, which is a critical issue for handling sensitive financial data.",
+        "No pricing page or sign-up process, which is a significant barrier to adoption.",
+        "The AI's responses are deterministic and do not admit uncertainty, which is a concern for a CTO.",
+        "The data handling and privacy story is unclear, as there is no explicit mention of data storage or security."
+      ],
+      "bugs": [
+        "The 'Reset demo data' option is not clearly labeled, and its implications are not explained."
+      ],
+      "featureRequests": [
+        "Add a pricing page and payment option to facilitate adoption.",
+        "Implement a feature that allows the AI to admit uncertainty in its responses.",
+        "Provide a clear data handling and privacy policy to build trust.",
+        "Add a pricing page and sign-up process.",
+        "Provide more detailed information about data storage and security."
+      ],
+      "quotes": [
+        "This tool is promising, but the lack of a payment option and transparency around data handling is a deal-breaker.",
+        "The AI is competent, but it needs to be more flexible in its responses to handle the complexities of financial products.",
+        "This tool seems promising, but the lack of a clear pricing model and data handling details is a red flag.",
+        "The AI's responses are helpful, but they need to be more nuanced to build trust."
+      ],
+      "wouldPay": false,
+      "wouldRecommend": false,
+      "verdicts": [
+        "The product has potential but lacks critical features and transparency that are essential for adoption in a sensitive industry.",
+        "The tool is functional but lacks essential features and transparency, making it difficult to justify adoption."
+      ]
+    },
+    {
+      "id": "eng-manager",
+      "name": "Sana — Engineering Manager partnering with product",
+      "weightedScore": 3.65,
+      "scores": {
+        "onboarding": 4,
+        "navigation": 3,
+        "speed": 4,
+        "featureUsefulness": 4,
+        "trust": 3,
+        "clarity": 4,
+        "perceivedIntelligence": 4,
+        "likelihoodToPay": 3,
+        "likelihoodToRecommend": 3
+      },
+      "variance": {
+        "onboarding": 1,
+        "navigation": 0,
+        "speed": 0,
+        "featureUsefulness": 0,
+        "trust": 0,
+        "clarity": 1,
+        "perceivedIntelligence": 0,
+        "likelihoodToPay": 0,
+        "likelihoodToRecommend": 1
+      },
+      "maxVariance": 1,
+      "painPoints": [
+        "No pricing page or sign-up process, which makes it hard to assess the product's value.",
+        "The demo account is shared, and data is stored in localStorage, which could be a concern for confidential work.",
+        "No clear indication of how to adopt the product for a real project.",
+        "No pricing or payment options available, which is a significant barrier to adoption.",
+        "The demo account is shared, and data is stored locally, which could be problematic for real work.",
+        "The AI-generated content, while helpful, lacks the depth and detail needed for complex projects."
+      ],
+      "bugs": [
+        "The 'Reset demo data' option is available in the settings, which could lead to accidental data loss.",
+        "The 'Reset demo data' option does not clear the local storage, leaving the workspace unchanged."
+      ],
+      "featureRequests": [
+        "A pricing page and sign-up process to facilitate adoption and payment.",
+        "A clear adoption path for integrating the product into a real project.",
+        "A more robust data handling and privacy policy to build trust.",
+        "Add pricing and payment options to facilitate adoption.",
+        "Implement a persistent workspace that allows for real work without relying on local storage.",
+        "Enhance the AI-generated content to provide more detailed and actionable insights."
+      ],
+      "quotes": [
+        "This tool seems promising, but I need more clarity on how to use it in a real-world scenario.",
+        "The AI is quite helpful, but I'm concerned about the data storage and privacy implications.",
+        "This tool could be really useful, but the lack of a pricing model and persistent workspace is a deal-breaker.",
+        "The AI is quite helpful, but the demo account and local storage limitations make it hard to take this seriously for real work."
+      ],
+      "wouldPay": false,
+      "wouldRecommend": false,
+      "verdicts": [
+        "The product has potential, but the lack of a clear adoption path and pricing information makes it difficult to justify use.",
+        "The tool shows promise but falls short on practical adoption due to the lack of pricing and persistent workspace options."
+      ]
+    },
+    {
+      "id": "enterprise-pm",
+      "name": "Rajesh — Senior PM at a 5,000-person enterprise",
+      "weightedScore": 3.3,
+      "scores": {
+        "onboarding": 3,
+        "navigation": 4,
+        "speed": 4,
+        "featureUsefulness": 4,
+        "trust": 3,
+        "clarity": 4,
+        "perceivedIntelligence": 4,
+        "likelihoodToPay": 2,
+        "likelihoodToRecommend": 1
+      },
+      "variance": {
+        "onboarding": 0,
+        "navigation": 1,
+        "speed": 1,
+        "featureUsefulness": 0,
+        "trust": 0,
+        "clarity": 1,
+        "perceivedIntelligence": 1,
+        "likelihoodToPay": 0,
+        "likelihoodToRecommend": 0
+      },
+      "maxVariance": 1,
+      "painPoints": [
+        "No pricing page or way to pay, which is a deal-breaker for an enterprise.",
+        "The demo account is shared, which could lead to data conflicts and security issues.",
+        "The AI model requires a local setup, which might be challenging for IT departments.",
+        "No pricing or payment options available, which is a significant barrier to adoption.",
+        "Traceability and audit trail features are not as robust as expected, especially for complex enterprise workflows.",
+        "Security concerns due to the lack of on-prem or local data guarantees."
+      ],
+      "bugs": [
+        "The 'Reset demo data' option does not clear the localStorage on another device, leading to confusion.",
+        "The demo data reset option is not clearly labeled or accessible, causing confusion."
+      ],
+      "featureRequests": [
+        "Option to export and import data for backup and version control.",
+        "Integration with existing enterprise security protocols and compliance frameworks.",
+        "Add pricing and payment options to facilitate adoption.",
+        "Enhance traceability and audit trail features to better support enterprise requirements.",
+        "Provide on-prem or local data guarantees to address security concerns."
+      ],
+      "quotes": [
+        "This tool seems promising, but the lack of a payment option and shared demo account are major red flags.",
+        "The AI is quite helpful, but I need more assurance on data handling and security.",
+        "This tool seems promising, but the lack of a clear pricing model and payment options is a deal-breaker.",
+        "The traceability features are decent, but they need to be more comprehensive for our enterprise needs."
+      ],
+      "wouldPay": false,
+      "wouldRecommend": false,
+      "verdicts": [
+        "While the tool offers useful features, the absence of a payment option and shared demo account make it unsuitable for enterprise adoption.",
+        "While the tool has some useful features, the lack of a clear pricing model and payment options, coupled with security concerns, makes it difficult to recommend for enterprise adoption."
+      ]
+    },
+    {
+      "id": "insurance-pm",
+      "name": "Meera — Product Manager at a health insurer",
+      "weightedScore": 3.3,
+      "scores": {
+        "onboarding": 4,
+        "navigation": 3,
+        "speed": 4,
+        "featureUsefulness": 4,
+        "trust": 3,
+        "clarity": 4,
+        "perceivedIntelligence": 4,
+        "likelihoodToPay": 2,
+        "likelihoodToRecommend": 1
+      },
+      "variance": {
+        "onboarding": 1,
+        "navigation": 0,
+        "speed": 0,
+        "featureUsefulness": 0,
+        "trust": 0,
+        "clarity": 1,
+        "perceivedIntelligence": 1,
+        "likelihoodToPay": 0,
+        "likelihoodToRecommend": 0
+      },
+      "maxVariance": 1,
+      "painPoints": [
+        "No clear indication of where data is stored or whether it complies with internal policies.",
+        "No pricing or payment options, limiting the ability to evaluate the tool's value.",
+        "The demo account uses localStorage, which is not suitable for regulated environments.",
+        "The compliance blocks any tool that sends data outside, but this tool seems to rely on a local model which is not clear.",
+        "The navigation is somewhat confusing, especially with the sidebar and the project lifecycle strip.",
+        "The trust is somewhat compromised by the lack of clear data handling and privacy story."
+      ],
+      "bugs": [
+        "The 'Reset demo data' option is not clearly labeled or explained.",
+        "The 'Configure local AI' section assumes prior knowledge of Ollama and model setup."
+      ],
+      "featureRequests": [
+        "Add clear data storage and compliance information.",
+        "Provide pricing and payment options for evaluation.",
+        "Enable local-only data processing to comply with internal policies.",
+        "A clear privacy policy and data handling statement.",
+        "A guided installer for setting up the local AI model.",
+        "An option to export project knowledge in a secure, local format."
+      ],
+      "quotes": [
+        "I appreciate the deterministic engine and the ability to trace documents, but I need more assurance about data handling.",
+        "Without a clear pricing model and the ability to evaluate the tool in a production-like environment, it's hard to justify the investment.",
+        "This tool seems promising, but I need more assurance about data handling and compliance.",
+        "The navigation could be more intuitive; it's hard to keep track of where everything is."
+      ],
+      "wouldPay": false,
+      "wouldRecommend": false,
+      "verdicts": [
+        "The tool shows potential but lacks critical features and compliance assurances needed for a regulated environment.",
+        "The tool has potential but lacks the necessary compliance and transparency to be adopted in a regulated environment."
+      ]
+    },
+    {
+      "id": "product-analyst",
+      "name": "Arjun — Product Analyst supporting three PMs",
+      "weightedScore": 3.75,
+      "scores": {
+        "onboarding": 4,
+        "navigation": 4,
+        "speed": 4,
+        "featureUsefulness": 4,
+        "trust": 3,
+        "clarity": 4,
+        "perceivedIntelligence": 4,
+        "likelihoodToPay": 2,
+        "likelihoodToRecommend": 2
+      },
+      "variance": {
+        "onboarding": 0,
+        "navigation": 1,
+        "speed": 0,
+        "featureUsefulness": 0,
+        "trust": 0,
+        "clarity": 0,
+        "perceivedIntelligence": 0,
+        "likelihoodToPay": 0,
+        "likelihoodToRecommend": 1
+      },
+      "maxVariance": 1,
+      "painPoints": [
+        "No pricing or payment options available, which is a significant barrier to adoption.",
+        "The demo account is shared, which could lead to data conflicts or privacy concerns.",
+        "The AI's responses are deterministic, which might not always align with real-world scenarios.",
+        "The demo data resets periodically, which disrupts the workflow and makes it difficult to build trust in the tool.",
+        "The trust in the AI's answers is slightly compromised due to the lack of a clear privacy policy or data handling statement."
+      ],
+      "bugs": [
+        "The 'Reset demo data' option is available, but it's unclear what happens to the data on another device.",
+        "The 'Reset demo data' option does not clearly indicate what data will be lost, which could lead to accidental data loss."
+      ],
+      "featureRequests": [
+        "Implement a pricing model and payment options to allow for actual use.",
+        "Provide a way to create a personal workspace with data isolation.",
+        "Introduce more flexible AI responses to better handle real-world complexities.",
+        "Implement a pricing page and payment options to allow for a more realistic evaluation of the tool.",
+        "Provide a more detailed privacy policy and data handling statement to build trust.",
+        "Add an option to export or save the workspace data to a more persistent storage solution."
+      ],
+      "quotes": [
+        "This tool has potential, but the lack of a payment option is a deal-breaker for me.",
+        "I like the structured approach, but the shared demo account is a bit limiting.",
+        "This tool has a lot of potential, but the lack of payment options and the resetting of demo data makes it hard to take seriously.",
+        "The AI is quite smart and the features are useful, but I need more assurance about data privacy before I can consider using it for real work."
+      ],
+      "wouldPay": false,
+      "wouldRecommend": false,
+      "verdicts": [
+        "The product is promising but needs a clear pricing model and personal workspace options to be truly useful.",
+        "The tool is promising but lacks essential features like pricing and persistent data storage, which are critical for adoption."
+      ]
+    },
+    {
+      "id": "startup-pm",
+      "name": "Priya — PM at a 15-person B2B SaaS startup",
+      "weightedScore": 3.65,
+      "scores": {
+        "onboarding": 4,
+        "navigation": 3,
+        "speed": 4,
+        "featureUsefulness": 4,
+        "trust": 3,
+        "clarity": 4,
+        "perceivedIntelligence": 4,
+        "likelihoodToPay": 3,
+        "likelihoodToRecommend": 2
+      },
+      "variance": {
+        "onboarding": 0,
+        "navigation": 0,
+        "speed": 0,
+        "featureUsefulness": 0,
+        "trust": 0,
+        "clarity": 0,
+        "perceivedIntelligence": 0,
+        "likelihoodToPay": 1,
+        "likelihoodToRecommend": 1
+      },
+      "maxVariance": 1,
+      "painPoints": [
+        "No pricing page or sign-up option; the demo account is shared and data is wiped on reset.",
+        "The AI's knowledge seems generic and not deeply integrated with the product's specific domain.",
+        "The navigation is somewhat clunky, especially when trying to find specific documents.",
+        "No pricing page or sign-up option, which is a deal-breaker for a tool I might want to use regularly.",
+        "The demo data resets periodically, which makes it hard to build a continuous workflow.",
+        "No clear indication of how to handle real data securely."
+      ],
+      "bugs": [
+        "The 'Reset demo data' option is not clearly labeled; it's easy to accidentally reset your work."
+      ],
+      "featureRequests": [
+        "Ability to connect a local AI model without a guided installer.",
+        "Pricing and sign-up options for a personal workspace.",
+        "More detailed and product-specific AI responses.",
+        "Add a pricing page and sign-up option.",
+        "Implement a persistent workspace that doesn't reset periodically.",
+        "Provide more detailed documentation on how to securely handle real data."
+      ],
+      "quotes": [
+        "This tool is promising, but it needs more customization and a way to save my work without losing it.",
+        "The AI is helpful, but it's not as smart about our product as I hoped it would be.",
+        "This tool seems promising, but the lack of a pricing page and persistent workspace is a big red flag.",
+        "I like the idea of a versioned BRD and generated delivery chain, but I need more assurance about data security."
+      ],
+      "wouldPay": false,
+      "wouldRecommend": false,
+      "verdicts": [
+        "The tool is functional and has some useful features, but it lacks the personalization and data handling I need for my workflow.",
+        "While the tool offers some useful features, the lack of a pricing page and persistent workspace makes it difficult to consider for regular use."
+      ]
+    }
+  ]
+}

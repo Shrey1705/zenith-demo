@@ -5,7 +5,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { I } from './icons';
-import { useWS, mutate, findProject, updateDoc, staleInfo, can } from './workspace';
+import { useWS, mutate, findProject, mergedProject, homePid, updateDoc, staleInfo, can } from './workspace';
 
 const COLS = [
   { id: 'todo', label: 'To do' },
@@ -16,24 +16,29 @@ const COLS = [
 export const storyStatus = (s) => s.status || 'todo';
 
 export default function BoardPage() {
+  // Workspace-level view (Linear-style): without a pid in the route, the
+  // board aggregates every project — cards carry a project chip and
+  // mutations resolve to each story's home project via homePid().
   const { pid } = useParams();
   const nav = useNavigate();
   const ws = useWS();
-  const project = findProject(ws, pid);
+  const project = pid ? findProject(ws, pid) : mergedProject(ws);
+  const allMode = !pid;
   const editable = can(ws, 'edit');
 
   const move = (story, dir) => {
     const idx = COLS.findIndex((c) => c.id === storyStatus(story));
     const next = COLS[idx + dir];
-    if (next) mutate((w) => updateDoc(w, pid, 'story', story.id, { status: next.id }));
+    if (next) mutate((w) => updateDoc(w, homePid(story, pid), 'story', story.id, { status: next.id }));
   };
 
   const releaseOf = (sid) => project.releases.find((r) => (r.storyIds || []).includes(sid));
 
   return (
     <div className="docwrap">
-      <h1 className="doch1">Sprint Board</h1>
+      <h1 className="doch1">Sprint Board{allMode ? '' : ` — ${project.name}`}</h1>
       <p className="docsub">
+        {allMode ? 'Every story across every product — one board, Linear-style. ' : ''}
         Every card traces back to a requirement — click through to see why it exists.
         {!editable && ' Read-only role: statuses can be viewed, not moved.'}
       </p>
@@ -52,8 +57,9 @@ export default function BoardPage() {
                   const rel = releaseOf(s.id);
                   return (
                     <div key={s.id} className={'kbcard' + (stale ? ' stale' : '')}>
-                      <button className="kbtitle" onClick={() => nav(`/ai/p/${pid}/stories/${s.id}`)}>{s.title}</button>
+                      <button className="kbtitle" onClick={() => nav(`/ai/p/${homePid(s, pid)}/stories/${s.id}`)}>{s.title}</button>
                       <div className="kbmeta">
+                        {allMode && s._pname && <span className="kbproj">{s._pname}</span>}
                         {s.points ? <span>{s.points} pts</span> : null}
                         {s.component && <span>{s.component}</span>}
                         {rel && <span className="kbrel"><I n="rocket" s={10} /> {rel.name}</span>}

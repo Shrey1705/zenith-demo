@@ -25,6 +25,7 @@ import ReleasesPage from './ReleasesPage';
 import PlaybooksPage from './PlaybooksPage';
 import BoardPage from './BoardPage';
 import DecisionsPage from './DecisionsPage';
+import SignalsPage from './SignalsPage';
 import SettingsPage from './SettingsPage';
 import AssistPanel from './AssistPanel';
 import DemoCoach, { startCoach } from './DemoCoach';
@@ -79,6 +80,10 @@ export default function AiPortal() {
         <Routes>
           <Route path="/" element={<Shell />}>
             <Route index element={<ChatHome />} />
+            <Route path="board" element={<BoardPage />} />
+            <Route path="signals" element={<SignalsPage />} />
+            <Route path="graph" element={<GraphPage />} />
+            <Route path="map" element={<SemanticMapPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="prod/:prodId" element={<ProductPage />} />
             <Route path="p/:pid/*" element={<ProjectRoutes />} />
@@ -277,14 +282,11 @@ const PROJECT_NAV = [
     { to: 'pdns', glyph: 'file', label: 'PDNs', count: (p) => p.pdns.length },
     { to: 'epics', glyph: 'layers', label: 'Epics', count: (p) => p.epics.length },
     { to: 'stories', glyph: 'card', label: 'User Stories', count: (p) => p.stories.length },
-    { to: 'board', glyph: 'checks', label: 'Sprint Board' },
     { to: 'frs', glyph: 'checks', label: 'Functional Reqs', count: (p) => p.frs.length },
     { to: 'tests', glyph: 'flask', label: 'Test Cases', count: (p) => p.tests.length }
   ] },
   { g: 'project', label: 'Project', items: [
     { to: 'playbooks', glyph: 'play', label: 'Playbooks' },
-    { to: 'graph', glyph: 'network', label: 'Knowledge Graph' },
-    { to: 'map', glyph: 'scatter', label: 'Semantic Map' },
     { to: 'releases', glyph: 'rocket', label: 'Releases', count: (p) => p.releases.length }
   ] }
 ];
@@ -394,6 +396,22 @@ function Sidebar({ project, open, onClose }) {
         <button className="fs-link home" onClick={() => { mutate((w) => ({ ...w, activeSessionId: null })); nav('/ai'); onClose(); }}>
           <I n="pen" s={14} /> New chat
         </button>
+
+        {/* Linear-style workspace views: cross-product, not nested in a project. */}
+        <Group id="wsviews" label="Workspace">
+          {[
+            { to: '/ai/board', glyph: 'checks', label: 'Sprint Board' },
+            { to: '/ai/signals', glyph: 'scatter', label: 'Signals' },
+            { to: '/ai/graph', glyph: 'network', label: 'Knowledge Graph' },
+            { to: '/ai/map', glyph: 'globe', label: 'Semantic Map' }
+          ].map((v) => (
+            <NavLink key={v.to} to={v.to} end onClick={onClose}
+              className={({ isActive }) => 'fs-link' + (isActive ? ' on' : '')}>
+              <I n={v.glyph} s={14} />
+              <span className="fs-linklabel">{v.label}</span>
+            </NavLink>
+          ))}
+        </Group>
 
         <Group id="chats" label="Chats">
           {(ws.sessions || []).slice(0, 6).map((s) => (

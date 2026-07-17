@@ -7,7 +7,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useWorkspace } from './AiPortal';
 import { loadIndex, buildIndex, cosine } from './rag';
 import { I, TypeIcon, TYPE_TINT } from './icons';
-import { useWS, findProject, usingLocal, shortDate, ROUTE_OF } from './workspace';
+import { useWS, findProject, mergedProject, usingLocal, shortDate, ROUTE_OF, TYPES } from './workspace';
+
+// All-projects mode: index chunks don't carry a home project, so resolve the
+// owning project by looking the document up across the workspace.
+const homeOf = (ws, type, refId) =>
+  (ws.projects || []).find((p) => (p[TYPES[type]?.key] || []).some((d) => d.id === refId))?.id;
 
 const TYPE_LABEL = {
   research: 'Research', brd: 'BRD', pdn: 'PDN', epic: 'Epic',
@@ -48,7 +53,7 @@ export default function SemanticMapPage() {
   const nav = useNavigate();
   const ws = useWS();
   const { token } = useWorkspace();
-  const project = findProject(ws, pid);
+  const project = pid ? findProject(ws, pid) : mergedProject(ws);
   const [version, setVersion] = useState(0);          // bump to reload the index
   const [progress, setProgress] = useState(null);     // {done, total} while building
   const [err, setErr] = useState('');
@@ -178,8 +183,8 @@ export default function SemanticMapPage() {
                 <p className="maptype" style={{ color: TYPE_TINT[selNode.type], display: 'flex', alignItems: 'center', gap: 6 }}><TypeIcon type={selNode.type} s={13} /> {TYPE_LABEL[selNode.type]}</p>
                 <h3>{selNode.title}</h3>
                 <p className="mapexcerpt">{selNode.text.slice(0, 220)}…</p>
-                {ROUTE_OF[selNode.type] && (
-                  <button className="linkbtn" onClick={() => nav(`/ai/p/${pid}/${ROUTE_OF[selNode.type]}/${selNode.refId}`)}>Open document →</button>
+                {ROUTE_OF[selNode.type] && (pid || homeOf(ws, selNode.type, selNode.refId)) && (
+                  <button className="linkbtn" onClick={() => nav(`/ai/p/${pid || homeOf(ws, selNode.type, selNode.refId)}/${ROUTE_OF[selNode.type]}/${selNode.refId}`)}>Open document →</button>
                 )}
                 <p className="maptype" style={{ marginTop: 18 }}>Nearest in meaning</p>
                 {neighbors.map(({ n, s }) => (

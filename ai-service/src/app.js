@@ -149,6 +149,89 @@ app.post('/inbox/drain', authUser, async (req, res) => {
   res.json({ items: await accounts.drainInbox(req.subject) });
 });
 
+// ---- journey analytics: the demo tenant's Amplitude ----
+// Ingestion is public (journey visitors are anonymous) but strictly shaped,
+// capped, and behind the global rate limiter. Reading requires an account.
+app.post('/analytics/event', async (req, res) => {
+  const { type, name, sid } = req.body || {};
+  if (!['step', 'click'].includes(type) || !name || !sid) return res.status(400).json({ error: 'invalid event' });
+  await accounts.pushEvent({ type, name: String(name).slice(0, 80), sid: String(sid).slice(0, 16), ts: Date.now() });
+  res.json({ ok: true });
+});
+
+const FUNNEL_ORDER = ['Get a quote', 'Your details', 'Review & pay', 'Payment', 'Policy issued'];
+app.get('/analytics/funnel', authUser, async (_req, res) => {
+  const events = await accounts.readEvents();
+  const stepSids = Object.fromEntries(FUNNEL_ORDER.map((s) => [s, new Set()]));
+  const allSids = new Set();
+  const clicks = new Map();
+  let oldest = Date.now();
+  for (const e of events) {
+    if (!e || !e.sid) continue;
+    allSids.add(e.sid);
+    if (e.ts && e.ts < oldest) oldest = e.ts;
+    if (e.type === 'step' && stepSids[e.name]) stepSids[e.name].add(e.sid);
+    if (e.type === 'click') clicks.set(e.name, (clicks.get(e.name) || 0) + 1);
+  }
+  const steps = FUNNEL_ORDER.map((name, i) => {
+    const sessions = stepSids[name].size;
+    const prev = i === 0 ? sessions : stepSids[FUNNEL_ORDER[i - 1]].size;
+    return { name, sessions, dropFromPrev: i === 0 ? 0 : Math.max(0, prev - sessions) };
+  });
+  const first = steps[0]?.sessions || 0;
+  const last = steps[steps.length - 1]?.sessions || 0;
+  res.json({
+    steps,
+    totalSessions: allSids.size,
+    conversionPct: first ? Math.round((last / first) * 100) : 0,
+    topClicks: [...clicks.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([name, count]) => ({ name, count })),
+    sampleSize: events.length,
+    since: new Date(oldest).toISOString()
+  });
+});
+
+// ---- booking insights: real policy data → research evidence ----
+// Aggregates the proposals core-service persisted and turns them into the
+// kind of insight bullets a PM would otherwise assemble by hand — ready to
+// save as evidence on a decision.
+app.get('/insights/bookings', authUser, async (_req, res) => {
+  const props = await accounts.listProposals();
+  if (!props.length) {
+    return res.json({ sampleSize: 0, insights: ['No bookings recorded yet — run the Buy journey end-to-end (or connect Redis locally) and real proposal data will aggregate here.'], byStatus: {}, planMix: [], siBands: [], topAddons: [] });
+  }
+  const byStatus = {};
+  const plans = new Map(); const bands = new Map(); const addons = new Map();
+  let premiumSum = 0, premiumN = 0;
+  for (const p of props) {
+    byStatus[p.status] = (byStatus[p.status] || 0) + 1;
+    if (p.plan_id) plans.set(p.plan_id, (plans.get(p.plan_id) || 0) + 1);
+    if (p.sum_insured) bands.set(p.sum_insured, (bands.get(p.sum_insured) || 0) + 1);
+    for (const a of p.addons || []) addons.set(a, (addons.get(a) || 0) + 1);
+    const pm = p.premium?.total ?? p.premium?.final_premium ?? (typeof p.premium === 'number' ? p.premium : null);
+    if (pm) { premiumSum += pm; premiumN++; }
+  }
+  const sorted = (m) => [...m.entries()].sort((a, b) => b[1] - a[1]);
+  const total = props.length;
+  const issued = byStatus.ISSUED || 0;
+  const submitted = (byStatus.SUBMITTED || 0) + issued;
+  const topBand = sorted(bands)[0];
+  const topPlan = sorted(plans)[0];
+  const insights = [
+    `${total} proposal(s) in the window: ${issued} issued (${Math.round((issued / total) * 100)}% end-to-end conversion). The biggest leak is ${total - submitted > issued ? 'before submission — buyers draft but don\'t commit' : 'between submission and payment'}.`,
+    topBand ? `Most-chosen sum insured: ₹${Number(topBand[0]).toLocaleString('en-IN')} (${topBand[1]}/${total}) — demand concentrates ${Number(topBand[0]) >= 10000000 ? 'at the top band: direct evidence for the high-SI decision' : 'in the mid bands'}.` : null,
+    topPlan ? `Top plan: ${topPlan[0]} at ${Math.round((topPlan[1] / total) * 100)}% of proposals.` : null,
+    sorted(addons).length ? `Top add-ons: ${sorted(addons).slice(0, 3).map(([a, n]) => `${a} (${n})`).join(', ')} — candidates for default-on bundling.` : 'No optional add-ons attached yet — the add-on step may be getting skipped.',
+    premiumN ? `Average premium across priced proposals: ₹${Math.round(premiumSum / premiumN).toLocaleString('en-IN')}.` : null
+  ].filter(Boolean);
+  res.json({
+    sampleSize: total, byStatus,
+    planMix: sorted(plans).map(([name, count]) => ({ name, count })),
+    siBands: sorted(bands).map(([band, count]) => ({ band: Number(band), count })),
+    topAddons: sorted(addons).slice(0, 8).map(([name, count]) => ({ name, count })),
+    insights
+  });
+});
+
 // ---- scheduled playbooks: finished documents over the API ----
 // n8n cron → this endpoint → post the markdown anywhere. Builds from the
 // user's synced workspace (ws:{email}) with the deterministic engine.

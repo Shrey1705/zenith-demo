@@ -229,6 +229,20 @@ export const ROUTE_OF = { decision: 'decisions', research: 'research', brd: 'brd
 export const DECISION_TYPE_META = { one: 'Decision', label: 'Decisions' };
 
 export const findProject = (ws, pid) => (ws.projects || []).find((p) => p.id === pid) || null;
+
+// Workspace-level views (Linear-style): Board / Graph / Map render ACROSS
+// products by consuming a merged pseudo-project. Every doc is tagged with
+// its real project id (`_pid`) so navigation and mutations resolve home.
+export function mergedProject(ws) {
+  const keys = ['decisions', 'research', 'conversations', 'brds', 'pdns', 'epics', 'stories', 'frs', 'tests', 'releases'];
+  const m = { id: '_all', name: 'All products', about: 'Every project, one view.', productId: 'all' };
+  for (const k of keys) {
+    m[k] = (ws.projects || []).flatMap((p) => (p[k] || []).map((d) => ({ ...d, _pid: p.id, _pname: p.name })));
+  }
+  return m;
+}
+// Where a doc really lives — merged docs carry _pid, plain ones use context.
+export const homePid = (doc, fallbackPid) => doc._pid || fallbackPid;
 export const findDoc = (project, type, id) => (project?.[TYPES[type].key] || []).find((d) => d.id === id) || null;
 
 // ---- chat sessions ----
