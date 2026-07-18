@@ -116,14 +116,33 @@ app.get('/auth/verify', async (req, res) => {
   const email = await accounts.takeMagic(String(req.query.code || ''));
   if (!email) return res.status(400).json({ error: 'link expired or already used — request a new one' });
   await accounts.ensureUser(email);
-  res.json({ token: signToken(email, 30), email });
+  const u = await accounts.getUser(email);
+  res.json({ token: signToken(email, 30), email, plan: u?.plan || 'free' });
 });
 
 // Who does this token belong to? Used by invite links (?token=), which
-// carry a ready session token instead of a one-time code.
+// carry a ready session token instead of a one-time code. Also the client's
+// source of truth for the account's plan.
 app.get('/auth/whoami', auth, async (req, res) => {
-  if (req.subject.includes('@')) await accounts.ensureUser(req.subject);
-  res.json({ subject: req.subject });
+  if (req.subject.includes('@')) {
+    await accounts.ensureUser(req.subject);
+    const u = await accounts.getUser(req.subject);
+    return res.json({ subject: req.subject, plan: u?.plan || 'free' });
+  }
+  res.json({ subject: req.subject, plan: 'pro' }); // demo account sees everything
+});
+
+// Founder-only plan changes (after a Stripe payment lands): guarded by an
+// admin key that lives only in server env + the founder's .env. No key
+// configured ⇒ route disabled entirely.
+app.post('/auth/set-plan', async (req, res) => {
+  const key = process.env.ADMIN_KEY;
+  if (!key || req.headers['x-admin-key'] !== key) return res.status(403).json({ error: 'forbidden' });
+  const email = String(req.body?.email || '').toLowerCase();
+  const plan = String(req.body?.plan || '');
+  if (!email.includes('@') || !['free', 'pro'].includes(plan)) return res.status(400).json({ error: 'email and plan (free|pro) required' });
+  await accounts.setPlan(email, plan);
+  res.json({ ok: true, email, plan });
 });
 
 // Long-lived token for n8n/webhook use — same HMAC scheme as sessions,

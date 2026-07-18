@@ -379,6 +379,32 @@ export { todayISO };
 // "it's on the board". Overdue items surface next to due reviews — the
 // workspace answers "what needs me?" without being asked.
 export const isActionOverdue = (a) => !a.done && a.due && a.due < todayISO();
+
+// ---- freemium plans ----
+// The plan itself lives on the server user record (client can't self-edit
+// it); these are the client-side limits and meters. Local AI stays unlimited
+// on every plan — it runs on the user's own machine, so generosity is free.
+export const PLAN_LIMITS = {
+  free: { products: 1, projects: 3, decisions: 10, research: 30 },
+  pro: { products: Infinity, projects: Infinity, decisions: Infinity, research: Infinity }
+};
+export const PLAN_LABEL = { free: 'Free', pro: 'Founding Pro' };
+
+export function usageOf(ws) {
+  const projects = ws.projects || [];
+  return {
+    products: (ws.products || []).length,
+    projects: projects.length,
+    decisions: projects.reduce((n, p) => n + (p.decisions || []).length, 0),
+    research: projects.reduce((n, p) => n + (p.research || []).length, 0)
+  };
+}
+// plan comes from the session (server-issued); demo mode explores as pro.
+export const planOf = (session) => (session?.mode === 'demo' ? 'pro' : session?.plan || 'free');
+export function underLimit(ws, session, kind) {
+  const limit = (PLAN_LIMITS[planOf(session)] || PLAN_LIMITS.free)[kind];
+  return usageOf(ws)[kind] < limit;
+}
 export const projectOverdueActions = (project) =>
   (project.decisions || []).flatMap((d) => (d.actions || []).filter(isActionOverdue).map((a) => ({ ...a, decision: d })));
 export const overdueActionCount = (ws) => (ws.projects || []).reduce((n, p) => n + projectOverdueActions(p).length, 0);

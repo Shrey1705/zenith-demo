@@ -34,9 +34,11 @@ export default function PricingPage() {
               <ul>
                 {p.bullets.map((b) => <li key={b}>{b}</li>)}
               </ul>
-              {link
-                ? <a className="btn gold" href={link}>Get started →</a>
-                : <a className="btn gold" href={mailto}>Request access →</a>}
+              {p.cta === 'start'
+                ? <Link className="btn gold" to="/ai">Start free →</Link>
+                : link
+                  ? <a className="btn gold" href={link}>Get started →</a>
+                  : <a className="btn gold" href={mailto}>Request access →</a>}
             </div>
           );
         })}

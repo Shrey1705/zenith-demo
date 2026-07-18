@@ -12,6 +12,17 @@ export const CONTACT_EMAIL = 'shreysagar17@gmail.com';
 
 export const PLANS = [
   {
+    id: 'free', name: 'Free', price: '$0', per: 'forever', cta: 'start',
+    tagline: 'A real decision workspace, not a trial. Local AI included — unlimited, because it runs on your machine.',
+    bullets: [
+      '1 product · 3 projects · 10 decisions · 30 research notes',
+      'Full artifact chain, playbooks, sprint board, ⌘K — nothing crippled',
+      'Unlimited local AI chat & RAG (your machine, your data)',
+      'Private synced workspace with magic-link sign-in',
+      'Upgrade only when you outgrow the limits'
+    ]
+  },
+  {
     id: 'monthly', name: 'Founding member', price: '$19', per: '/ month',
     tagline: 'For individual PMs who want their product knowledge in one private place.',
     bullets: [

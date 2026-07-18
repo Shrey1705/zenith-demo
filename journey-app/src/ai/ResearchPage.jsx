@@ -3,10 +3,10 @@
 // API docs; write manual notes. Everything here can ride into a BRD.
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useWorkspace } from './AiPortal';
+import { useWorkspace, raiseUpgradeNudge } from './AiPortal';
 import { askFeasly } from './brain';
 import { I, TypeIcon } from './icons';
-import { useWS, mutate, uid, now, titleFrom, findProject, findDoc, addDoc, updateDoc, removeDoc, shortDate, usingLocal, activeModelLabel } from './workspace';
+import { useWS, mutate, uid, now, titleFrom, findProject, findDoc, addDoc, updateDoc, removeDoc, shortDate, usingLocal, activeModelLabel , underLimit } from './workspace';
 import TraceRail from './TraceRail';
 
 const SOURCE_LABEL = { note: 'Manual note', ai: 'Saved AI answer', upload: 'Uploaded file', confluence: 'Confluence import', api: 'API docs import', playbook: 'Playbook output', inbox: 'Sent via integration', analytics: 'Signals evidence' };
@@ -15,7 +15,7 @@ export default function ResearchPage() {
   const { pid, docId } = useParams();
   const nav = useNavigate();
   const ws = useWS();
-  const { token } = useWorkspace();
+  const { token, session } = useWorkspace();
   const project = findProject(ws, pid);
   const doc = docId ? findDoc(project, 'research', docId) : null;
   const [ask, setAsk] = useState('');
@@ -24,7 +24,12 @@ export default function ResearchPage() {
 
   if (doc) return <ResearchDoc project={project} doc={doc} pid={pid} />;
 
-  const add = (r) => { mutate((w) => addDoc(w, pid, 'research', r)); nav(r.id); };
+  const add = (r) => {
+    // Freemium gate: every creation path (note, upload, imports, saved answers)
+    // funnels through here, so one check covers them all.
+    if (!underLimit(ws, session, 'research')) { raiseUpgradeNudge('research'); return; }
+    mutate((w) => addDoc(w, pid, 'research', r)); nav(r.id);
+  };
 
   const askAi = async () => {
     const q = ask.trim();

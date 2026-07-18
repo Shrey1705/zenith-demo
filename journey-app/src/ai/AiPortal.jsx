@@ -8,7 +8,8 @@ import { useLocation, Routes, Route, NavLink, Navigate, Outlet, useNavigate } fr
 import { ai } from '../lib/api';
 import {
   useWS, mutate, resetWS, uid, now, findProject, findProduct, projectsOf,
-  ALL_PRODUCT, DEFAULT_THEME, TYPES, ROUTE_OF, enableUserSync, disableUserSync, can, projectDueCount, projectOverdueActions
+  ALL_PRODUCT, DEFAULT_THEME, TYPES, ROUTE_OF, enableUserSync, disableUserSync, can, projectDueCount, projectOverdueActions,
+  underLimit, usageOf, PLAN_LIMITS, planOf
 } from './workspace';
 import { I, TypeIcon } from './icons';
 import ChatHome from './ChatHome';
@@ -58,16 +59,26 @@ export default function AiPortal() {
   };
 
   // Point the store at the right workspace before anything renders: cloud
-  // sync for email accounts, browser-local seeded demo otherwise.
+  // sync for email accounts, browser-local seeded demo otherwise. Plan
+  // refreshes from the server on every load, so a founder upgrade lands
+  // without the user doing anything.
   useEffect(() => {
     let live = true;
     (async () => {
-      if (session?.mode === 'user') await enableUserSync(session.token, session.user);
-      else disableUserSync();
+      if (session?.mode === 'user') {
+        await enableUserSync(session.token, session.user);
+        ai.whoami(session.token).then((r) => {
+          if (live && r.plan && r.plan !== session.plan) {
+            const next = { ...session, plan: r.plan };
+            try { localStorage.setItem(AUTH_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+            setSession(next);
+          }
+        }).catch(() => { /* offline — keep the cached plan */ });
+      } else disableUserSync();
       if (live) setReady(true);
     })();
     return () => { live = false; };
-  }, [session]);
+  }, [session?.token, session?.mode]); // eslint-disable-line
 
   if (location.pathname.includes('/verify')) {
     return <div className="fs-root" style={themeVars(ws)}><VerifyScreen onAuth={setAuth} /></div>;
@@ -152,14 +163,14 @@ function VerifyScreen({ onAuth }) {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const token = params.get('token');
-    const finish = (tok, email) => { onAuth({ token: tok, user: email, mode: 'user' }); nav('/ai', { replace: true }); };
+    const finish = (tok, email, plan) => { onAuth({ token: tok, user: email, mode: 'user', plan: plan || 'free' }); nav('/ai', { replace: true }); };
     if (token) {
       ai.whoami(token)
-        .then((r) => finish(token, r.subject))
+        .then((r) => finish(token, r.subject, r.plan))
         .catch(() => setErr('This invite link is invalid or expired — ask for a fresh one.'));
     } else if (code) {
       ai.verify(code)
-        .then((r) => finish(r.token, r.email))
+        .then((r) => finish(r.token, r.email, r.plan))
         .catch((e) => setErr(e.message));
     } else {
       setErr('Missing sign-in code.');
@@ -198,6 +209,7 @@ function Shell() {
   return (
     <div className="workspace">
       <CommandPalette open={palOpen} onClose={() => setPalOpen(false)} />
+      <UpgradeNudge />
       <button className="ws-hamburger" onClick={() => setDrawerOpen(true)} aria-label="Open menu"><I n="chevronLeft" s={17} style={{ transform: 'rotate(180deg)' }} /></button>
       {drawerOpen && <div className="ws-backdrop" onClick={() => setDrawerOpen(false)} />}
       <Sidebar project={project} open={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -232,6 +244,34 @@ function ReviewBanner({ project }) {
       <span className="reviewbaracts">
         <button className="reviewbtn" onClick={() => nav(`/ai/p/${project.id}/decisions`)}>Review now →</button>
         <button className="reviewx" onClick={() => { try { sessionStorage.setItem('fs-reviewdismiss-' + project.id, '1'); } catch { /* ignore */ } setHidden(true); }} aria-label="Dismiss"><I n="x" s={13} /></button>
+      </span>
+    </div>
+  );
+}
+
+// Hitting a Free-plan limit anywhere raises this toast: what the limit is,
+// where to upgrade. Fired via `window.dispatchEvent(new CustomEvent(
+// 'feasly-upgrade', { detail: { kind } }))` from any creation gate.
+const LIMIT_COPY = {
+  products: '1 product', projects: '3 projects', decisions: '10 decisions', research: '30 research notes'
+};
+export const raiseUpgradeNudge = (kind) => window.dispatchEvent(new CustomEvent('feasly-upgrade', { detail: { kind } }));
+
+function UpgradeNudge() {
+  const nav = useNavigate();
+  const [kind, setKind] = useState(null);
+  useEffect(() => {
+    const on = (e) => setKind(e.detail?.kind || 'decisions');
+    window.addEventListener('feasly-upgrade', on);
+    return () => window.removeEventListener('feasly-upgrade', on);
+  }, []);
+  if (!kind) return null;
+  return (
+    <div className="upgradebar" role="status">
+      <span><I n="lock" s={13} /> Free plan includes {LIMIT_COPY[kind]} — you've used them all. Founding Pro is unlimited, and local AI stays free on every plan.</span>
+      <span className="reviewbaracts">
+        <button className="reviewbtn" onClick={() => { setKind(null); nav('/pricing'); }}>See plans →</button>
+        <button className="reviewx" onClick={() => setKind(null)} aria-label="Dismiss"><I n="x" s={13} /></button>
       </span>
     </div>
   );
@@ -323,8 +363,10 @@ function ProductNode({ product, activeProject, onClose }) {
   const onDash = location.pathname === `/ai/prod/${product.id}`;
   const toggle = () => { const v = !open; setOpen(v); setNavState('prod-' + product.id, v); };
 
+  const { session: pnSession } = useWorkspace();
   const createProject = () => {
     if (!name.trim()) { setAdding(false); return; }
+    if (!underLimit(ws, pnSession, 'projects')) { setAdding(false); raiseUpgradeNudge('projects'); return; }
     const p = { id: uid(), name: name.trim(), about: '', productId: product.id, createdAt: now(), folders: [], decisions: [], research: [], conversations: [], brds: [], pdns: [], epics: [], stories: [], frs: [], tests: [], releases: [] };
     mutate((w) => ({ ...w, projects: [p, ...w.projects] }));
     setName(''); setAdding(false);
@@ -393,6 +435,7 @@ function Sidebar({ project, open, onClose }) {
 
   const createProduct = () => {
     if (!prodName.trim()) { setAddingProduct(false); return; }
+    if (!underLimit(ws, session, 'products')) { setAddingProduct(false); raiseUpgradeNudge('products'); return; }
     const p = { id: uid(), name: prodName.trim(), about: '', createdAt: now() };
     mutate((w) => ({ ...w, products: [...(w.products || []), p] }));
     setProdName(''); setAddingProduct(false);

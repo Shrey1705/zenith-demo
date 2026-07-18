@@ -39,10 +39,28 @@ async function takeMagic(code) {
 async function ensureUser(email) {
   if (redis) {
     const existing = await redis.get(`user:${email}`);
-    if (!existing) await redis.set(`user:${email}`, { email, createdAt: new Date().toISOString() });
+    if (!existing) await redis.set(`user:${email}`, { email, createdAt: new Date().toISOString(), plan: 'free' });
     return;
   }
-  if (!mem.users.has(email)) mem.users.set(email, { email, createdAt: new Date().toISOString() });
+  if (!mem.users.has(email)) mem.users.set(email, { email, createdAt: new Date().toISOString(), plan: 'free' });
+}
+
+async function getUser(email) {
+  if (redis) return (await redis.get(`user:${email}`)) || null;
+  return mem.users.get(email) || null;
+}
+
+// Freemium: the plan lives on the server user record so a client can't
+// self-upgrade by editing localStorage. Founding-stage upgrades are done by
+// the founder via the admin route after a Stripe payment lands.
+async function setPlan(email, plan) {
+  await ensureUser(email);
+  if (redis) {
+    const u = (await redis.get(`user:${email}`)) || { email, createdAt: new Date().toISOString() };
+    await redis.set(`user:${email}`, { ...u, plan });
+    return;
+  }
+  mem.users.set(email, { ...(mem.users.get(email) || { email }), plan });
 }
 
 async function getWs(email) {
@@ -136,4 +154,4 @@ async function sendMagicEmail({ to, link }) {
   return { delivered: true };
 }
 
-module.exports = { putMagic, takeMagic, ensureUser, getWs, putWs, pushInbox, drainInbox, pushEvent, readEvents, listProposals, sendMagicEmail };
+module.exports = { putMagic, takeMagic, ensureUser, getUser, setPlan, getWs, putWs, pushInbox, drainInbox, pushEvent, readEvents, listProposals, sendMagicEmail };

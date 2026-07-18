@@ -7,10 +7,11 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { I, TypeIcon } from './icons';
 import TraceRail from './TraceRail';
+import { useWorkspace, raiseUpgradeNudge } from './AiPortal';
 import {
   useWS, mutate, uid, now, shortDate, findProject, findDecision, can,
   newDecision, addDecision, updateDecision, removeDecision, isDecisionDue,
-  DECISION_STATUS, DECISION_STATUS_LABEL, confidencePct, addDoc, isActionOverdue
+  DECISION_STATUS, DECISION_STATUS_LABEL, confidencePct, addDoc, isActionOverdue, underLimit
 } from './workspace';
 
 const CONF = ['low', 'medium', 'high'];
@@ -19,6 +20,7 @@ export default function DecisionsPage() {
   const { pid, docId } = useParams();
   const nav = useNavigate();
   const ws = useWS();
+  const { session } = useWorkspace();
   const project = findProject(ws, pid);
   const editable = can(ws, 'edit');
   const decision = docId ? findDecision(project, docId) : null;
@@ -26,6 +28,7 @@ export default function DecisionsPage() {
   if (decision) return <DecisionDetail project={project} decision={decision} editable={editable} nav={nav} />;
 
   const create = () => {
+    if (!underLimit(ws, session, 'decisions')) { raiseUpgradeNudge('decisions'); return; }
     const d = newDecision({ title: 'New decision', status: 'waiting', ownerId: (ws.team?.members?.[0]?.id) || 'owner' });
     mutate((w) => addDecision(w, pid, d));
     nav(`/ai/p/${pid}/decisions/${d.id}`);

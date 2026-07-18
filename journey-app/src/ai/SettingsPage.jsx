@@ -6,16 +6,58 @@ import { useWorkspace } from './AiPortal';
 import { detectOllama } from '../lib/ollama';
 import { clearIndex } from './rag';
 import { I } from './icons';
-import { useWS, mutate, uid, usingLocal, DEFAULT_THEME, ROLES, myRole, can } from './workspace';
+import { useWS, mutate, uid, usingLocal, DEFAULT_THEME, ROLES, myRole, can, planOf, PLAN_LIMITS, PLAN_LABEL, usageOf } from './workspace';
 
 const TABS = [
   { id: 'Connected Systems', glyph: 'plug', admin: true },
   { id: 'Model Hub', glyph: 'cpu', admin: true },
   { id: 'Integrations', glyph: 'network', admin: true },
   { id: 'Team & Roles', glyph: 'user' },
+  { id: 'Plan & Usage', glyph: 'card' },
   { id: 'Appearance', glyph: 'sliders' },
   { id: 'API & Webhooks', glyph: 'code', admin: true }
 ];
+
+// Freemium meters: what you've used, what the plan allows, where to upgrade.
+// Local AI is deliberately called out as unlimited on every plan — it runs
+// on the user's machine, so generosity costs nothing and sells the moat.
+function PlanTab() {
+  const ws = useWS();
+  const { session } = useWorkspace();
+  const plan = planOf(session);
+  const limits = PLAN_LIMITS[plan];
+  const usage = usageOf(ws);
+  const METER = [
+    { k: 'products', label: 'Products' },
+    { k: 'projects', label: 'Projects' },
+    { k: 'decisions', label: 'Decisions' },
+    { k: 'research', label: 'Research notes' }
+  ];
+  return (
+    <div>
+      <h3 className="ws-h3">You're on <b>{PLAN_LABEL[plan]}</b>{session?.mode === 'demo' ? ' (showcase demo — everything unlocked)' : ''}</h3>
+      {METER.map(({ k, label }) => {
+        const cap = limits[k];
+        const pct = cap === Infinity ? 0 : Math.min(100, Math.round((usage[k] / cap) * 100));
+        return (
+          <div className="planmeter" key={k}>
+            <span className="planmeterlabel">{label}</span>
+            <span className="planmeterbar"><span style={{ width: `${pct}%` }} className={pct >= 100 ? 'full' : ''} /></span>
+            <span className="planmeterval">{usage[k]} / {cap === Infinity ? '∞' : cap}</span>
+          </div>
+        );
+      })}
+      <p className="hint" style={{ marginTop: 14 }}><b>Local AI is unlimited on every plan</b> — it runs on your machine, so we never meter it. Your documents never leave your laptop either way.</p>
+      {plan === 'free' && (
+        <>
+          <h3 className="ws-h3" style={{ marginTop: 22 }}>Founding Pro — unlimited everything</h3>
+          <p className="hint">Unlimited products, projects, decisions and research · integrations & API token · scheduled WhatsApp/Gmail reminders · founding price locked for life.</p>
+          <a className="btn" href="/pricing">See founding plans →</a>
+        </>
+      )}
+    </div>
+  );
+}
 
 // Shown in place of an admin-only tab when previewing a lower role — the
 // lock itself is the demo: this is what an editor or viewer actually gets.
@@ -407,6 +449,7 @@ export default function SettingsPage() {
           {tab === 'Model Hub' && <ModelsTab />}
           {tab === 'Integrations' && <IntegrationsTab />}
           {tab === 'Team & Roles' && <TeamTab />}
+          {tab === 'Plan & Usage' && <PlanTab />}
           {tab === 'Appearance' && <AppearanceTab />}
           {tab === 'API & Webhooks' && <ApiTab />}
         </>
