@@ -374,6 +374,15 @@ export const dueDecisionCount = (ws) => (ws.projects || []).reduce((n, p) => n +
 export const projectDueCount = (project) => decisionsDueForReview(project).length;
 export { todayISO };
 
+// ---- action items ----
+// A decision's follow-ups: who does what by when, between "we decided" and
+// "it's on the board". Overdue items surface next to due reviews — the
+// workspace answers "what needs me?" without being asked.
+export const isActionOverdue = (a) => !a.done && a.due && a.due < todayISO();
+export const projectOverdueActions = (project) =>
+  (project.decisions || []).flatMap((d) => (d.actions || []).filter(isActionOverdue).map((a) => ({ ...a, decision: d })));
+export const overdueActionCount = (ws) => (ws.projects || []).reduce((n, p) => n + projectOverdueActions(p).length, 0);
+
 // ---- traceability ----
 export function parentOf(project, type, doc) {
   const t = TYPES[type];

@@ -10,7 +10,7 @@ import TraceRail from './TraceRail';
 import {
   useWS, mutate, uid, now, shortDate, findProject, findDecision, can,
   newDecision, addDecision, updateDecision, removeDecision, isDecisionDue,
-  DECISION_STATUS, DECISION_STATUS_LABEL, confidencePct, addDoc
+  DECISION_STATUS, DECISION_STATUS_LABEL, confidencePct, addDoc, isActionOverdue
 } from './workspace';
 
 const CONF = ['low', 'medium', 'high'];
@@ -218,6 +218,38 @@ function DecisionDetail({ project, decision, editable, nav }) {
         <Field label="Business" value={d.impact?.business} editable={editable} onChange={(v) => patch({ impact: { ...d.impact, business: v } })} small />
         <Field label="Technical" value={d.impact?.technical} editable={editable} onChange={(v) => patch({ impact: { ...d.impact, technical: v } })} small />
         <Field label="Customer" value={d.impact?.customer} editable={editable} onChange={(v) => patch({ impact: { ...d.impact, customer: v } })} small />
+
+        <h3 className="docsecth">Action items <span className="hint">— who does what by when, before the stories exist</span></h3>
+        {(d.actions || []).map((a, i) => {
+          const overdue = isActionOverdue(a);
+          const setA = (p) => patch({ actions: d.actions.map((x, j) => (j === i ? { ...x, ...p } : x)) });
+          return (
+            <div className={'actionrow' + (a.done ? ' done' : '') + (overdue ? ' overdue' : '')} key={a.id || i}>
+              {editable
+                ? <input type="checkbox" checked={!!a.done} onChange={(e) => setA({ done: e.target.checked })} />
+                : <I n={a.done ? 'check' : 'dot'} s={12} />}
+              {editable
+                ? <input className="actiontext" value={a.text} placeholder="What needs doing…" onChange={(e) => setA({ text: e.target.value })} />
+                : <span className="actiontext">{a.text}</span>}
+              {editable ? (
+                <select value={a.ownerId || ''} onChange={(e) => setA({ ownerId: e.target.value })}>
+                  {members.map((m) => <option key={m.id} value={m.id}>{m.email}</option>)}
+                </select>
+              ) : <span className="hint">{memberName(a.ownerId)}</span>}
+              {editable
+                ? <input type="date" value={a.due || ''} onChange={(e) => setA({ due: e.target.value })} />
+                : a.due && <span className={overdue ? 'kbstale' : 'hint'}>{shortDate(a.due + 'T00:00:00')}</span>}
+              {overdue && <span className="duepill">overdue</span>}
+              {editable && <button className="fs-linkbtn" onClick={() => patch({ actions: d.actions.filter((_, j) => j !== i) })}>×</button>}
+            </div>
+          );
+        })}
+        {!((d.actions || []).length) && !editable && <p className="railempty">No action items.</p>}
+        {editable && (
+          <button className="fs-linkbtn" onClick={() => patch({ actions: [...(d.actions || []), { id: uid(), text: '', ownerId: members[0]?.id || 'owner', due: '', done: false }] })}>
+            + Add action item
+          </button>
+        )}
 
         <h3 className="docsecth">Outcome &amp; lessons {d.outcome ? '' : <span className="hint">— filled after the review date</span>}</h3>
         <OutcomePanel decision={d} editable={editable} due={due} onRecord={recordOutcome} onEdit={(p) => patch(p)} />

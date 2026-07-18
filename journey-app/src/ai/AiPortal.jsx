@@ -8,7 +8,7 @@ import { useLocation, Routes, Route, NavLink, Navigate, Outlet, useNavigate } fr
 import { ai } from '../lib/api';
 import {
   useWS, mutate, resetWS, uid, now, findProject, findProduct, projectsOf,
-  ALL_PRODUCT, DEFAULT_THEME, TYPES, ROUTE_OF, enableUserSync, disableUserSync, can, projectDueCount
+  ALL_PRODUCT, DEFAULT_THEME, TYPES, ROUTE_OF, enableUserSync, disableUserSync, can, projectDueCount, projectOverdueActions
 } from './workspace';
 import { I, TypeIcon } from './icons';
 import ChatHome from './ChatHome';
@@ -26,6 +26,7 @@ import PlaybooksPage from './PlaybooksPage';
 import BoardPage from './BoardPage';
 import DecisionsPage from './DecisionsPage';
 import SignalsPage from './SignalsPage';
+import CommandPalette from './CommandPalette';
 import SettingsPage from './SettingsPage';
 import AssistPanel from './AssistPanel';
 import DemoCoach, { startCoach } from './DemoCoach';
@@ -179,11 +180,24 @@ function Shell() {
   const ws = useWS();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [palOpen, setPalOpen] = useState(false);
   const pid = location.pathname.match(/\/ai\/p\/([^/]+)/)?.[1] || null;
   const project = pid ? findProject(ws, pid) : null;
 
+  // ⌘K / Ctrl+K anywhere in the workspace opens the palette.
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalOpen((v) => !v); }
+    };
+    const onOpen = () => setPalOpen(true);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('feasly-palette', onOpen);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('feasly-palette', onOpen); };
+  }, []);
+
   return (
     <div className="workspace">
+      <CommandPalette open={palOpen} onClose={() => setPalOpen(false)} />
       <button className="ws-hamburger" onClick={() => setDrawerOpen(true)} aria-label="Open menu"><I n="chevronLeft" s={17} style={{ transform: 'rotate(180deg)' }} /></button>
       {drawerOpen && <div className="ws-backdrop" onClick={() => setDrawerOpen(false)} />}
       <Sidebar project={project} open={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -204,12 +218,17 @@ function ReviewBanner({ project }) {
   const nav = useNavigate();
   const location = useLocation();
   const due = projectDueCount(project);
+  const overdue = projectOverdueActions(project).length;
   const dismissed = (() => { try { return sessionStorage.getItem('fs-reviewdismiss-' + project.id) === '1'; } catch { return false; } })();
   const [hidden, setHidden] = useState(dismissed);
-  if (!due || hidden || location.pathname.includes('/decisions')) return null;
+  if ((!due && !overdue) || hidden || location.pathname.includes('/decisions')) return null;
+  const parts = [
+    due ? `${due} decision${due > 1 ? 's' : ''} past review` : null,
+    overdue ? `${overdue} action item${overdue > 1 ? 's' : ''} overdue` : null
+  ].filter(Boolean).join(' · ');
   return (
     <div className="reviewbar">
-      <span><I n="refresh" s={13} /> {due} decision{due > 1 ? 's are' : ' is'} past {due > 1 ? 'their' : 'its'} review date — close the loop on what actually happened.</span>
+      <span><I n="refresh" s={13} /> {parts} — close the loop.</span>
       <span className="reviewbaracts">
         <button className="reviewbtn" onClick={() => nav(`/ai/p/${project.id}/decisions`)}>Review now →</button>
         <button className="reviewx" onClick={() => { try { sessionStorage.setItem('fs-reviewdismiss-' + project.id, '1'); } catch { /* ignore */ } setHidden(true); }} aria-label="Dismiss"><I n="x" s={13} /></button>
@@ -395,6 +414,10 @@ function Sidebar({ project, open, onClose }) {
       <div className="fs-nav">
         <button className="fs-link home" onClick={() => { mutate((w) => ({ ...w, activeSessionId: null })); nav('/ai'); onClose(); }}>
           <I n="pen" s={14} /> New chat
+        </button>
+        <button className="fs-link fs-searchtrigger" onClick={() => { window.dispatchEvent(new Event('feasly-palette')); onClose(); }}>
+          <I n="search" s={14} /> Search & jump
+          <kbd className="fs-kbd">⌘K</kbd>
         </button>
 
         {/* Linear-style workspace views: cross-product, not nested in a project. */}

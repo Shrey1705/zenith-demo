@@ -97,11 +97,13 @@ function decisionsDue(ws, windowDays = 0) {
   const out = [];
   for (const p of ws?.projects || []) {
     for (const d of p.decisions || []) {
-      if (d.reviewDate && !d.outcome && d.reviewDate <= cutoff) {
+      const today = new Date().toISOString().slice(0, 10);
+      const actionsOverdue = (d.actions || []).filter((a) => !a.done && a.due && a.due < today).length;
+      if ((d.reviewDate && !d.outcome && d.reviewDate <= cutoff) || actionsOverdue) {
         out.push({
           project: p.name, title: d.title, status: d.status,
           confidence: Math.round((d.confidence ?? 0.5) * 100),
-          reviewDate: d.reviewDate, chosen: d.chosen || ''
+          reviewDate: d.reviewDate, chosen: d.chosen || '', actionsOverdue
         });
       }
     }
